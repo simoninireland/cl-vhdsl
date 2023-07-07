@@ -41,7 +41,7 @@ and - are ignored. Any other elements cause an error."
 
 
 (defun extract-bit (b n)
-  "Extract bit B from N, where the least-significant bit is 0."
+  "Extract bit B from N, where the least-significant bit is numbered 0."
   (logand (ash n (- b)) 1))
 
 
@@ -52,10 +52,10 @@ This function is a code generator for `destructuring-bind-bitfield'
 that constructs the list of tests and assignments implied by the
 pattern. A list of bit tests is returned, with any errors resulting in
 a nil return from the block designated by ESCAPE."
-  (labels ((match-bit (pattern l)
-	     (if (null pattern)
+  (labels ((match-bit (pat l)
+	     (if (null pat)
 		 '()
-		 (let ((op (let ((p (car pattern)))
+		 (let ((op (let ((p (car pat)))
 			     (case p
 			       ((0 1) `(if (not (equal (extract-bit ,l ,var) ,p))
 					   (return-from ,escape nil)))
@@ -63,7 +63,7 @@ a nil return from the block designated by ESCAPE."
 			       (otherwise
 				`(setq ,p (+ (extract-bit ,l ,var)
 					     (* 2 ,p)))))))
-		       (rest (match-bit (cdr pattern) (- l 1))))
+		       (rest (match-bit (cdr pat) (- l 1))))
 		   (if (null op)
 		       rest
 		       (cons op rest))))))
