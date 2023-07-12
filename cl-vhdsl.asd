@@ -20,18 +20,17 @@
 (defsystem "cl-vhdsl"
   :description "An experiment in building a hardware description DSL"
   :author "Simon Dobson <simoninireland@gmail.com"
-  :version "0.0.1"
+  :version (:read-file-form "version.sexp")
   :license "GPL3"
   :depends-on ("alexandria")
   :pathname "src/"
   :components ((:file "package")
-	       (:file "bitfields"))
-  :in-order-to ((test-op (test-op "cl-vhdsl/tests"))))
+	       (:file "bitfields" :depends-on ("package")))
+  :in-order-to ((test-op (test-op "cl-vhdsl/test"))))
 
 (defsystem "cl-vhdsl/test"
   :depends-on ("cl-vhdsl" "fiveam")
-  :serial t
-  :pathname "test/"
+slime  :pathname "test/"
   :components ((:file "package")
-	       (:file "test-bitfields"))
-  :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run! :cl-vhdsl)))
+	       (:file "test-bitfields" :depends-on ("package")))
+  :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))
