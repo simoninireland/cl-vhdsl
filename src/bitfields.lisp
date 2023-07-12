@@ -45,6 +45,8 @@ Elements 0, 1, and - are ignored. Any other elements cause an error."
   (logand (ash n (- b)) 1))
 
 
+;; ---------- Code generator ----------
+
 (defun generate-match-bitfield-code (pattern var escape)
   "Construct a matching for PATTERN against variable VAR.
 
