@@ -24,8 +24,8 @@
 (defun extract-symbols (l)
   "Extract a list of symbols appearing in L.
 
-This identifies variables to be matched against bits. Elements 0, 1,
-and - are ignored. Any other elements cause an error."
+This identifies variables (symbols) to be matched against bits.
+Elements 0, 1, and - are ignored. Any other elements cause an error."
   (if (null l)
       '()
       (let ((syms (extract-symbols (cdr l)))
@@ -45,7 +45,7 @@ and - are ignored. Any other elements cause an error."
   (logand (ash n (- b)) 1))
 
 
-(defun match-bitfield (pattern var escape)
+(defun generate-match-bitfield-code (pattern var escape)
   "Construct a matching for PATTERN against variable VAR.
 
 This function is a code generator for `destructuring-bind-bitfield'
@@ -99,7 +99,7 @@ PATTERN doesn't match N."
   (let* ((syms (extract-symbols pattern))
 	 (let-bindings (mapcar #'(lambda (s) (list s 0)) syms))
 	 (escape (gensym))
-	 (decls-and-tests (match-bitfield pattern n escape)))
+	 (decls-and-tests (generate-match-bitfield-code pattern n escape)))
     `(block ,escape
        (let ,let-bindings
 	 ,@decls-and-tests
