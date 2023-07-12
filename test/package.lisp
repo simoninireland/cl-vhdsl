@@ -17,9 +17,10 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
-(defpackage cl-vhdsl-test
-  (:use :cl)
-  (:use :cl-vhdsl)
-  (:import-from :fiveam #:is #:test #:run!))
+(defpackage cl-vhdsl/test
+  (:use :cl :cl-vhdsl :fiveam)
+  (:import-from :fiveam #:is #:test))
 
-(in-package :cl-vhdsl-test)
+(in-package :cl-vhdsl/test)
+
+(def-suite cl-vhdsl)
