@@ -1,3 +1,4 @@
+# Common Lisp
 *.FASL
 *.fasl
 *.lisp-temp
@@ -15,3 +16,15 @@
 *.sx32fsl
 *.wx64fsl
 *.wx32fsl
+
+# C extensions
+*.so
+
+# Lisp cxompiled files
+*.fasl
+
+# Emacs (and other) backup files
+*.bak
+*~
+\#*\#
+TAGS
