@@ -1,0 +1,25 @@
+* cl-vhdsl: An experiment in Common Lisp DSLs for hardware design
+
+  I work on sensor systems. Typically these are centred around
+  microcontrollers, but there's an unavoidable attraction towards
+  using custom hardware and FPGAs in some circumstances. Verilog and
+  VHDL are the standard options for hardware design these days, but
+  they're exceptionally clunky and have a horrendously steep learning
+  curve.
+
+  Simultaneously, I've become interested in Common Lisp as a language
+  for writing more serious code in, alongside my longstanding Emacs
+  hacking. This project arises as a desire to combine these two
+  emerging interests, and to explore writing some hardware description
+  functionality in Lisp to avoid having to write raw Verilog.
+
+** The name
+
+   The name ~cl-vhdsl~ is a portmanteau acronym for a project that's
+   about a Common Lisp ("cl") domain-specific language ("dsl") for
+   hardware ("h") that's very ... integrated, or something ("v").
+   Basically the name doesn't stand for anything at all.
+
+** Author
+
+   Simon Dobson <mailto:simoninireland@gmail.com>.
