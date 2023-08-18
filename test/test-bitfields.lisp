@@ -43,28 +43,47 @@
   (is (null (set-exclusive-or (cl-vhdsl::extract-symbols '(0 x y)) '(x y))))
   (is (null (set-exclusive-or (cl-vhdsl::extract-symbols '(x 0 y)) '(x y))))
   (is (null (set-exclusive-or (cl-vhdsl::extract-symbols '(x y -)) '(x y))))
-  (is (null (set-exclusive-or (cl-vhdsl::extract-symbols '(x x y y y)) '(x y)))))
+  (is (null (set-exclusive-or (cl-vhdsl::extract-symbols '(x x y y y)) '(x y))))
+
+  ;; symbols with width specifiers
+  (is (null (set-exclusive-or (cl-vhdsl::extract-symbols '((x 3) 0)) '(x))))
+  (is (null (set-exclusive-or (cl-vhdsl::extract-symbols '(z (x 3) y)) '(x y z))))
+  (is (null (set-exclusive-or (cl-vhdsl::extract-symbols '(z (x 3) x)) '(x z)))))
 
 
 (test test-bad-symbols
   "Test that meaningless elements in a bitfield pattern throw an error."
-  (signals error
-    (cl-vhdsl::extract-symbols '(x y (x))))
+  ;; string, not symbol
   (signals error
     (cl-vhdsl::extract-symbols '(x y "hello")))
-   (signals error
-    (cl-vhdsl::extract-symbols '(2 - -))))
+
+  ;; non-bit value
+  (signals error
+    (cl-vhdsl::extract-symbols '(2 - -)))
+
+  ;; non-symbol leading a width specifier
+  (signals error
+    (cl-vhdsl::extract-symbols '((2 1)))))
 
 
 ;; ---------- Extracting bits ----------
 
-(test test-bits
-  "Test we can extract bits."
+(test test-bit
+  "Test we can extract single bits."
   (is (equal (cl-vhdsl::extract-bit 0 0) 0))
   (is (equal (cl-vhdsl::extract-bit 0 1) 1))
   (is (equal (cl-vhdsl::extract-bit 1 1) 0))
   (is (equal (cl-vhdsl::extract-bit 3 #2r1000) 1))
   (is (equal (cl-vhdsl::extract-bit 5 #2r1000) 0)))
+
+
+(test test-bits
+  "Test we can extract multiple bits."
+  (is (equal (cl-vhdsl::extract-bits 0 1 0) 0))
+  (is (equal (cl-vhdsl::extract-bits 0 1 1) 1))
+  (is (equal (cl-vhdsl::extract-bits 1 1 1) 0))
+  (is (equal (cl-vhdsl::extract-bits 4 3 #2r11100) #2r111))
+  (is (equal (cl-vhdsl::extract-bits 2 2 #2r11100) #2r10)))
 
 
 ;; ---------- destructuring-bind-bitfield ----------
@@ -139,3 +158,33 @@
   (is (equal (destructuring-bind-bitfield (x y x y) #2r1101
 					  (list x y))
 	     (list #2r10 #2r11))))
+
+
+(test test-destructuring-bind-width
+  "Test we can bind bitfields using a width specifier."
+  ;; simple match
+  (is (equal (destructuring-bind-bitfield ((x 3)) #2r1010
+					  x)
+	     #2r10))
+
+  ;; match with other elements
+  (is (equal (destructuring-bind-bitfield ((x 3) 0) #2r1010
+					  x)
+	     #2r101))
+  (is (equal (destructuring-bind-bitfield (y (x 3) z) #2r11010
+					  (list x y z))
+	     (list #2r101 1 0)))
+  (is (equal (destructuring-bind-bitfield (0 (x 3) z) #2r11010
+					  (list x z))
+	     nil))
+
+  ;; match several uses of the same symbol
+  (is (equal (destructuring-bind-bitfield (x (x 3) y) #2r11010
+					  (list x y))
+	     (list #2r1101 0)))
+  (is (equal (destructuring-bind-bitfield ((x 2) (x 3) y) #2r110101
+					  (list x y))
+	     (list #2r11010 1)))
+  (is (equal (destructuring-bind-bitfield ((x 2) y (x 3)) #2r110101
+					  (list x y))
+	     (list #2r11101 0))))

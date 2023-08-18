@@ -25,7 +25,8 @@
   "Extract a list of symbols appearing in L.
 
 This identifies variables (symbols) to be matched against bits.
-Elements 0, 1, and - are ignored. Any other elements cause an error."
+Elements 0, 1, and - are ignored. A list should contain a symbol name
+and a bit width. Any other elements cause an error."
   (if (null l)
       '()
       (let ((syms (extract-symbols (cdr l)))
@@ -36,6 +37,14 @@ Elements 0, 1, and - are ignored. Any other elements cause an error."
 	       (if (member s syms)
 		   syms
 		   (cons s syms)))
+	      ((listp s)
+	       (let ((q (car s)))
+		 (cond ((not (symbolp q))
+			(error "(~S ...) cannot appear in a bitmap pattern" q))
+		       ((member q syms)
+			syms)
+		       (t
+			(cons q syms)))))
 	      (t
 	       (error "~S cannot appear in a bitmap pattern" s))))))
 
@@ -45,31 +54,53 @@ Elements 0, 1, and - are ignored. Any other elements cause an error."
   (logand (ash n (- b)) 1))
 
 
+(defun extract-bits (b w n)
+  "Extract W bits starting at B from N, where the least-significant bit is numbered 0"
+  (logand (ash n (- (- (1+ b) w)))
+	  (- (ash 1 w) 1)))
+
+
 ;; ---------- Code generator ----------
+
+(defun bits-in-pattern (pat)
+  "Count the number of bits PAT is trying to match."
+  (labels ((count-bits (pat)
+	     (let ((p (car pat)))
+	       (cond ((null p)
+		      0)
+		     ((listp p)
+		      (+ (cadr p) (count-bits (cdr pat))))
+		     (t
+		      (1+ (count-bits (cdr pat))))))))
+    (count-bits pat)))
 
 (defun generate-match-bitfield-code (pattern var escape)
   "Construct a matching for PATTERN against variable VAR.
 
-This function is a code generator for `destructuring-bind-bitfield'
+This function is the code generator for `destructuring-bind-bitfield'
 that constructs the list of tests and assignments implied by the
 pattern. A list of bit tests is returned, with any errors resulting in
 a nil return from the block designated by ESCAPE."
   (labels ((match-bit (pat l)
 	     (if (null pat)
 		 '()
-		 (let ((op (let ((p (car pat)))
-			     (case p
-			       ((0 1) `(if (not (equal (extract-bit ,l ,var) ,p))
-					   (return-from ,escape nil)))
-			       (- '())
-			       (otherwise
-				`(setq ,p (+ (extract-bit ,l ,var)
-					     (* 2 ,p)))))))
-		       (rest (match-bit (cdr pat) (- l 1))))
-		   (if (null op)
-		       rest
-		       (cons op rest))))))
-    (match-bit pattern (- (length pattern) 1))))
+		 (let ((p (car pat)))
+		   (if (listp p)
+		       (let ((n (car p))
+			     (w (cadr p)))
+			 (cons `(setq ,n (+ (extract-bits ,l ,w ,var)
+					    (ash ,n ,w)))
+			       (match-bit (cdr pat) (- l w))))
+		       (case p
+			 ((0 1) (cons `(if (not (equal (extract-bit ,l ,var) ,p))
+					   (return-from ,escape nil))
+				      (match-bit (cdr pat) (1- l))))
+			 (- (match-bit (cdr pat) (1- l)))
+			 (otherwise
+			  (cons `(setq ,p (+ (extract-bit ,l ,var)
+					     (ash ,p 1)))
+				(match-bit (cdr pat) (1- l))))))))))
+    (match-bit pattern (- (bits-in-pattern pattern) 1))))
 
 
 ;; ---------- Macro ----------
@@ -81,19 +112,25 @@ PATTERN is interpreted as a bitfield pattern with each element
 corrsponding to a bit. The last element of the list corresponds to the
 rightmpost (least significant) bit of N.
 
-Each element of PATTERN is one of 0, 1, -, or a symbol. 0 and 1 must
-match with 0 or 1 in the corrsponding bit of N. - matches either 0 or
-1 (the bit is ignored). A symbol will be declared in a let binding and
-have the corresponding bit bound to it. If the same symbol appears
-several times in PATTERN the it receives all the bits in the obvious
-order. The bits taken into a variable don't have to be consecutive,
-although that's a bit of a strange situation.
+Each element of PATTERN is one of 0, 1, -, a list, or a symbol. 0 and
+1 must match with 0 or 1 in the corrsponding bit of N. - matches
+either 0 or 1 (the bit is ignored). A symbol will be declared in a let
+binding and have the corresponding bit bound to it. If the same symbol
+appears several times in PATTERN then it receives all the bits in the
+obvious order. The bits taken into a variable don't have to be
+consecutive.
+
+A list element should take the form (x w) where x is a symbol and w is
+a number. This creates a symbol with the name x that consumes w bits
+from the pattern. As with symbols binding single bits, the same symbol
+can appear in several width specifiers, or alone to bind a single bit.
 
 For example, the pattern '(x x x 0), when matched against the number
 10 (#2r1010), will bind x to 5 (#2r101), the bits in the corresponding
 positions. The same pattern matched against 11
 (#2r1011) will fail because the rightmost bits of the number and the
-pattern don't match.
+pattern don't match. The pattern '((x 3) 0) is the same as the pattern
+'(x x x 0), and matches x against three consecutive bits.
 
 DESTRUCTURING-BIND-BITFIELD returns the value of executing BODY in an
 environment extended by the extracted variables (if any), or nil if
