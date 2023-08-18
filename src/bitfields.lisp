@@ -86,16 +86,24 @@ a nil return from the block designated by ESCAPE."
 		 '()
 		 (let ((p (car pat)))
 		   (if (listp p)
+		       ;; width specifier
 		       (let ((n (car p))
 			     (w (cadr p)))
 			 (cons `(setq ,n (+ (extract-bits ,l ,w ,var)
 					    (ash ,n ,w)))
 			       (match-bit (cdr pat) (- l w))))
+
+		       ;; single-bit match
 		       (case p
+			 ;; a 0 or 1 matches that bit, or escapes the binding
 			 ((0 1) (cons `(if (not (equal (extract-bit ,l ,var) ,p))
 					   (return-from ,escape nil))
 				      (match-bit (cdr pat) (1- l))))
+
+			 ;; a - matches any bit
 			 (- (match-bit (cdr pat) (1- l)))
+
+			 ;; a symbol binds the bit in that variable
 			 (otherwise
 			  (cons `(setq ,p (+ (extract-bit ,l ,var)
 					     (ash ,p 1)))
@@ -114,11 +122,12 @@ rightmpost (least significant) bit of N.
 
 Each element of PATTERN is one of 0, 1, -, a list, or a symbol. 0 and
 1 must match with 0 or 1 in the corrsponding bit of N. - matches
-either 0 or 1 (the bit is ignored). A symbol will be declared in a let
-binding and have the corresponding bit bound to it. If the same symbol
-appears several times in PATTERN then it receives all the bits in the
-obvious order. The bits taken into a variable don't have to be
-consecutive.
+either 0 or 1 (the bit is ignored).
+
+A symbol will be declared in a let binding and have the corresponding
+bit bound to it. If the same symbol appears several times in PATTERN
+then it receives all the bits in the obvious order. The bits taken
+into a variable don't have to be consecutive.
 
 A list element should take the form (x w) where x is a symbol and w is
 a number. This creates a symbol with the name x that consumes w bits
@@ -136,7 +145,8 @@ DESTRUCTURING-BIND-BITFIELD returns the value of executing BODY in an
 environment extended by the extracted variables (if any), or nil if
 PATTERN doesn't match N."
   (let* ((syms (extract-symbols pattern))
-	 (let-bindings (mapcar #'(lambda (s) (list s 0)) syms))
+	 (let-bindings (mapcar #'(lambda (s) (list s 0))
+			       syms))
 	 (escape (gensym))
 	 (decls-and-tests (generate-match-bitfield-code pattern n escape)))
     `(block ,escape
