@@ -22,15 +22,15 @@
   :author "Simon Dobson <simoninireland@gmail.com"
   :version (:read-file-form "version.sexp")
   :license "GPL3"
-  :depends-on ("alexandria")
+  :depends-on ("alexandria" "trivia")
   :pathname "src/"
   :components ((:file "package")
-	       (:file "bitfields" :depends-on ("package")))
+	       (:file "bitfields"))
   :in-order-to ((test-op (test-op "cl-vhdsl/test"))))
 
 (defsystem "cl-vhdsl/test"
   :depends-on ("cl-vhdsl" "fiveam")
-slime  :pathname "test/"
+  :pathname "test/"
   :components ((:file "package")
-	       (:file "test-bitfields" :depends-on ("package")))
+	       (:file "test-bitfields"))
   :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))
