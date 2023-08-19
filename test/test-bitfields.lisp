@@ -234,8 +234,24 @@
   "Test that we can include expressions as field widths."
   ;; the simplest case
   (let ((w 3))
-    (is (equal (destructuring-bind-bitmap ((x w)) #2r 1110
-					  x)
-	       #2r110)))
+    (is (equal (destructuring-bind-bitfield ((x w)) #2r1110
+					    x)
+	       #2r110))
+
+    ;; more complicated cases
+    (is (equal (destructuring-bind-bitfield (y (x w) z) #2r11101
+					    (list x y z))
+	       (list #2r110 1 1)))
+    (is (equal (destructuring-bind-bitfield (y (x w) (x w) z) #2r11101011
+					    (list x y z))
+	       (list #2r110101 1 1)))
+    (is (equal (destructuring-bind-bitfield (y (x w) 0 (x w) z) #2r111001011
+					    (list x y z))
+	       (list #2r110101 1 1)))
+    (is (equal (destructuring-bind-bitfield (y (x w) 1 (x w) z) #2r111001011
+					    (list x y z))
+	       nil))
+
+    )
 
   )
