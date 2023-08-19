@@ -57,9 +57,6 @@ and a bit width. Any other elements cause an error."
 
 ;; ---------- Code generator ----------
 
-;; TODO Also have to be careful to compute the width expressions once, and
-;; left-to-right in case of side effects.
-
 ;; TODO Check the edge cases of widths being zero, statically or at run-time.
 ;; The static case can be dealt with in the pattern compressor.
 ;; Widths less than one are always errors.
@@ -165,6 +162,40 @@ bit-twiddling."
 	       (cons p r))))))
 
 
+(defun relabel-pattern-width-specifiers (pat)
+  "Rewrite all variable width specifiers in PAT.
+
+A constant width specifier is left unchanged. A computed one is
+re-written to a variable, and a list of definitions is returned along
+with the new pattern. This is used to prevent repeated computation of
+width expressions that might have side-effects."
+  (if (null pat)
+      '(() ())
+      (let ((p (car pat))
+	    (rest (relabel-pattern-width-specifiers (cdr pat))))
+	(cond ((listp p)
+	       (if (not (numberp (cadr p)))
+		   ;; a computed width
+		   (if (not (symbolp (cadr p)))
+		       ;; not a variable reference, re-write to a new variable
+		       (let ((nv (gensym)))
+			 (list (cons (list (car p)
+					   nv)
+				     (car rest))
+			       (cons (list nv (cadr p)) (cadr rest))))
+
+		       ;; a variable reference that can't cause a side effects
+		       (list (cons p (car rest))
+			 (cadr rest)))
+
+		   ;; a fixed width, return unchanged
+		   (list (cons p (car rest))
+			 (cadr rest))))
+	      (t
+	       (list (cons p (car rest))
+		     (cadr rest)))))))
+
+
 (defun generate-match-bitfield-code (pattern var escape)
   "Construct a matching for PATTERN against variable VAR.
 
@@ -235,17 +266,22 @@ a nil return from the block designated by ESCAPE."
 			     known
 			     (append computed (list wanted))))))))
 
-    (let ((bits (bits-in-pattern pattern)))
+    (let* ((relabels (relabel-pattern-width-specifiers pattern))
+	   (bits (bits-in-pattern (car relabels))))
       (if (numberp bits)
 	  ;; number of bits is known at compile-time, use constants
 	  (match-bit pattern (1- bits) 0 nil)
 
 	  ;; number of bits must be computed
 	  (let ((nob (gensym)))
-	    `((let ((,nob (1- ,(if (equal (length bits) 1)
-				   (car bits)
-				   bits))))
-		 ,@(match-bit pattern nob 0 nil))))))))
+	    (let ((calc `((let ((,nob (1- ,(if (equal (length bits) 1)
+					   (car bits)
+					   bits))))
+			    ,@(match-bit (car relabels) nob 0 nil)))))
+	      (if (null (cadr relabels))
+		  calc
+		  `((let ,(cadr relabels)
+		       ,@calc)))))))))
 
 
 ;; ---------- Macro ----------

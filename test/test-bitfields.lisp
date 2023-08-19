@@ -252,6 +252,16 @@
 					    (list x y z))
 	       nil))
 
-    )
+    ;; computed field widths
+    (is (equal (destructuring-bind-bitfield (y (x (+ w 1)) (x w) z) #2r111101011
+					    (list x y z))
+	       (list #2r1110101 1 1)))
 
-  )
+    ;; side-effects in calculations (do once, in order)
+    (let ((v 1))
+      (is (equal (destructuring-bind-bitfield ((x v)
+					       (y (setq v (1+ v)))
+					       (z (setq v (1+ v))))
+					      #2r110111
+					      (list x y z))
+		 (list #2r1 #2r10 #2r111))))))
