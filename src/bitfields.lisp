@@ -62,17 +62,110 @@ and a bit width. Any other elements cause an error."
 
 ;; ---------- Code generator ----------
 
+;; TODO We should be able to provide an expression as a field width
+;; and have the width it be computed at run-time. Ideally generate
+;; constant code if there are no such specifiers (i.e., all the widths
+;; are constants known at compile-time), and dynamic code when needed
+;; (i.e., when there are expressions to evaluate). Also have to be
+;; careful to compute the width expressions once, and left-to-right
+;; in case of side effects.
+
 (defun bits-in-pattern (pat)
-  "Count the number of bits PAT is trying to match."
+  "Count the number of bits PAT is trying to match.
+
+If the number of bits can be computed at compile-time (i.e., all the
+widths specifiers are constants), return the total number of bits as a
+number. Otherwise, return an expression that computes the number at
+run-time."
   (labels ((count-bits (pat)
 	     (let ((p (car pat)))
 	       (cond ((null p)
-		      0)
+		      (list 0 '()))
+
+		     ;; width specifier
 		     ((listp p)
-		      (+ (cadr p) (count-bits (cdr pat))))
+		      (let ((w (cadr p))
+			    (rest (count-bits (cdr pat))))
+			(if (numberp w)
+			    (list (+ (car rest) w) (cadr rest))
+			    (list (car rest) (cons w (cadr rest))))))
+
+		     ;; single-bit match
 		     (t
-		      (1+ (count-bits (cdr pat))))))))
-    (count-bits pat)))
+		      (let ((rest (count-bits (cdr pat))))
+			(list (1+ (car rest)) (cadr rest))))))))
+    (let ((bits (count-bits pat)))
+      (if (null (cadr bits))
+	  ;; no expressions, return the umber of bits
+	  (car bits)
+
+	  ;; we have expressions, return the number-of-bits calculation
+	  `(+ ,(car bits) ,@ (cadr bits))))))
+
+
+(defun compress-pattern (pat)
+  "Compress PAT for more efficient compilation.
+
+This combines adjacent instances of the same variable into a width
+specifier, which extracts several bits in one go and so involves less
+bit-twiddling."
+  (if (null pat)
+      '()
+      (let* ((p (car pat))
+	     (r (compress-pattern (cdr pat)))
+	     (q (car r)))
+	(cond ((listp p)
+	       (cond ((listp q)
+		      (if (equal (car p) (car q))
+			  ;; (x 3) (x 4) -> (x 7)
+			  (if (and (numberp (cadr p))
+				   (numberp (cadr q)))
+			      ;; both widths known, compute total now
+			      (cons (list (car p) (+ (cadr p) (cadr q)))
+				    (cdr r))
+			      ;; both sizes not known, add computation
+			      (cons (list (car p) `(+ ,(cadr p) ,(cadr q)))
+				    (cdr r)))
+			  ;; (x 3) (y 4) -> unchanged
+			  (cons p r)))
+		     ((symbolp q)
+		      (if (equal (car p) q)
+			  ;; (x 3) x -> (x 4)
+			  (if (numberp (cadr p))
+			      ;; width is known, increment it
+			      (cons (list (car p) (1+ (cadr p)))
+				    (cdr r))
+			      ;; width is not known, add computation
+			      (cons (list (car p) `(1+ ,(cadr p)))
+				    (cdr r)))
+			  ;; (x 3) y -> unchanged
+			  (cons p r)))
+		     (t
+		      (cons p r))))
+	      ((symbolp p)
+	       (cond ((listp q)
+		      (if (equal p (car q))
+			  ;; x (x 4) -> (x 5)
+			  (if (numberp (cadr q))
+			      ;; width is known, increment it
+			      (cons (list (car q) (1+ (cadr q)))
+				    (cdr r))
+			      ;; width is not known, add computation
+			      (cons (list (car q) `(1+ ,(cadr q)))
+				    (cdr r)))
+			  ;; x (y 4) -> unchanged
+			  (cons p r)))
+		     ((symbolp q)
+		      (if (equal p q)
+			  ;; x x -> (x 2)
+			  (cons (list p 2) (cdr r))
+			  ;; x y -> unchanged
+			  (cons p r)))
+		     (t
+		      (cons p r))))
+	      (t
+	       (cons p r))))))
+
 
 (defun generate-match-bitfield-code (pattern var escape)
   "Construct a matching for PATTERN against variable VAR.
@@ -81,7 +174,7 @@ This function is the code generator for `destructuring-bind-bitfield'
 that constructs the list of tests and assignments implied by the
 pattern. A list of bit tests is returned, with any errors resulting in
 a nil return from the block designated by ESCAPE."
-  (labels ((match-bit (pat l)
+  (labels ((match-bit (pat bits consumed)
 	     (if (null pat)
 		 '()
 		 (let ((p (car pat)))
@@ -89,26 +182,32 @@ a nil return from the block designated by ESCAPE."
 		       ;; width specifier
 		       (let ((n (car p))
 			     (w (cadr p)))
-			 (cons `(setq ,n (+ (extract-bits ,l ,w ,var)
+			 (cons `(setq ,n (+ (extract-bits ,(- bits consumed) ,w ,var)
 					    (ash ,n ,w)))
-			       (match-bit (cdr pat) (- l w))))
+			       (match-bit (cdr pat) bits (+ consumed w))))
 
 		       ;; single-bit match
 		       (case p
 			 ;; a 0 or 1 matches that bit, or escapes the binding
-			 ((0 1) (cons `(if (not (equal (extract-bit ,l ,var) ,p))
+			 ((0 1) (cons `(if (not (equal (extract-bit ,(- bits consumed) ,var) ,p))
 					   (return-from ,escape nil))
-				      (match-bit (cdr pat) (1- l))))
+				      (match-bit (cdr pat) bits (1+ consumed))))
 
 			 ;; a - matches any bit
-			 (- (match-bit (cdr pat) (1- l)))
+			 (- (match-bit (cdr pat) bits (1+ consumed)))
 
 			 ;; a symbol binds the bit in that variable
 			 (otherwise
-			  (cons `(setq ,p (+ (extract-bit ,l ,var)
+			  (cons `(setq ,p (+ (extract-bit ,(- bits consumed) ,var)
 					     (ash ,p 1)))
-				(match-bit (cdr pat) (1- l))))))))))
-    (match-bit pattern (- (bits-in-pattern pattern) 1))))
+				(match-bit (cdr pat) bits (1+ consumed))))))))))
+    (let ((bits (bits-in-pattern pattern)))
+      (if (numberp bits)
+	  ;; number of bits is known at compile-time, use constants
+	  (match-bit pattern (- bits 1) 0)
+
+	  ;; number of bits must be computed
+	  (error "Can't yet handle dynamic bitfield widths")))))
 
 
 ;; ---------- Macro ----------

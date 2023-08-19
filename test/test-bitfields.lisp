@@ -86,6 +86,47 @@
   (is (equal (cl-vhdsl::extract-bits 2 2 #2r11100) #2r10)))
 
 
+;; ---------- Pattern compression ----------
+
+(test test-pattern-compression
+  "Test the pattern compression logic."
+  ;; no action
+  (is (equal (cl-vhdsl::compress-pattern '(x y z))
+	     '(x y z)))
+  (is (equal (cl-vhdsl::compress-pattern '(x y x))
+	     '(x y x)))
+  (is (equal (cl-vhdsl::compress-pattern '(x 1 - x))
+	     '(x 1 - x)))
+  (is (equal (cl-vhdsl::compress-pattern '((x 4) y x))
+	     '((x 4) y x)))
+  (is (equal (cl-vhdsl::compress-pattern '((x 4) y (x 3)))
+	     '((x 4) y (x 3))))
+
+  ;; sequences
+  (is (equal (cl-vhdsl::compress-pattern '(x x x))
+	     '((x 3))))
+  (is (equal (cl-vhdsl::compress-pattern '(x x y))
+	     '((x 2) y)))
+  (is (equal (cl-vhdsl::compress-pattern '((x 2) (x 3) y))
+	     '((x 5) y)))
+  (is (equal (cl-vhdsl::compress-pattern '((x 2) x x))
+	     '((x 4))))
+  (is (equal (cl-vhdsl::compress-pattern '(y - (x 2) (x 3) y))
+	     '(y - (x 5) y)))
+
+  ;; sequences with unknown (run-time) widths
+  (is (equal (cl-vhdsl::compress-pattern '((x n) x y))
+	     '((x (1+ n)) y)))
+  (is (equal (cl-vhdsl::compress-pattern '(x (x n) y))
+	     '((x (1+ n)) y)))
+  (is (equal (cl-vhdsl::compress-pattern '(x (y n) z))
+	     '(x (y n) z)))
+  (is (equal (cl-vhdsl::compress-pattern '((x n) x (x n) y))
+	     '((x (+ n (1+ n))) y)))
+  (is (equal (cl-vhdsl::compress-pattern '((x n) (x m) y))
+	     '((x (+ n m)) y))))
+
+
 ;; ---------- destructuring-bind-bitfield ----------
 
 (test test-destructuring-constants
@@ -188,3 +229,13 @@
   (is (equal (destructuring-bind-bitfield ((x 2) y (x 3)) #2r110101
 					  (list x y))
 	     (list #2r11101 0))))
+
+(test destructuring-bind-variable-width
+  "Test that we can include expressions as field widths."
+  ;; the simplest case
+  (let ((w 3))
+    (is (equal (destructuring-bind-bitmap ((x w)) #2r 1110
+					  x)
+	       #2r110)))
+
+  )
