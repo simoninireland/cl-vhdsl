@@ -266,8 +266,9 @@ a nil return from the block designated by ESCAPE."
 			     known
 			     (append computed (list wanted))))))))
 
-    (let* ((relabels (relabel-pattern-width-specifiers pattern))
-	   (bits (bits-in-pattern (car relabels))))
+    (let* ((relabels (relabel-pattern-width-specifiers pattern)) ;; extract computed widths as variables
+	   (cpattern (compress-pattern (car relabels)))          ;; compress consecutive occurrances
+	   (bits (bits-in-pattern cpattern)))                    ;; compute pattern width
       (if (numberp bits)
 	  ;; number of bits is known at compile-time, use constants
 	  (match-bit pattern (1- bits) 0 nil)
