@@ -307,12 +307,21 @@ a number. This creates a symbol with the name x that consumes w bits
 from the pattern. As with symbols binding single bits, the same symbol
 can appear in several width specifiers, or alone to bind a single bit.
 
+The width specifier can be a constant, a variable reference, or an
+arbitrary form that returns a number. Forms are evaluated in order and
+only once, so side-effects occur as expected.
+
 For example, the pattern '(x x x 0), when matched against the number
 10 (#2r1010), will bind x to 5 (#2r101), the bits in the corresponding
 positions. The same pattern matched against 11
 (#2r1011) will fail because the rightmost bits of the number and the
-pattern don't match. The pattern '((x 3) 0) is the same as the pattern
-'(x x x 0), and matches x against three consecutive bits.
+pattern don't match. The following patterns are all the same:
+
+   - '(x x x 0)
+   - '((x 3) 0)
+   - (let ((w 3)) '((x w) 0))
+   - (let ((w 2)) '((x w) x 0)
+   - (let ((w 2)) '((w (+1 w)) 0)
 
 DESTRUCTURING-BIND-BITFIELD returns the value of executing BODY in an
 environment extended by the extracted variables (if any), or nil if
