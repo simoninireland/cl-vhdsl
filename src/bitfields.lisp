@@ -170,9 +170,12 @@ calculated widths into new variable bindings."
   "Rewrite all variable width specifiers in PAT.
 
 A constant width specifier is left unchanged. A computed one is
-re-written to a variable, and a list of definitions is returned along
-with the new pattern. This is used to prevent repeated computation of
-width expressions that might have side-effects."
+re-written to a new variable, and a list of definitions is returned
+along with the new pattern. This is used to prevent repeated
+computation of width expressions that might have side-effects.
+
+Width specifiers consisting of a single variable reference are not
+re-written, since such references can't generate side-effects."
   (if (null pat)
       '(() ())
       (let ((p (car pat))
@@ -180,17 +183,17 @@ width expressions that might have side-effects."
 	(cond ((listp p)
 	       (if (not (numberp (cadr p)))
 		   ;; a computed width
-		   (if (not (symbolp (cadr p)))
-		       ;; not a variable reference, re-write to a new variable
-		       (let ((nv (gensym)))
-			 (list (cons (list (car p)
-					   nv)
-				     (car rest))
-			       (cons (list nv (cadr p)) (cadr rest))))
-
+		   (if (symbolp (cadr p))
 		       ;; a variable reference that can't cause a side effects
 		       (list (cons p (car rest))
-			 (cadr rest)))
+			 (cadr rest))
+
+		       ;; not a variable reference, re-write to a new variable
+		       (let ((nv (gensym)))
+			 (list (cons (list (car p) nv)    ; re-written width
+				     (car rest))
+			       (cons (list nv (cadr p))   ; new variable with width calculaton
+				     (cadr rest)))))
 
 		   ;; a fixed width, return unchanged
 		   (list (cons p (car rest))
@@ -271,9 +274,9 @@ return from the block designated by ESCAPE."
 			     known
 			     (append computed (list wanted))))))))
 
-    (let* ((relabels (relabel-pattern-width-specifiers pattern)) ;; extract computed widths as variables
-	   (cpattern (compress-pattern (car relabels)))          ;; compress consecutive occurrances
-	   (bits (bits-in-pattern cpattern)))                    ;; compute pattern width
+    (let* ((relabels (relabel-pattern-width-specifiers pattern)) ; extract computed widths as variables
+	   (cpattern (compress-pattern (car relabels)))          ; compress consecutive occurrances
+	   (bits (bits-in-pattern cpattern)))                    ; compute pattern width
       (if (numberp bits)
 	  ;; number of bits is known at compile-time, use constants
 	  (match-bit pattern (1- bits) 0 nil)
@@ -286,7 +289,7 @@ return from the block designated by ESCAPE."
 			    ,@(match-bit (car relabels) nob 0 nil)))))
 	      (if (null (cadr relabels))
 		  calc
-		  `((let ,(cadr relabels)
+		  `((let* ,(cadr relabels)   ; let* just in case the sequening really matters
 		       ,@calc)))))))))
 
 
