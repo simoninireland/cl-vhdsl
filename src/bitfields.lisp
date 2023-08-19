@@ -21,6 +21,18 @@
 
 ;; ---------- Helper functions ----------
 
+(defun extract-bits (b w n)
+  "Extract W bits starting at B from N, where the least-significant bit is numbered 0"
+  (logand (ash n (- (- (1+ b) w)))
+	  (- (ash 1 w) 1)))
+
+
+;; ---------- Code generator ----------
+
+;; TODO Check the edge cases of widths being zero, statically or at run-time.
+;; The static case can be dealt with in the pattern compressor.
+;; Widths less than one are always errors.
+
 (defun extract-symbols (l)
   "Extract a list of symbols appearing in L.
 
@@ -48,18 +60,6 @@ and a bit width. Any other elements cause an error."
 	      (t
 	       (error "~S cannot appear in a bitmap pattern" s))))))
 
-
-(defun extract-bits (b w n)
-  "Extract W bits starting at B from N, where the least-significant bit is numbered 0"
-  (logand (ash n (- (- (1+ b) w)))
-	  (- (ash 1 w) 1)))
-
-
-;; ---------- Code generator ----------
-
-;; TODO Check the edge cases of widths being zero, statically or at run-time.
-;; The static case can be dealt with in the pattern compressor.
-;; Widths less than one are always errors.
 
 (defun bits-in-pattern (pat)
   "Count the number of bits PAT is trying to match.
@@ -103,7 +103,11 @@ run-time."
 
 This combines adjacent instances of the same variable into a width
 specifier, which extracts several bits in one go and so involves less
-bit-twiddling."
+bit-twiddling.
+
+PAT is assumed to be side-effect-free, which means it should first be
+passed through `relabel-pattern-width-specifiers` to factor-out
+calculated widths into new variable bindings."
   (if (null pat)
       '()
       (let* ((p (car pat))
@@ -199,10 +203,11 @@ width expressions that might have side-effects."
 (defun generate-match-bitfield-code (pattern var escape)
   "Construct a matching for PATTERN against variable VAR.
 
-This function is the code generator for `destructuring-bind-bitfield'
-that constructs the list of tests and assignments implied by the
-pattern. A list of assignments is returned, with any errors resulting in
-a nil return from the block designated by ESCAPE."
+This function is the main code generator for
+`destructuring-bind-bitfield' that constructs the list of tests and
+assignments implied by the pattern. A list of assignments is returned,
+with any errors in pattern-matching at run-time resulting in a nil
+return from the block designated by ESCAPE."
   (labels ((match-bit (pat bits known computed)
 	     (if (null pat)
 		 '()
