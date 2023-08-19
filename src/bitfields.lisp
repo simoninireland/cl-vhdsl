@@ -29,9 +29,7 @@
 
 ;; ---------- Code generator ----------
 
-;; TODO Check the edge cases of widths being zero, statically or at run-time.
-;; The static case can be dealt with in the pattern compressor.
-;; Widths less than one are always errors.
+;; TODO Widths less than zero, or non-integer, are always errors.
 
 (defun extract-symbols (l)
   "Extract a list of symbols appearing in L.
@@ -118,7 +116,10 @@ calculated widths into new variable bindings."
 	     (r (compress-pattern (cdr pat)))
 	     (q (car r)))
 	(cond ((listp p)
-	       (cond ((listp q)
+	       (cond ((equal (cadr p) 0)
+		      ;; (x 0) -> deleted
+		      r)
+		     ((listp q)
 		      (if (equal (car p) (car q))
 			  ;; (x 3) (x 4) -> (x 7)
 			  (if (and (numberp (cadr p))
