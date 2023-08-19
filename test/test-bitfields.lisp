@@ -264,4 +264,11 @@
 					       (z (setq v (1+ v))))
 					      #2r110111
 					      (list x y z))
-		 (list #2r1 #2r10 #2r111))))))
+		 (list #2r1 #2r10 #2r111))))
+    (let ((v 1))
+      (is (equal (destructuring-bind-bitfield ((x v)
+					       (y (setq v (1+ v)))
+					       (y (setq v (1+ v))))
+					      #2r110111
+					      (list x y))
+		 (list #2r1 #2r10111))))))
