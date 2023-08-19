@@ -67,7 +67,11 @@ and a bit width. Any other elements cause an error."
 If the number of bits can be computed at compile-time (i.e., all the
 widths specifiers are constants), return the total number of bits as a
 number. Otherwise, return an expression that computes the number at
-run-time."
+run-time.
+
+PAT is assumed to be side-effect-free, which means it should first be
+passed through `relabel-pattern-width-specifiers` to factor-out
+calculated widths into new variable bindings."
   (labels ((count-bits (pat)
 	     (let ((p (car pat)))
 	       (cond ((null p)
@@ -78,8 +82,8 @@ run-time."
 		      (let ((w (cadr p))
 			    (rest (count-bits (cdr pat))))
 			(if (numberp w)
-			    (list (+ (car rest) w) (cadr rest))
-			    (list (car rest) (cons w (cadr rest))))))
+			    (list (+ (car rest) w) (cadr rest))        ; add to known width
+			    (list (car rest) (cons w (cadr rest))))))  ; add to sequence calculation
 
 		     ;; single-bit match
 		     (t
@@ -93,9 +97,9 @@ run-time."
 	  ;; we have expressions, return the number-of-bits calculation
 	  (if (equal (car bits) 0)
 	      (if (equal (length (cadr bits)) 1)
-		  (cadr bits)
-		  `(+  ,@(cadr bits)))
-	      `(+ ,(car bits) ,@(cadr bits)))))))
+		  (cadr bits)                      ; a single calculation, return directly
+		  `(+  ,@(cadr bits)))             ; a sequence, add them together
+	      `(+ ,(car bits) ,@(cadr bits)))))))  ; generally, add the known and sequence
 
 
 (defun compress-pattern (pat)
