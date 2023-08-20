@@ -27,7 +27,7 @@
 	  (- (ash 1 w) 1)))
 
 
-;; ---------- Code generator ----------
+;; ---------- Code generators ----------
 
 ;; TODO Widths less than zero, or non-integer, are always errors.
 
@@ -212,7 +212,7 @@ re-written, since such references can't generate side-effects."
   "Construct a matching for PATTERN against variable VAR.
 
 This function is the main code generator for
-`destructuring-bind-bitfield' that constructs the list of tests and
+`with-bitfields' that constructs the list of tests and
 assignments implied by the pattern. A list of assignments is returned,
 with any errors in pattern-matching at run-time resulting in a nil
 return from the block designated by ESCAPE."
@@ -298,9 +298,9 @@ return from the block designated by ESCAPE."
 		       ,@calc)))))))))
 
 
-;; ---------- Macro ----------
+;; ---------- with-bitfields  ----------
 
-(defmacro destructuring-bind-bitfield (pattern n &rest body)
+(defmacro with-bitfields (pattern n &rest body)
   "Bind variables in PATTERN to the bits of N within BODY.
 
 PATTERN is interpreted as a bitfield pattern with each element
@@ -337,7 +337,7 @@ pattern don't match. The following patterns are all the same:
    - (let ((w 2)) '((x w) x 0)
    - (let ((w 2)) '((w (+1 w)) 0)
 
-DESTRUCTURING-BIND-BITFIELD returns the value of executing BODY in an
+WITH-BITFIELDS returns the value of executing BODY in an
 environment extended by the extracted variables (if any), or nil if
 PATTERN doesn't match N."
   (let* ((syms (extract-symbols pattern))

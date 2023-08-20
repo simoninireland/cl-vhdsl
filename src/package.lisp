@@ -19,6 +19,6 @@
 
 (defpackage cl-vhdsl
   (:use :cl)
-  (:export #:destructuring-bind-bitfield))
+  (:export #:with-bitfields))
 
 (in-package :cl-vhdsl)

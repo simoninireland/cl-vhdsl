@@ -70,11 +70,11 @@
 
 (test test-bit
   "Test we can extract single bits."
-  (is (equal (cl-vhdsl::extract-bit 0 0) 0))
-  (is (equal (cl-vhdsl::extract-bit 0 1) 1))
-  (is (equal (cl-vhdsl::extract-bit 1 1) 0))
-  (is (equal (cl-vhdsl::extract-bit 3 #2r1000) 1))
-  (is (equal (cl-vhdsl::extract-bit 5 #2r1000) 0)))
+  (is (equal (cl-vhdsl::extract-bits 0 1 0) 0))
+  (is (equal (cl-vhdsl::extract-bits 0 1 1) 1))
+  (is (equal (cl-vhdsl::extract-bits 1 1 1) 0))
+  (is (equal (cl-vhdsl::extract-bits 3 1 #2r1000) 1))
+  (is (equal (cl-vhdsl::extract-bits 5 1 #2r1000) 0)))
 
 
 (test test-bits
@@ -127,76 +127,76 @@
 	     '((x (+ n m)) y))))
 
 
-;; ---------- destructuring-bind-bitfield ----------
+;; ---------- with-bitfields ----------
 
 (test test-destructuring-constants
   "Test constant matches, no binding."
   ;; successes
-  (is (destructuring-bind-bitfield (0) #2r100
+  (is (with-bitfields (0) #2r100
 				   T))
-  (is (destructuring-bind-bitfield (1 0 0) #2r100
+  (is (with-bitfields (1 0 0) #2r100
 				   T))
 
   ;; failures (body isn't evaluated)
-  (is (not (destructuring-bind-bitfield (1 0 1) #2r100
+  (is (not (with-bitfields (1 0 1) #2r100
 					T))))
 
 
 (test test-destructuring-ignore
   "Test we ignore bits when needed."
-  (is (destructuring-bind-bitfield (1 - 0) #2r100
+  (is (with-bitfields (1 - 0) #2r100
 				   T))
-  (is (destructuring-bind-bitfield (1 - 0) #2r110
+  (is (with-bitfields (1 - 0) #2r110
 				   T)))
 
 
 (test test-destructuring-bind-single
   "Test we bind single-bit variables correctly."
   ;; single-character symbols
-  (is (equal (destructuring-bind-bitfield (x 0 0) #2r100
+  (is (equal (with-bitfields (x 0 0) #2r100
 					  x)
 	     1))
 
   ;; long symbols
-  (is (equal (destructuring-bind-bitfield (xyz 0 0) #2r100
+  (is (equal (with-bitfields (xyz 0 0) #2r100
 					  xyz)
 	     1)))
 
 
 (test test-destructuring-bind-multi
   "Test we bind multiple-bit variables correctly."
-  (is (equal (destructuring-bind-bitfield (x x 0) #2r100
+  (is (equal (with-bitfields (x x 0) #2r100
 					  x)
 	     #2r10))
-  (is (equal (destructuring-bind-bitfield (x x x) #2r100
+  (is (equal (with-bitfields (x x x) #2r100
 					  x)
 	     #2r100))
 
   ;; occurrances don't have to be contiguous
-  (is (equal (destructuring-bind-bitfield (x x 0 x) #2r1101
+  (is (equal (with-bitfields (x x 0 x) #2r1101
 					  x)
 	     #2r111)))
 
 
 (test test-destructuring-bind-several
   "Test the binding of several variables."
-  (is (equal (destructuring-bind-bitfield (x y 0) #2r100
+  (is (equal (with-bitfields (x y 0) #2r100
 					  (list x y))
 	     (list 1 0)))
-  (is (equal (destructuring-bind-bitfield (x x y 0) #2r1100
+  (is (equal (with-bitfields (x x y 0) #2r1100
 					  (list x y))
 	     (list #2r11 0)))
-  (is (equal (destructuring-bind-bitfield (x x y y) #2r1101
+  (is (equal (with-bitfields (x x y y) #2r1101
 					  (list x y))
 	     (list #2r11 1)))
 
   ;; intermingle with constants and wildcard bits
-  (is (equal (destructuring-bind-bitfield (x x - - y y 1 0) #2r11011010
+  (is (equal (with-bitfields (x x - - y y 1 0) #2r11011010
 					  (list x y))
 	     (list #2r11 #2r10)))
 
   ;; occurrances can be interleaved (strange but legal)
-  (is (equal (destructuring-bind-bitfield (x y x y) #2r1101
+  (is (equal (with-bitfields (x y x y) #2r1101
 					  (list x y))
 	     (list #2r10 #2r11))))
 
@@ -204,71 +204,103 @@
 (test test-destructuring-bind-width
   "Test we can bind bitfields using a width specifier."
   ;; simple match
-  (is (equal (destructuring-bind-bitfield ((x 3)) #2r1010
+  (is (equal (with-bitfields ((x 3)) #2r1010
 					  x)
 	     #2r10))
 
   ;; match with other elements
-  (is (equal (destructuring-bind-bitfield ((x 3) 0) #2r1010
+  (is (equal (with-bitfields ((x 3) 0) #2r1010
 					  x)
 	     #2r101))
-  (is (equal (destructuring-bind-bitfield (y (x 3) z) #2r11010
+  (is (equal (with-bitfields (y (x 3) z) #2r11010
 					  (list x y z))
 	     (list #2r101 1 0)))
-  (is (equal (destructuring-bind-bitfield (0 (x 3) z) #2r11010
+  (is (equal (with-bitfields (0 (x 3) z) #2r11010
 					  (list x z))
 	     nil))
 
   ;; match several uses of the same symbol
-  (is (equal (destructuring-bind-bitfield (x (x 3) y) #2r11010
+  (is (equal (with-bitfields (x (x 3) y) #2r11010
 					  (list x y))
 	     (list #2r1101 0)))
-  (is (equal (destructuring-bind-bitfield ((x 2) (x 3) y) #2r110101
+  (is (equal (with-bitfields ((x 2) (x 3) y) #2r110101
 					  (list x y))
 	     (list #2r11010 1)))
-  (is (equal (destructuring-bind-bitfield ((x 2) y (x 3)) #2r110101
+  (is (equal (with-bitfields ((x 2) y (x 3)) #2r110101
 					  (list x y))
-	     (list #2r11101 0))))
+	     (list #2r11101 0)))
+
+  ;; match a zero-width field
+  (is (equal (with-bitfields ((x 0) y (x 3)) #2r110101
+					  (list x y))
+	     (list #2r101 0)))
+  (is (equal (with-bitfields ((x 0) y (x 0)) #2r110101
+					  (list x y))
+	     (list 0 1)))
+
+  ;; fail on negative and non-integer field widths
+
+
+  )
 
 (test destructuring-bind-variable-width
   "Test that we can include expressions as field widths."
   ;; the simplest case
   (let ((w 3))
-    (is (equal (destructuring-bind-bitfield ((x w)) #2r1110
+    (is (equal (with-bitfields ((x w)) #2r1110
 					    x)
 	       #2r110))
 
     ;; more complicated cases
-    (is (equal (destructuring-bind-bitfield (y (x w) z) #2r11101
+    (is (equal (with-bitfields (y (x w) z) #2r11101
 					    (list x y z))
 	       (list #2r110 1 1)))
-    (is (equal (destructuring-bind-bitfield (y (x w) (x w) z) #2r11101011
+    (is (equal (with-bitfields (y (x w) (x w) z) #2r11101011
 					    (list x y z))
 	       (list #2r110101 1 1)))
-    (is (equal (destructuring-bind-bitfield (y (x w) 0 (x w) z) #2r111001011
+    (is (equal (with-bitfields (y (x w) 0 (x w) z) #2r111001011
 					    (list x y z))
 	       (list #2r110101 1 1)))
-    (is (equal (destructuring-bind-bitfield (y (x w) 1 (x w) z) #2r111001011
+    (is (equal (with-bitfields (y (x w) 1 (x w) z) #2r111001011
 					    (list x y z))
 	       nil))
 
     ;; computed field widths
-    (is (equal (destructuring-bind-bitfield (y (x (+ w 1)) (x w) z) #2r111101011
+    (is (equal (with-bitfields (y (x (+ w 1)) (x w) z) #2r111101011
 					    (list x y z))
 	       (list #2r1110101 1 1)))
 
     ;; side-effects in calculations (do once, in order)
     (let ((v 1))
-      (is (equal (destructuring-bind-bitfield ((x v)
+      (is (equal (with-bitfields ((x v)
 					       (y (setq v (1+ v)))
 					       (z (setq v (1+ v))))
 					      #2r110111
 					      (list x y z))
 		 (list #2r1 #2r10 #2r111))))
     (let ((v 1))
-      (is (equal (destructuring-bind-bitfield ((x v)
+      (is (equal (with-bitfields ((x v)
 					       (y (setq v (1+ v)))
 					       (y (setq v (1+ v))))
 					      #2r110111
 					      (list x y))
-		 (list #2r1 #2r10111))))))
+		 (list #2r1 #2r10111))))
+
+    ;; zero-width fields
+    (let ((v 0))
+      (is (equal (with-bitfields ((x v) y (x 3)) #2r110101
+					      (list x y))
+		 (list #2r101 0))))
+    (let ((v 0))
+      (is (equal (with-bitfields ((x v) y) #2r110101
+					      (list x y))
+		 (list 0 1))))
+
+    ;; fields with nothing to match
+    (let ((v 0))
+      (is (equal (with-bitfields ((x v) (y v)) #2r110101
+					      (list x y))
+		 (list 0 0))))
+
+    ;; fail with negative or non-integer dynamic field widths
+    ))
