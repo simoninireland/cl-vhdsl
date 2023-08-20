@@ -25,6 +25,7 @@
   :depends-on ("alexandria" "trivia")
   :pathname "src/"
   :components ((:file "package")
+	       (:file "utils")
 	       (:file "bitfields"))
   :in-order-to ((test-op (test-op "cl-vhdsl/test"))))
 
