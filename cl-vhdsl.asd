@@ -1,4 +1,4 @@
-;; cl-vhdsl.asd: ASDF syystem definition for cl-vhdsl
+;; cl-vhdsl.asd: ASDF system definition for cl-vhdsl
 ;;
 ;; Copyright (C) 2023 Simon Dobson
 ;;
@@ -22,16 +22,18 @@
   :author "Simon Dobson <simoninireland@gmail.com"
   :version (:read-file-form "version.sexp")
   :license "GPL3"
-  :depends-on ("alexandria" "trivia")
+  :depends-on ("alexandria"
+	       "trivia"
+	       "cl-bitfields")
   :pathname "src/"
   :components ((:file "package")
 	       (:file "utils")
-	       (:file "bitfields"))
+)
   :in-order-to ((test-op (test-op "cl-vhdsl/test"))))
 
 (defsystem "cl-vhdsl/test"
   :depends-on ("cl-vhdsl" "fiveam")
   :pathname "test/"
   :components ((:file "package")
-	       (:file "test-bitfields"))
+)
   :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))
