@@ -26,14 +26,19 @@
 	       "trivia"
 	       "cl-bitfields")
   :pathname "src/"
+  :serial t
   :components ((:file "package")
 	       (:file "utils")
-)
+	       (:file "pin")
+	       (:file "trigger")
+	       (:file "bus")
+	       )
   :in-order-to ((test-op (test-op "cl-vhdsl/test"))))
 
 (defsystem "cl-vhdsl/test"
   :depends-on ("cl-vhdsl" "fiveam")
   :pathname "test/"
   :components ((:file "package")
-)
+	       (:file "test-bus")
+	       )
   :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))

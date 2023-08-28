@@ -17,8 +17,49 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
+(in-package :common-lisp-user)
+
 (defpackage cl-vhdsl
-  (:use :cl)
-  (:export #:with-bitfields))
+  (:use :cl
+	:alexandria
+	:cl-bitfields)
+  (:export ;; utilities
+	   #:ensure-binary
+	   #:indexed-list
+
+	   ;; pins
+	   #:pin
+	   #:pin-compoent
+	   #:pin-connection
+	   #:pin=value
+	   #:set-pin-value
+
+	   ;; triggers
+	   #:trigger
+	   #:trigger-set-behaviour
+	   #:trigger-run-behaviour
+	   #:make-active-low-trigger
+	   #:make-active-high-trigger
+
+	   ;; buses
+	   #:bus
+	   #:bus-width
+	   #:bus-wire-names
+	   #:bus-wires
+	   #:bus-connections
+	   #:bus-wire-name-index		; can be removed later
+	   #:explode-bitfield			; can be removed later
+	   #:implode-bitfield			; can be removed later
+	   #:implode-bitfield-indices		; can be removed later
+	   #:fix-bitfield-width                 ; can be removed later
+	   #:changed-bit-indices                ; can be removed later
+	   #:bus-wire-value
+	   #:set-bus-wire-value
+	   #:set-bus-wire-values
+	   #:bus-connect
+	   #:bus-pins-connected-to-wire
+
+	   ;; components
+	   ))
 
 (in-package :cl-vhdsl)
