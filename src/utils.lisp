@@ -17,6 +17,8 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
+(in-package :cl-vhdsl)
+
 ;; ---------- Type checks ----------
 
 (defun ensure-binary (v)
@@ -24,3 +26,19 @@
   (if (not (or (equal v 0)
 	       (equal v 1)))
       (error "Value ~S not a valid bit" v)))
+
+
+;; ---------- List processing ----------
+
+(defun indexed-list (is vs &optional (missing-value 0))
+  "Return a list with elements at positions indexed by IS come from VS.
+
+Indices start at 0 for the first element, as for `nth'. Elements that
+are not assigned a value are given the value in MISSING-VALUE, which
+defaults to 0."
+  (let* ((n (1+ (apply #'max is)))
+	 (l (make-list n :initial-element missing-value)))
+    (mapc (lambda (i v)
+	    (setf (nth i l) v))
+	  is vs)
+    l))
