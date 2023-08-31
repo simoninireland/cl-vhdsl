@@ -1,4 +1,4 @@
-;; pin.lisp: Pins attahed to components
+;; pin.lisp: Pins attached to components
 ;;
 ;; Copyright (C) 2023 Simon Dobson
 ;;
@@ -31,3 +31,15 @@
    (value :initform 0
 	  :accessor pin-value))
   (:documentation "A pin carrying a single bit value."))
+
+
+;; Interface
+(defgeneric pin-set-value (p v)
+  (:documentation "Set the value of pin P to V.
+
+This may give rise to triggered behavour in some pins."))
+
+
+;; Implementation
+(defmethod pin-set-value ((p pin) v)
+  (setf (pin-value p) v))

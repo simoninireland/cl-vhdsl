@@ -29,6 +29,16 @@
   (:documentation "A pin triggered on an edge."))
 
 
+;; Constructors
+(defun make-active-low-trigger (&key does)
+  "Make an active-low trigger"
+  (make-instance 'trigger :active 0 :does does))
+
+(defun make-active-high-trigger (&key does)
+  "Make an active-high trigger"
+  (make-instance 'trigger :active 1 :does does))
+
+
 ;; Interface
 (defgeneric trigger-set-behaviour (trigger f)
   (:documentation "Set trigger TRIG to fire behaviour F."))
@@ -46,16 +56,6 @@
     (when f
       (funcall f trig))))
 
-(defmethod set-pin-value :after ((trig trigger) v)
+(defmethod pin-set-value :after ((trig trigger) v)
   (if (equal (slot-value trig 'active) v)
       (trigger-run-behaviour trig)))
-
-
-;; Constructors
-(defun make-active-low-trigger (&key does)
-  "Make an active-low trigger"
-  (make-instance 'trigger :active 0 :does does))
-
-(defun make-active-high-trigger (&key does)
-  "Make an active-high trigger"
-  (make-instance 'trigger :active 1 :does does))

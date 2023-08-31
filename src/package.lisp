@@ -31,8 +31,8 @@
 	   #:pin
 	   #:pin-compoent
 	   #:pin-connection
-	   #:pin=value
-	   #:set-pin-value
+	   #:pin-value
+	   #:pin-set-value
 
 	   ;; triggers
 	   #:trigger
@@ -45,19 +45,12 @@
 	   #:bus
 	   #:bus-width
 	   #:bus-wire-names
-	   #:bus-wires
-	   #:bus-connections
-	   #:bus-wire-name-index		; can be removed later
-	   #:explode-bitfield			; can be removed later
-	   #:implode-bitfield			; can be removed later
-	   #:implode-bitfield-indices		; can be removed later
-	   #:fix-bitfield-width                 ; can be removed later
-	   #:changed-bit-indices                ; can be removed later
 	   #:bus-wire-value
-	   #:set-bus-wire-value
-	   #:set-bus-wire-values
+	   #:bus-set-wire-value
+	   #:bus-set-wire-values
 	   #:bus-connect
 	   #:bus-pins-connected-to-wire
+	   #:bus-propagate
 
 	   ;; components
 	   ))

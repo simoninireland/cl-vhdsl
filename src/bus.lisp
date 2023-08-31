@@ -26,17 +26,15 @@
 	  :reader bus-width)
    (wirenames :initform nil
 	      :accessor bus-wire-names)
-   (wires :initform 0
-	  :accessor bus-wires)
-   (connections :initform '()
-		:accessor bus-connections))
+   (wires :initform 0)
+   (connections :initform '()))
   (:documentation "A collection of wires, each attached to one or more pins."))
 
 (defmethod initialize-instance :after ((b bus) &key)
   "Create an empty alist of connections to the wires of B."
-  (setf (bus-connections b)
+  (setf (slot-value b 'connections)
 	(mapcar (lambda (i) (list i))
-		(iota (bus-width b) :start 0))))
+		(bus-wire-indices b))))
 
 
 ;; Interface
@@ -52,8 +50,11 @@ latter is looked-up in the names list."))
 (defgeneric bus-pins-connected-to-wire (b n)
   (:documentation "Return the pins connected to wire N of B."))
 
-(defgeneric bus-propagate (b oldv newv)
-  (:documentation "Propagate changes to pins attached to B.
+(defgeneric bus-set-wire-values (b vs is)
+  (:documentation "Set the values of pins of B named in IS to the corresponding VS."))
+
+(defgeneric bus-propagate (b changed)
+  (:documentation "Propagate changes to CHANGED pins of B.
 
 The value on the bus is changing from OLDV to NEWV. Any wires whose
 values have changed cause a change to be propagated to all the pins
@@ -69,6 +70,19 @@ connected to that wire."))
 ;; low-order bit comes at the end. It also doesn't match the representation
 ;; used in cl-bitfields, which matches the way numbers are written.
 
+(defun get-bit (v i)
+  "Return bit I of V."
+  (ash (logand v (ash 1 i)) (- i)))
+
+(defun set-bit (v i b)
+  "Return a new value of V with bit I set to B."
+  (let ((mask (ash 1 i)))
+    (if (equal b 1)
+	(logior v mask)
+	(if (equal (logand v mask) 0)
+	    v
+	    (logxor v mask)))))
+
 (defun explode-bitfield (v)
   "Explode the bits of V into a list.
 
@@ -82,6 +96,14 @@ The low-order bit appears at the start of the list."
       (if (null bs)
 	  '(0)
 	  bs))))
+
+(defun explode-bitfield-indices (v is)
+  "Extract the bits of V indexed by indices in IS.
+
+The low-order bit is numbered 0."
+  (mapcar (lambda (i)
+	    (get-bit v i))
+	  is))
 
 (defun implode-bitfield (bs)
   "Implode the bits in BS into a value.
@@ -97,13 +119,11 @@ The low-order bit appears at the start of the list."
 (defun implode-bitfield-indices (vs is)
   "Create a bitfield with the bits in VS at positions indexed in IS.
 
-The low-order bit is number 0. Bits not indexed and given a value are
-set to 0."
+The low-order bit is number 0. Bits not indexed are set to 0."
   (let ((f 0))
-    (mapc (lambda (i v)
-	    (if (equal v 1)
-		(setf f (logior f (ash 1 i)))))
-	  is vs)
+    (mapc (lambda (i)
+	    (setf f (set-bit f i (nth i vs))))
+	  is)
     f))
 
 (defun fix-bitfield-width (bf w)
@@ -132,53 +152,66 @@ The bitfield is returned unchanged  if it is already of at least width W."
 			    (car onbs) (cadr onbs) is)))
       (apply #'append changed))))
 
+(defun update-bit-indices (o vs is)
+  "Update the bits of O at indices IS with the values in VS."
+  (let ((n o))
+    (mapc (lambda (i v)
+	    (setf n (set-bit n i v)))
+	  is vs)
+    n))
 
 ;; Implementaton
 (defmethod bus-wire-name-index ((b bus) n)
   "Return the index associated with wire N on bus B.
 
-If the name is a number it is returned unchanged. Otherwise, the name
-is looked-up in the name mapping. An error is signalled if the named
-wire does't exist."
+If the name is a number in the range of the number of wires it is
+returned unchanged. Otherwise, the name is looked-up in the name
+mapping. An error is signalled if the named wire doesn't exist."
   (cond ((numberp n)
 	 (if (and (>= n 0)
 		  (< n (bus-width b)))
 	     n
 	     (error "Bus has no wire with index ~S" n)))
 	((symbolp n)
-	 (let ((na (assoc n (bus-wire-names b))))
-	   (if (null na)
-	       (error "Bus has no wire named ~S" n)
-	       (cadr na))))))
+	 (let ((i (position n (bus-wire-names b))))
+	   (or i
+	       (error "Bus has no wire named ~S" n))))))
 
-(defmethod bus-wire-value ((b bus) n)
-  "Return the value of wire N on bus B."
-  (let ((i (bus-wire-name-index b n)))
-    (logand (ash (slot-value b 'wires) (- i)) 1)))
+(defun bus-wire-indices (b)
+  "Return a list of the wire indices of bus B."
+  (iota (bus-width b) :start 0))
 
-(defmethod set-bus-wire-value ((b bus) n v)
-  "Set the value of wire N on bus B to V."
-  (let ((i (bus-wire-name-index b n)))
-    (setf (slot-value b 'wires)
-	  (logior (slot-value b 'wires)
-		  (ash 1 i)))))
-
-(defmethod set-bus-wire-values ((b bus) ns vs)
-  "Set the values of the wires named NS on B to VS."
-  (let* ((v (logior (bus-wires b) (implode-bitfield-indices is vs))))
-    (setf (bus-wires b) v)))
+(defun bus-wire-name-indices (b ns)
+  "Map `bus-wire-name-index' for B across the names NS."
+  (mapcar (lambda (n) (bus-wire-name-index b n))
+	  ns))
 
 (defmethod bus-connect ((b bus) n p)
-  (let ((w (assoc (bus-wire-name-index b n) (bus-connections b))))
-    (if (null (cdr w))
-	(setf (cdr w) (list p))
-	(appendf (cdr w) (list p)))))
+  (let* ((i (bus-wire-name-index b n)))
+    (appendf (cdr (assoc i (slot-value b 'connections))) (list p))))
 
-    (defmethod bus-pins-connected-to-wire ((b bus) n)
-      (let ((w (assoc (bus-wire-name-index b n) (bus-connections b))))
-    (cdr w)))
+(defmethod bus-pins-connected-to-wire ((b bus) n)
+  (let ((i (bus-wire-name-index b n)))
+    (cdr (assoc i (slot-value b 'connections)))))
 
-;; (defmethod bus-propagate ((b bus) oldv newv)
+(defmethod bus-set-wire-values ((b bus) vs ns)
+  (let* ((is (bus-wire-name-indices b ns))
+	 (oldv (slot-value b 'wires))
+	 (newv (update-bit-indices oldv vs is))
+	 (changed (changed-bit-indices oldv newv)))
+    (setf (slot-value b 'wires) newv)
+    (bus-propagate b changed)))
 
+(defun bus-set-wire-value (b v)
+  "Set the value of the wires of B to V."
+  (bus-set-wire-values b
+		       (fix-bitfield-width (explode-bitfield v) (bus-width b))
+		       (bus-wire-indices b)))
 
-;;   )
+(defmethod bus-propagate ((b bus) changed)
+  (mapc (lambda (i v)
+	  (let ((ps (bus-pins-connected-to-wire b i)))
+	    (mapc (lambda (p)
+		    (pin-set-value p v))
+		  ps)))
+	changed (explode-bitfield-indices (slot-value b 'wires) changed)))
