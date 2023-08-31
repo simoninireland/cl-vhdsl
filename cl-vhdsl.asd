@@ -32,8 +32,7 @@
 	       (:file "bitlist")
 	       (:file "pin")
 	       (:file "trigger")
-	       (:file "bus")
-	       )
+	       (:file "bus"))
   :in-order-to ((test-op (test-op "cl-vhdsl/test"))))
 
 (defsystem "cl-vhdsl/test"
@@ -41,6 +40,5 @@
   :pathname "test/"
   :components ((:file "package")
 	       (:file "test-bitlist")
-	       (:file "test-bus")
-	       )
+	       (:file "test-bus"))
   :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))
