@@ -29,6 +29,7 @@
   :serial t
   :components ((:file "package")
 	       (:file "utils")
+	       (:file "bitlist")
 	       (:file "pin")
 	       (:file "trigger")
 	       (:file "bus")
@@ -39,6 +40,7 @@
   :depends-on ("cl-vhdsl" "fiveam")
   :pathname "test/"
   :components ((:file "package")
+	       (:file "test-bitlist")
 	       (:file "test-bus")
 	       )
   :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))
