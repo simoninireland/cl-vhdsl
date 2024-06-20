@@ -34,12 +34,25 @@
 (def-register F :width 8 :documentation "Flags")
 
 
+;; ---------- Helper functions and types ----------
+
+(defun index-register-p (reg)
+  "Test whether REG is an index register."
+  (member reg (list X Y)))
+
+
+(deftype index-register ()
+  "The type of index registers."
+  `(and register
+	(satisfies index-register-p)))
+
+
 ;; ---------- Addressing modes ----------
 
 (defclass immediate (addressing-mode)
   ((value
     :documentation "The value, as an unsigned 8-bit byte."
-    :type 'word-8
+    :type word-8
     :initarg :value
     :reader immediate-value))
   (:documentation "Immediate addressing, with an inline 8-bit value."))
@@ -55,7 +68,7 @@ The style of #41H is standard for 6502 assemblers."
 (defclass absolute (addressing-mode)
   ((address
     :documentation "The address, a 16-bit word."
-    :type 'word-16
+    :type word-16
     :initarg :address
     :reader absolute-address))
   (:documentation "Absolute addressing, with an inline 16-bit address."))
@@ -69,9 +82,9 @@ The style of 3041H is standard for 6502 assemblers."
 
 
 (defclass absolute-indexed (absolute)
-  ( (index
+  ((index
     :documentation "The index register to add to the address."
-    :type 'string
+    :type index-register
     :initarg :indexed-by
     :reader absolute-indexed-index))
   (:documentation "An absolute address plus the contents of an index register"))
@@ -79,7 +92,7 @@ The style of 3041H is standard for 6502 assemblers."
 
 (defmethod print-address ((mode absolute-indexed) stream)
   "Print the value of MODE as an address follkowed by the index register."
-  (format stream "~4,0xH, ~a" (absolute-address mode) (absolute-indexed-index mode)))
+  (format stream "~4,0xH, ~a" (absolute-address mode) (register-name (absolute-indexed-index mode))))
 
 
 
