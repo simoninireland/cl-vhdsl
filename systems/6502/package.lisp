@@ -1,6 +1,6 @@
-;; cl-vhdsl.lisp: Packasge definition for cl-vhdsl
+;; Package definition for the 6502 emulator
 ;;
-;; Copyright (C) 2023 Simon Dobson
+;; Copyright (C) 2024 Simon Dobson
 ;;
 ;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
 ;;
@@ -17,8 +17,16 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
-(defpackage cl-vhdsl
-  (:use :cl :cl-bitfields)
-  (:export #:destructuring-bind-bitfield))
+(in-package :common-lisp-user)
 
-(in-package :cl-vhdsl)
+(defpackage cl-vhdsl/systems/6502
+  (:use :cl :cl-vhdsl :cl-vhdsl/def)
+  (:export
+   ;; addressing modes
+   #:immediate
+   #:immediate-value
+   #:absolute
+   #:absolute-address
+   #:absolute-indexed
+   #:absolute-indexed-index
+   #:print-address))

@@ -1,6 +1,6 @@
-;; cl-vhdsl.asd: ASDF syystem definition for cl-vhdsl
+;; System definition
 ;;
-;; Copyright (C) 2023 Simon Dobson
+;; Copyright (C) 2023--2024 Simon Dobson
 ;;
 ;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
 ;;
@@ -17,20 +17,31 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
-(defsystem "cl-vhdsl"
-  :description "An experiment in building a hardware description DSL"
+(asdf:defsystem "cl-vhdsl"
+  :description "An experiment in building a hardware and processor description DSL."
   :author "Simon Dobson <simoninireland@gmail.com"
   :version (:read-file-form "version.sexp")
   :license "GPL3"
-  :depends-on ("alexandria")
+  :depends-on ("alexandria" "cl-bitfields")
   :pathname "src/"
+  :serial t
   :components ((:file "package")
-	       (:file "bitfields" :depends-on ("package")))
+	       (:module "def"
+		:components ((:file "package")
+			     (:file "types")
+			     (:file "register")
+			     (:file "instruction")))
+	       (:module "emu"
+		:components ((:file "package")
+			     (:file "memory"))))
   :in-order-to ((test-op (test-op "cl-vhdsl/test"))))
 
-(defsystem "cl-vhdsl/test"
-  :depends-on ("cl-vhdsl" "fiveam")
-slime  :pathname "test/"
-  :components ((:file "package")
-	       (:file "test-bitfields" :depends-on ("package")))
-  :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))
+
+;; (asdf:defsystem "cl-vhdsl/test"
+;;   :description "Global tests of VHDSL."
+;;   :depends-on ("cl-vhdsl" "fiveam")
+;;   :pathname "test/"
+;;   :serial t
+;;   :components ((:file "package")
+;;	       (:file "test-bitfields"))
+;;   :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))

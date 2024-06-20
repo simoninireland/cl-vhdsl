@@ -1,6 +1,6 @@
-;; cl-vhdsl.lisp: Packasge definition for cl-vhdsl
+;; Memory
 ;;
-;; Copyright (C) 2023 Simon Dobson
+;; Copyright (C) 2024 Simon Dobson
 ;;
 ;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
 ;;
@@ -17,8 +17,20 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
-(defpackage cl-vhdsl
-  (:use :cl :cl-bitfields)
-  (:export #:destructuring-bind-bitfield))
+(in-package :cl-vhdsl/def)
 
-(in-package :cl-vhdsl)
+(defclass memory ()
+  ((size
+    :documentation "Size of memory in bytes."
+    :initarg :size
+    :initform (floor (expt 2 16))                    ;; 64Kb by default
+    :reader memory-size))
+  (:documentation "A linear byte-addressable RAM."))
+
+
+(defgeneric memory-write-byte (mem addr b)
+  (:documentation "Write B to ADDR in MEM."))
+
+
+(defgeneric memory-read-byte (mem addr)
+  (:documentation "Read byte from ADDR in MEM."))

@@ -1,6 +1,6 @@
-;; cl-vhdsl.lisp: Packasge definition for cl-vhdsl
+;; Instruction definitions
 ;;
-;; Copyright (C) 2023 Simon Dobson
+;; Copyright (C) 2024 Simon Dobson
 ;;
 ;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
 ;;
@@ -17,8 +17,28 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
-(defpackage cl-vhdsl
-  (:use :cl :cl-bitfields)
-  (:export #:destructuring-bind-bitfield))
+(in-package :cl-vhdsl/def)
 
-(in-package :cl-vhdsl)
+;; ---------- Addressing modes ----------
+
+(defclass addressing-mode ()
+  ()
+  (:documentation "A description of an addressing mode."))
+
+
+(defgeneric print-address (mode stream)
+  (:documentation "Print the value of the address MODE on STREAM."))
+
+
+;; ---------- Instructions ----------
+
+(defclass instruction ()
+  ((mnemonic
+    :documentation "The mnemonic (also the print name) of the instruction."
+    :type string
+    :initarg :mnemonic
+    :reader mnemonic))
+  (:documentation "An assembly language instruction."))
+
+
+;; ---------- Macro interface ----------
