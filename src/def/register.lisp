@@ -25,15 +25,27 @@
   ((print-name
     :documentation "The print name of the register."
     :type string
-    :initarg print-name
-    :reader name)
+    :initarg :print-name
+    :reader register-name)
    (bit-width
-    :documentation "THe width of the register in bits."
+    :documentation "The width of the register in bits."
     :type integer
-    :initarg bit-width
+    :initarg :bit-width
     :initform 8
-    :reader width))
+    :reader register-width)
+   (description
+    :documentation "Description of the register."
+    :type string
+    :initarg :documentation))
   (:documentation "A register with a fixed bit-width."))
+
+
+(defgeneric print-register (reg stream)
+  (:documentation "Print the name of REG to STREAM"))
+
+
+(defmethod print-register ((reg register) stream)
+  (format stream "~a" (register-name reg)))
 
 
 ;; ---------- Macro interface ----------
@@ -42,7 +54,7 @@
   "Define NAME as a register of WIDTH bits.
 
 WIDTH defaults to 8."
-  (let ((print-name (symbol-string name)))
+  (let ((print-name (symbol-name name)))
     `(defvar ,name (make-instance 'register
 				  :print-name ,print-name
 				  :bit-width ,width

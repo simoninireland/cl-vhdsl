@@ -32,6 +32,7 @@
 
    ;; registers
    #:register
+   #:print-register
    #:def-register
 
    ;; addressing modes
