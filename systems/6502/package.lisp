@@ -23,6 +23,7 @@
   (:use :cl :cl-vhdsl :cl-vhdsl/def)
   (:export
    ;; addressing modes
+   ;; (all but the classes can be hidden eventually)
    #:immediate
    #:immediate-value
    #:absolute
