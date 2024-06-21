@@ -26,19 +26,50 @@
   (:documentation "A description of an addressing mode."))
 
 
-(defgeneric print-address (mode stream)
+(defgeneric addressing-mode-print (mode stream)
   (:documentation "Print the value of the address MODE on STREAM."))
+
+
+(defgeneric addressing-mode-bytes (mode)
+  (:documentation "Return the bytes that encode the address in MODE."))
+
+
+(defun list-of-addressing-modes-p (modes)
+  "Helper predicate to check a list of addressing mode types (not instances)."
+  (and (consp modes)
+       (every #'(lambda (mode) (subtypep mode 'addressing-mode)) modes)))
+
+
+(deftype list-of-addressing-modes ()
+  "The type of lists of addressing modes"
+  `(satisfies list-of-addressing-modes-p))
 
 
 ;; ---------- Instructions ----------
 
 (defclass instruction ()
-  ((mnemonic
-    :documentation "The mnemonic (also the print name) of the instruction."
-    :type string
-    :initarg :mnemonic
-    :reader mnemonic))
+  ((mode
+    :documentation "The addressing mode (arguments) of the instruction."
+    :type addressing-mode
+    :initarg :addressing-mode
+    :reader instruction-addressing-mode))
   (:documentation "An assembly language instruction."))
+
+
+(defgeneric instruction-mnemonic (ins)
+  (:documentation "The mnemonic for INS."))
+
+
+(defgeneric instruction-addressing-modes (ins)
+  (:documentation "The valid addressing modes for INS."))
+
+
+(defgeneric instruction-bytes (ins)
+  (:documentation "Generate the bytes for INS."))
+
+
+(defgeneric instruction-assemble (ins)
+  (:documentation "Return the bytes constructed from assembling INS."))
 
 
 ;; ---------- Macro interface ----------

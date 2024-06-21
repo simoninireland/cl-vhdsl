@@ -28,4 +28,9 @@
    #:memory-write-byte
    #:memory-read-byte
 
+   ;; conditions
+   #:unrecognised-addressing-mode
+
+   ;; utilities
+   ;; to be refactored
    ))

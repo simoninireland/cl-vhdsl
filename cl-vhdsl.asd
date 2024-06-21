@@ -33,7 +33,8 @@
 			     (:file "instruction")))
 	       (:module "emu"
 		:components ((:file "package")
-			     (:file "memory"))))
+			     (:file "memory")
+			     (:file "conditions"))))
   :in-order-to ((test-op (test-op "cl-vhdsl/test"))))
 
 

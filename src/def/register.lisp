@@ -19,19 +19,18 @@
 
 (in-package :cl-vhdsl/def)
 
-;; ---------- Implementation ----------
+;; ---------- Registers ----------
 
 (defclass register ()
   ((print-name
     :documentation "The print name of the register."
     :type string
-    :initarg :print-name
+    :initarg :name
     :reader register-name)
    (bit-width
     :documentation "The width of the register in bits."
     :type integer
-    :initarg :bit-width
-    :initform 8
+    :initarg :width
     :reader register-width)
    (description
     :documentation "Description of the register."
@@ -40,22 +39,72 @@
   (:documentation "A register with a fixed bit-width."))
 
 
-(defgeneric print-register (reg stream)
-  (:documentation "Print the name of REG to STREAM"))
+(defclass data-register (register)
+  ()
+  (:documentation "A register holding general-purpose data."))
 
 
-(defmethod print-register ((reg register) stream)
-  (format stream "~a" (register-name reg)))
+(defclass index-register (register)
+  ()
+  (:documentation "A register holding offsets for addressing."))
+
+
+(defclass address-register (register)
+  ()
+  (:documentation "A register holding addresses."))
+
+
+(defclass special-register (register)
+  ()
+  (:documentation "A register used internally by the processor and offering bitwise access."))
+
+
+;; ---------- Flags within registers ----------
+
+(defclass flag ()
+  ((print-name
+    :documentation "The print name of the flag."
+    :type string
+    :initarg :name
+    :reader flag-name)
+   (register
+    :documentation "The register holding the flag."
+    :type special-register
+    :initarg :register
+    :reader flag-register)
+   (bit
+    :documentation "The bit within the register."
+    :type integer
+    :initarg :bit
+    :reader flag-bit)
+   (description
+    :documentation "Description of the flag."
+    :type string
+    :initarg :documentation))
+  (:documentation "A one-bit flag within a register."))
+
+
+;; ---------- Description of an architecture ----------
+
+(defclass architecture ()
+  ((memory
+    :documentation "The available memory in bytes."
+    :initform (floor (expt 2 16)) ;; 64Kb
+    :initarg :memory-size
+    :accessor architrecture-memory-size))
+  (:documentation "Full architectural description of a processor."))
+
+
 
 
 ;; ---------- Macro interface ----------
 
-(defmacro def-register (name &key (width 8) documentation)
+(defmacro defregister (name &key (width 8) documentation)
   "Define NAME as a register of WIDTH bits.
 
 WIDTH defaults to 8."
   (let ((print-name (symbol-name name)))
     `(defvar ,name (make-instance 'register
-				  :print-name ,print-name
-				  :bit-width ,width
+				  :name ,print-name
+				  :width ,width
 				  :documentation ,documentation))))

@@ -1,4 +1,4 @@
-;; Package definition for the definition package
+;; Package definition for the component definition package
 ;;
 ;; Copyright (C) 2024 Simon Dobson
 ;;
@@ -37,10 +37,16 @@
 
    ;; addressing modes
    #:addressing-mode
-   #:print-address
+   #:addressing-mode-bytes
+   #:addressing-mode-print
 
    ;; instructions
    #:instruction
+   #:instruction-mnemonic
+   #:instruction-addressing-mode
+   #:instruction-addressing-modes
+   #:instruction-bytes
+   #:instruction-assemble
 
    ;; memory
    #:memory
