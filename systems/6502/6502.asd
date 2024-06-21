@@ -1,6 +1,6 @@
-;; Package definition for the 6502 emulator
+;; 6502 emulator system definition
 ;;
-;; Copyright (C) 2024 Simon Dobson
+;; Copyright (C) 2023--2024 Simon Dobson
 ;;
 ;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
 ;;
@@ -17,17 +17,15 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
-(in-package :common-lisp-user)
-
-(defpackage cl-vhdsl/systems/6502
-  (:use :cl :cl-vhdsl/def :cl-bitfields)
-  (:export
-   ;; addressing modes
-   ;; (all but the classes can be hidden eventually)
-   #:immediate
-   #:immediate-value
-   #:absolute
-   #:absolute-address
-   #:absolute-indexed
-   #:absolute-indexed-index
-   ))
+(asdf:defsystem "6502"
+  :description "A 6502 emulator in software"
+  :author "Simon Dobson <simoninireland@gmail.com"
+  :version (:read-file-form "version.sexp")
+  :license "GPL3"
+  :depends-on ("alexandria" "cl-vhdsl")
+  :serial t
+  :components ((:file "package")
+	       (:file "arch")
+	       (:file "addressing")
+	       (:file "instructions"))
+  :in-order-to ((test-op (test-op "6502/test"))))
