@@ -17,15 +17,18 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
+;; ---------- cl-vhdsl ----------
+
 (asdf:defsystem "cl-vhdsl"
   :description "An experiment in building a hardware and processor description DSL."
   :author "Simon Dobson <simoninireland@gmail.com"
   :version (:read-file-form "version.sexp")
   :license "GPL3"
-  :depends-on ("alexandria" "cl-bitfields")
+  :depends-on ("alexandria" "cl-bitfields" "cl-ppcre" "cl-interpol")
   :pathname "src/"
   :serial t
   :components ((:file "package")
+	       (:file "utils")
 	       (:module "def"
 		:components ((:file "package")
 			     (:file "types")
@@ -38,11 +41,39 @@
   :in-order-to ((test-op (test-op "cl-vhdsl/test"))))
 
 
-;; (asdf:defsystem "cl-vhdsl/test"
-;;   :description "Global tests of VHDSL."
-;;   :depends-on ("cl-vhdsl" "fiveam")
-;;   :pathname "test/"
-;;   :serial t
-;;   :components ((:file "package")
-;;	       (:file "test-bitfields"))
-;;   :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))
+(asdf:defsystem "cl-vhdsl/test"
+  :description "Global tests of VHDSL."
+  :depends-on ("alexandria" "cl-vhdsl" "cl-vhdsl/6502" "fiveam")
+  :pathname "test/"
+  :serial t
+  :components ((:file "package")
+	       (:file "test-utils")
+	       (:file "test-assembler"))
+  :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))
+
+
+;; ---------- 6502 emulator ----------
+
+(asdf:defsystem "cl-vhdsl/6502"
+  :description "A 6502 emulator in software"
+  :author "Simon Dobson <simoninireland@gmail.com"
+  :license "GPL3"
+  :depends-on ("alexandria" "cl-ppcre" "cl-vhdsl")
+  :pathname "systems/6502/"
+  :serial t
+  :components ((:file "package")
+	       (:file "arch")
+	       (:file "addressing")
+	       (:file "instructions")
+	       (:file "assembler"))
+  :in-order-to ((test-op (test-op "6502/test"))))
+
+
+(asdf:defsystem "cl-vhdsl/6502/test"
+  :description "Tests of VHDSL 6502 emulator."
+  :depends-on ("6502" "cl-ppcre" "fiveam")
+  :pathname "systems/6502/test/"
+  :serial t
+  :components ((:file "package")
+	       (:file "test-assembler"))
+  :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))
