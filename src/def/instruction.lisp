@@ -53,25 +53,25 @@
 
 ;; ---------- Assembler patterns look-up ----------
 
-(defun assembler-make-mnemonic-regexp (clns)
-  "Convert a list of class names CLNS to a regexp that recognises their mnemonics."
-  (flet ((mnemonic-re (cln)
-	   (let ((mn (instruction-mnemonic cln)))
+(defun assembler-make-addressing-modes-regexp (clns)
+  "Convert a list of class names CLNS to a regexp that recognises their address modes."
+  (flet ((addressing-mode-re (cln)
+	   (let ((mn (addressing-mode-regexp cln)))
 	     #?"(${mn})")))
-    (let ((pats (mapcar #'mnemonic-re clns)))
+    (let ((pats (mapcar #'addressing-mode-re clns)))
       (format nil "^(?:~{~a~^|~})$" pats))))
 
 
-(defun assembler-get-mnemonic (s clns &optional re)
-  "Return the class from the list CLNS implementing the mnemonic in S.
+(defun assembler-get-addressing-mode (s clns &optional re)
+  "Return the class from the list CLNS implementing the addressing mode in S.
 
 If RE is provided it should be a regexp constructed by
-`assembler-make-mnemonic-regexp' which will be used for the matching.
+`assembler-make-addressing-modes-regexp' which will be used for the matching.
 This will not be checked against the list of classes. This is an optimisation
 to allow the regexp to be re-used across multiple instructions, rather
 than being re-created."
   (when (null re)
-    (setq re (assembler-make-mnemonic-regexp clns)))
+    (setq re (assembler-make-addressing-modes-regexp clns)))
   (multiple-value-bind (suc matches) (scan-to-strings re s)
     (when suc
       (let ((i (index-non-nil matches)))
@@ -122,26 +122,29 @@ The bytes comprise the opcode plus the addressing mode in binary."))
 
 ;; ---------- Instruction lookup ----------
 
-;; This should probably be refactored intoan architecture class.
+(defun assembler-make-mnemonic-regexp (clns)
+  "Convert a list of class names CLNS to a regexp that recognises their mnemonics."
+  (flet ((mnemonic-re (cln)
+	   (let ((mn (instruction-mnemonic cln)))
+	     #?"(${mn})")))
+    (let ((pats (mapcar #'mnemonic-re clns)))
+      (format nil "^(?:~{~a~^|~})$" pats))))
 
-(defparameter *instruction-mnemonics* (make-hash-table)
-  "A hash table mapping opcode mnemonics to their class.")
 
+(defun assembler-get-mnemonic (s clns &optional re)
+  "Return the class from the list CLNS implementing the mnemonic in S.
 
-(defun instruction-add-class-from-mnemonic (mnemonic cl)
-  "Add MNEMONIC as the instruction mapped to class CL.
-
-CL should be a sub-type of instruction. Mnemonics must be unique."
-  (let ((e (gethash *instruction-mnemonics* mnemonic)))
-    (when e (error "Mnemonic ~s already defined" mnemonic))
-
-    (setf e cl)))
-
-(defun instruction-class-for-mnemonic (mnemonic)
-  "Return the instruction class associated with MNEMONIC."
-  (let ((e (gethash *instruction-mnemonics* mnemonic)))
-    (unless e (error "Mnemonic ~s undefined" mnemonic))
-    e))
+If RE is provided it should be a regexp constructed by
+`assembler-make-mnemonic-regexp' which will be used for the matching.
+This will not be checked against the list of classes. This is an optimisation
+to allow the regexp to be re-used across multiple instructions, rather
+than being re-created."
+  (when (null re)
+    (setq re (assembler-make-mnemonic-regexp clns)))
+  (multiple-value-bind (suc matches) (scan-to-strings re s)
+    (when suc
+      (let ((i (index-non-nil matches)))
+	(elt clns i)))))
 
 
 ;; ---------- Default methods ----------
