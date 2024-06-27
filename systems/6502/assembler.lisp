@@ -74,6 +74,18 @@ A symbol is mapped to one of:
 
 ;; ---------- Helper functions ----------
 
+(defvar *assembler-instructions* nil
+  "The list of instruction classes used by the assembler.")
+
+
+(defvar *assembler-addressing-modes* nil
+  "The list of addressing mode classes used by the assembler.")
+
+
+(defvar *assembler-symbol-table-alist* '()
+  "An alist storing the symols available to the assembler.")
+
+
 (defun assembler-uncomment (s)
   "Remove any comments from S.
 
@@ -83,13 +95,27 @@ This also removes trailing whitespace."
 		 ""))
 
 
-(defun assembler-parse-instruction (fs)
-  "Parse fields FS as an instruction.
+(defun assembler-parse-instruction (fields)
+  "Parse FIELDS as an instruction."
+  (let ((inscls (assembler-get-mnemonic (car fields) *assembler-instructions*)))
+    (if inscls
+	;; we have an instruction
+	(let ((addrcls (assembler-get-addressing-mode (cadr fields) *assembler-addressing-modes*)))
+	  (if addrcls
+	      ;; we have an addressing mode
+	      (let* ((mode (make-instance addrcls))
+		     (ins (make-instance inscls :addressing-mode mode)))
+		ins)
 
-An instruction"
+	      ;; no addressing mode, fail
+	      (error "Instruction ~a needs an argument" (instruction-mnemonic inscls))
+	      )
 
+	  )
+	)
+
+    )
   )
-
 
 
 (defun assembler-parse-line (s)
@@ -99,20 +125,16 @@ This returns an assembled instruction or nil, and may change the
 state of the assembler."
   (let* ((uncommented (assembler-uncomment s))
 	 (fields (split "\\s+" uncommented)))
-    ()
+    (if (> (length fields) 0)
+	(if (string= (car fields) "")
+	    ;; no label, decode instruction
+	    (assembler-parse-instruction (cdr fields))
+
+	    ;; a labelled entry, define the label and then parse the rest
 
 
-
-
-
+	    ))
 
 
     )
-
-
-
-  (defun assembler (stream)
-    "Assemble the 6502 machine code from STR.
-
-This takes a stream and returns a list of instruction objects."
-    ))
+  )

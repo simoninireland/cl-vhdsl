@@ -19,6 +19,25 @@
 
 (in-package :cl-vhdsl/systems/6502)
 
+;; ---------- Implicit ----------
+
+(defclass implicit (addressing-mode)
+  ()
+  (:documentation "Implicit addressing, with no literal value or address."))
+
+
+(defmethod addressing-mode-data ((mode implicit) arch)
+  nil)
+
+
+(defmethod addressing-mode-regexp ((cls (eql 'implicit)))
+  "")
+
+
+(defmethod addressing-mode-bytes ((mode immediate))
+  nil)
+
+
 ;; ---------- Immediate ----------
 
 (defclass immediate (addressing-mode)
@@ -52,7 +71,7 @@
     :reader absolute-address))
   (:documentation "Absolute addressing, with an inline 16-bit address.
 
-The address is an absolute address wihtin the entire address
+The address is an absolute address within the entire address
 space of the processor."))
 
 

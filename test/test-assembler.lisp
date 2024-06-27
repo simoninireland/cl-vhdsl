@@ -51,3 +51,6 @@
   (let* ((clns (list 'LDA 'LDX 'STA))
 	 (re (assembler-make-mnemonic-regexp clns)))
      (is (string= (assembler-get-mnemonic "LDA" clns re) "LDA"))))
+
+
+;; ---------- Test parsing ----------
