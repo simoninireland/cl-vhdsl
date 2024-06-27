@@ -53,6 +53,8 @@
    ;; assembler
    #:assembler-get-mnemonic
    #:assembler-make-mnemonic-regexp
+   #:assembler-get-addressing-mode
+   #:assembler-make-addressing-modes-regexp
 
    ;; memory
    #:memory
