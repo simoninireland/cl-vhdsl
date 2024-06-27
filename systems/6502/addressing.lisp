@@ -38,6 +38,62 @@
   nil)
 
 
+;; ---------- Helper functions ----------
+
+(defvar *assembler-digits* "0123456789ABCDEF"
+  "Digits for bases up to 16.")
+
+
+(defun assembler-parse-digit (c radix)
+  "Parse C as a digit in base RADIX."
+  (let ((d (position c *assembler-digits*)))
+    (if (or (null d)
+	    (>= d radix))
+	(error "Not a digit in base ~a: ~a" radix c)
+	d)))
+
+
+(defun assembler-parse-number (s)
+  "Parse S as a number.
+
+The suffixes H, O, and B can be used to indicate hex,
+octal, and binary as needed. Decimal is assumed as
+the default."
+  (let* ((len (length s))
+	 (first (elt s 0))
+	 (last (elt s (1- len)))
+	 (radix 10)
+	 (i 0)
+	 (m 1)
+	 (n 0))
+    ;; check for negative numbers
+    (alexandria:switch (first :test #'char=)
+      (#\-
+       (setq i 1)
+       (setq m (- 1)))
+      (#\+
+       (setq i 1)))
+
+    ;; test for trailing radix
+    (alexandria:switch (last :test #'char=)
+      (#\H
+       (setq radix 16)
+       (setq len (1- len)))
+      (#\O
+       (setq radix 8)
+       (setq len (1- len)))
+      (#\B
+       (setq radix 2)
+       (setq len (1- len))))
+
+    ;; parse digits against the radix
+    (dolist (j (alexandria:iota (- len i) :start i))
+      (setq n (+ (* n radix)
+		 (assembler-parse-digit (elt s j) radix))))
+
+    (* n m)))
+
+
 ;; ---------- Immediate ----------
 
 (defclass immediate (addressing-mode)
@@ -82,6 +138,12 @@ space of the processor."))
 (defmethod addressing-mode-regexp ((cls (eql 'absolute)))
   "((?:[0-9]+)|(?:[0-9a-fA-F]+H))")
 
+
+(defmethod addressing-mode-argument ((cls (eql 'absolute)) s)
+  (let )
+
+
+  )
 
 (defun little-endian-word-16 (w)
   "Return a list of bytes in the 16-bit word, little-endian."
