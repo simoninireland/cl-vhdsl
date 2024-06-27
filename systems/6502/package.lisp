@@ -20,7 +20,8 @@
 (in-package :common-lisp-user)
 
 (defpackage cl-vhdsl/systems/6502
-  (:use :cl :cl-vhdsl/def :cl-bitfields)
+  (:use :cl :cl-ppcre :cl-interpol
+	:cl-vhdsl/def :cl-bitfields)
   (:export
    ;; addressing modes
    ;; (all but the classes can be hidden eventually)
@@ -30,4 +31,12 @@
    #:absolute-address
    #:absolute-indexed
    #:absolute-indexed-index
+
+   ;; instructions
+   #:LDA
+   #:LDX
+   #:LDY
+   #:STA
+
+   ;; assembler
    ))

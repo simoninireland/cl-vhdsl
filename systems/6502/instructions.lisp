@@ -19,15 +19,6 @@
 
 (in-package :cl-vhdsl/systems/6502)
 
-;; ---------- Addressing modes ----------
-
-(defmethod addressing-mode-data ((mode immediate))
-  (immediate-value mode))
-
-(defmethod addressing-mode-data ((mode absolute))
-  (memory-read-byte mem (absolute-address mode)))
-
-
 ;; ---------- Loads ----------
 
 (defclass LDA (instruction)
@@ -35,8 +26,8 @@
   (:documentation "LoaD Accumulator."))
 
 
-(defmethod instruction-mnemonic ((ins LDA)) "LDA")
-(defmethod instruction-addressing-modes ((ins LDA))
+(defmethod instruction-mnemonic ((cs (eql 'LDA))) "LDA")
+(defmethod instruction-addressing-modes ((cls (eql 'LDA)))
   '(immediate absolute absolute-indexed))
 (defmethod instruction-opcode ((ins LDA))
   (let* ((mode (instruction-addressing-mode ins))
@@ -51,18 +42,31 @@
   (:documentation "LoaD index register X."))
 
 
-(defmethod instruction-mnemonic ((ins LDX)) "LDX")
-(defmethod instruction-addressing-modes ((ins LDX))
+(defmethod instruction-mnemonic ((ins (eql 'LDX))) "LDX")
+(defmethod instruction-addressing-modes ((ins (eql 'LDX)))
   '(immediate absolute))
-(defmethod instruction-opcode ((ins LDA))
+(defmethod instruction-opcode ((ins LDX))
   (let* ((mode (instruction-addressing-mode ins))
 	 (b (addressing-mode-encode mode))
 	 opcode)
     (setf-bitfields opcode (1 0 1 b b b 1 0))
     opcode))
-(defmethod instruction-behaviour ((ins LDX) )
-  `(let ((addr (addressing-mode-)))) (setf X  )
-  )
+
+
+(defclass LDY (instruction)
+  ()
+  (:documentation "LoaD index register X."))
+
+
+(defmethod instruction-mnemonic ((ins (eql 'LDY))) "LDY")
+(defmethod instruction-addressing-modes ((ins (eql 'LDY)))
+  '(immediate absolute))
+(defmethod instruction-opcode ((ins LDY))
+  (let* ((mode (instruction-addressing-mode ins))
+	 (b (addressing-mode-encode mode))
+	 opcode)
+    (setf-bitfields opcode (1 0 1 b b b 0 0))
+    opcode))
 
 
 ;; ---------- Saves ----------
@@ -72,8 +76,8 @@
   (:documentation "STore Accumulator."))
 
 
-(defmethod instruction-mnemonic ((ins STA)) "STA")
-(defmethod instruction-addressing-modes ((ins STA))
+(defmethod instruction-mnemonic ((ins (eql 'STA))) "STA")
+(defmethod instruction-addressing-modes ((ins (eql 'STA)))
   '(immediate absolute absolute-indexed))
 (defmethod instruction-opcode ((ins LDA))
   (let* ((mode (instruction-addressing-mode ins))

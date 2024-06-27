@@ -18,6 +18,8 @@
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 (in-package :cl-vhdsl/def)
+(named-readtables:in-readtable :interpol-syntax)
+
 
 ;; ---------- Addressing modes ----------
 
@@ -26,8 +28,12 @@
   (:documentation "A description of an addressing mode."))
 
 
-(defgeneric addressing-mode-print (mode stream)
-  (:documentation "Print the value of the address MODE on STREAM."))
+(defgeneric addressing-mode-regexp (cls)
+  (:documentation "Return the regexp used to represent data in addressin mode CLS."))
+
+
+(defmethod addressing-mode-regexp ((ins addressing-mode))
+  (addressing-mode-regexp (class-name (class-of ins))))
 
 
 (defgeneric addressing-mode-bytes (mode)
@@ -45,6 +51,33 @@
   `(satisfies list-of-addressing-modes-p))
 
 
+;; ---------- Assembler patterns look-up ----------
+
+(defun assembler-make-mnemonic-regexp (clns)
+  "Convert a list of class names CLNS to a regexp that recognises their mnemonics."
+  (flet ((mnemonic-re (cln)
+	   (let ((mn (instruction-mnemonic cln)))
+	     #?"(${mn})")))
+    (let ((pats (mapcar #'mnemonic-re clns)))
+      (format nil "^(?:~{~a~^|~})$" pats))))
+
+
+(defun assembler-get-mnemonic (s clns &optional re)
+  "Return the class from the list CLNS implementing the mnemonic in S.
+
+If RE is provided it should be a regexp constructed by
+`assembler-make-mnemonic-regexp' which will be used for the matching.
+This will not be checked against the list of classes. This is an optimisation
+to allow the regexp to be re-used across multiple instructions, rather
+than being re-created."
+  (when (null re)
+    (setq re (assembler-make-mnemonic-regexp clns)))
+  (multiple-value-bind (suc matches) (scan-to-strings re s)
+    (when suc
+      (let ((i (index-non-nil matches)))
+	(elt clns i)))))
+
+
 ;; ---------- Instructions ----------
 
 (defclass instruction ()
@@ -56,24 +89,59 @@
   (:documentation "An assembly language instruction."))
 
 
-(defgeneric instruction-mnemonic (ins)
-  (:documentation "The mnemonic for INS."))
+(defgeneric instruction-mnemonic (cls)
+  (:documentation "Return the mnemonic associated with an instruction class."))
 
 
-(defgeneric instruction-addressing-modes (ins)
-  (:documentation "The valid addressing modes for INS."))
+(defgeneric instruction-addressing-modes (cls)
+  (:documentation "Return the list of addrssing mode classes associated with an instruction class."))
+
+
+(defmethod instruction-mnemonic ((ins instruction))
+  (instruction-mnemonic (class-name (class-of ins))))
+
+
+(defmethod instruction-addressing-mode ((ins instruction))
+  (instruction-addressing-mode (class-name (class-of ins))))
 
 
 (defgeneric instruction-opcode (ins)
-  (:documentation "The opcode bytes for the INS."))
+  (:documentation "The opcode bytes for the INS.
+
+For most processors an opcode is a single byte; some use
+multi-byte instructions. This method can return either
+a byte or a list of bytes, typically making use of the
+addressing mode to constrct the bit pattern."))
 
 
 (defgeneric instruction-bytes (ins)
-  (:documentation "Generate the bytes for INS."))
+  (:documentation "The bytes for INS.
+
+The bytes comprise the opcode plus the addressing mode in binary."))
 
 
-(defgeneric instruction-assemble (ins)
-  (:documentation "Return the bytes constructed from assembling INS."))
+;; ---------- Instruction lookup ----------
+
+;; This should probably be refactored intoan architecture class.
+
+(defparameter *instruction-mnemonics* (make-hash-table)
+  "A hash table mapping opcode mnemonics to their class.")
+
+
+(defun instruction-add-class-from-mnemonic (mnemonic cl)
+  "Add MNEMONIC as the instruction mapped to class CL.
+
+CL should be a sub-type of instruction. Mnemonics must be unique."
+  (let ((e (gethash *instruction-mnemonics* mnemonic)))
+    (when e (error "Mnemonic ~s already defined" mnemonic))
+
+    (setf e cl)))
+
+(defun instruction-class-for-mnemonic (mnemonic)
+  "Return the instruction class associated with MNEMONIC."
+  (let ((e (gethash *instruction-mnemonics* mnemonic)))
+    (unless e (error "Mnemonic ~s undefined" mnemonic))
+    e))
 
 
 ;; ---------- Default methods ----------

@@ -1,6 +1,6 @@
-;; Helper functions and macros
+;; Tests of utility functions
 ;;
-;; Copyright (C) 2024 Simon Dobson
+;; Copyright (C) 2023 Simon Dobson
 ;;
 ;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
 ;;
@@ -17,17 +17,22 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
-(in-package :cl-vhdsl)
-
-;; ---------- Searching lists for non-nil ----------
-
-(defun index-non-nil (l)
-  "Return the index (0-based) of the first non-nil element of sequnce L."
-  (dolist (i (alexandria:iota (length l)))
-    (if (not (null (elt l i)))
-	(return i))))
+(in-package :cl-vhdsl/test)
+(in-suite cl-vhdsl)
 
 
-;; ---------- if-let macro ----------
+;; ---------- Looking for non-nil elements of lists  ----------
 
-;; TBD, as in Emacs Lisp
+(test test-index-non-nil
+  "Test w can find non-nil elements of lists."
+  (is (null (index-non-nil '())))
+  (is (null (index-non-nil '(nil))))
+  (is (null (index-non-nil '(nil nil nil nil))))
+
+  (is (equal (index-non-nil '(1)) 0))
+  (is (equal (index-non-nil '(1 nil)) 0))
+  (is (equal (index-non-nil '("str" nil)) 0))
+  (is (equal (index-non-nil '(nil 1)) 1))
+  (is (equal (index-non-nil '(1 nil)) 0))
+  (is (equal (index-non-nil '(nil 1 nil)) 1))
+  (is (equal (index-non-nil '(nil nil 1 nil)) 2)))

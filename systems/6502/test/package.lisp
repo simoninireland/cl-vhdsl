@@ -1,4 +1,4 @@
-;; Helper functions and macros
+;; Test package for the 6502 emulator
 ;;
 ;; Copyright (C) 2024 Simon Dobson
 ;;
@@ -17,17 +17,11 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
-(in-package :cl-vhdsl)
+(defpackage cl-vhdsl/systems/6502/test
+  (:use :cl :cl-ppcre :fiveam
+	:cl-vhdsl :cl-vhdsl/systems/6502)
+  (:import-from :fiveam #:is #:test))
 
-;; ---------- Searching lists for non-nil ----------
+(in-package :cl-vhdsl/systems/6502/test)
 
-(defun index-non-nil (l)
-  "Return the index (0-based) of the first non-nil element of sequnce L."
-  (dolist (i (alexandria:iota (length l)))
-    (if (not (null (elt l i)))
-	(return i))))
-
-
-;; ---------- if-let macro ----------
-
-;; TBD, as in Emacs Lisp
+(def-suite cl-vhdsl/systems/6502)

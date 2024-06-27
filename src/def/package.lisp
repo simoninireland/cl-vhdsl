@@ -20,7 +20,7 @@
 (in-package :common-lisp-user)
 
 (defpackage cl-vhdsl/def
-  (:use :cl :cl-bitfields)
+  (:use :cl :cl-bitfields :cl-vhdsl :cl-ppcre)
   (:export
    ;; data types and type construtors
    #:unsigned-bitfield
@@ -32,13 +32,13 @@
 
    ;; registers
    #:register
-   #:print-register
+   #:print-registern
    #:def-register
 
    ;; addressing modes
    #:addressing-mode
+   #:addressing-mode-regexp
    #:addressing-mode-bytes
-   #:addressing-mode-print
 
    ;; instructions
    #:instruction
@@ -47,6 +47,12 @@
    #:instruction-addressing-modes
    #:instruction-bytes
    #:instruction-assemble
+   #:instruction-add-class-for-mnemonic
+   #:instruction-class-for-mnemonic
+
+   ;; assembler
+   #:assembler-get-mnemonic
+   #:assembler-make-mnemonic-regexp
 
    ;; memory
    #:memory

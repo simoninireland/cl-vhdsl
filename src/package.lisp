@@ -1,4 +1,4 @@
-;; cl-vhdsl.lisp: Packasge definition for cl-vhdsl
+;; Package definition
 ;;
 ;; Copyright (C) 2023 Simon Dobson
 ;;
@@ -17,8 +17,10 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
-(defpackage cl-vhdsl
-  (:use :cl :cl-bitfields)
-  (:export #:destructuring-bind-bitfield))
+(in-package :common-lisp-user)
 
-(in-package :cl-vhdsl)
+(defpackage cl-vhdsl
+  (:use :cl)
+  (:export
+   ;; utilities
+   #:index-non-nil))

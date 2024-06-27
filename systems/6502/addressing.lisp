@@ -30,6 +30,14 @@
   (:documentation "Immediate addressing, with an inline 8-bit value."))
 
 
+(defmethod addressing-mode-data ((mode immediate) arch)
+  (immediate-value mode))
+
+
+(defmethod addressing-mode-regexp ((cls (eql 'immediate)))
+  "#((?:[0-9]+)|(?:[0-9a-fA-F]+H))")
+
+
 (defmethod addressing-mode-bytes ((mode immediate))
   (list (immediate-value mode)))
 
@@ -46,6 +54,14 @@
 
 The address is an absolute address wihtin the entire address
 space of the processor."))
+
+
+(defmethod addressing-mode-data ((mode absolute) arch)
+  (memory-read-byte (architecture-memory arch) (absolute-address mode)))
+
+
+(defmethod addressing-mode-regexp ((cls (eql 'absolute)))
+  "((?:[0-9]+)|(?:[0-9a-fA-F]+H))")
 
 
 (defun little-endian-word-16 (w)
@@ -88,6 +104,16 @@ The offset is used to construct an address within page zero."))
 
 The address is an absolute address wihtin the entire address
 space of the processor."))
+
+
+(defmethod addressing-mode-data ((mode absolute) arch)
+  (let ((index (absolute-indexed-index mode))))
+  (memory-read-byte mem (+ (absolute-address mode)
+			   (X arch))))
+
+
+(defmethod addressing-mode-regexp ((cls (eql 'absolute-indexed)))
+  "((?:[0-9]+)|(?:[0-9a-fA-F]+H)), \\s*([XY])")
 
 
 (defmethod addressing-mode-bytes ((mode absolute-indexed))
