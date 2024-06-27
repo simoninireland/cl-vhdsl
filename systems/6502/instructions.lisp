@@ -19,6 +19,15 @@
 
 (in-package :cl-vhdsl/systems/6502)
 
+;; ---------- Addressing modes ----------
+
+(defmethod addressing-mode-data ((mode immediate))
+  (immediate-value mode))
+
+(defmethod addressing-mode-data ((mode absolute))
+  (memory-read-byte mem (absolute-address mode)))
+
+
 ;; ---------- Loads ----------
 
 (defclass LDA (instruction)
@@ -29,18 +38,12 @@
 (defmethod instruction-mnemonic ((ins LDA)) "LDA")
 (defmethod instruction-addressing-modes ((ins LDA))
   '(immediate absolute absolute-indexed))
-
-(defmethod instruction-bytes ((ins LDA))
+(defmethod instruction-opcode ((ins LDA))
   (let* ((mode (instruction-addressing-mode ins))
 	 (b (addressing-mode-encode mode))
-	 (bytes (addressing-mode-bytes mode))
 	 opcode)
     (setf-bitfields opcode (1 0 1 b b b 0 1))
-    (cons opcode bytes)))
-
-(let* ((mode (make-instance 'absolute :address #16r 20FE))
-       (ins (make-instance 'LDA :addressing-mode mode)))
-  (instruction-bytes ins))
+    opcode))
 
 
 (defclass LDX (instruction)
@@ -51,18 +54,15 @@
 (defmethod instruction-mnemonic ((ins LDX)) "LDX")
 (defmethod instruction-addressing-modes ((ins LDX))
   '(immediate absolute))
-
-(defmethod instruction-bytes ((ins LDX))
+(defmethod instruction-opcode ((ins LDA))
   (let* ((mode (instruction-addressing-mode ins))
 	 (b (addressing-mode-encode mode))
-	 (bytes (addressing-mode-bytes mode))
 	 opcode)
     (setf-bitfields opcode (1 0 1 b b b 1 0))
-    (cons opcode bytes)))
-
-(let* ((mode (make-instance 'absolute :address #16r 20FE))
-       (ins (make-instance 'LDX :addressing-mode mode)))
-  (instruction-bytes ins))
+    opcode))
+(defmethod instruction-behaviour ((ins LDX) )
+  `(let ((addr (addressing-mode-)))) (setf X  )
+  )
 
 
 ;; ---------- Saves ----------
@@ -75,11 +75,9 @@
 (defmethod instruction-mnemonic ((ins STA)) "STA")
 (defmethod instruction-addressing-modes ((ins STA))
   '(immediate absolute absolute-indexed))
-
-(defmethod instruction-bytes ((ins STA))
+(defmethod instruction-opcode ((ins LDA))
   (let* ((mode (instruction-addressing-mode ins))
 	 (b (addressing-mode-encode mode))
-	 (bytes (addressing-mode-bytes mode))
 	 opcode)
     (setf-bitfields opcode (1 0 0 b b b 0 1))
-    (cons opcode bytes)))
+    opcode))

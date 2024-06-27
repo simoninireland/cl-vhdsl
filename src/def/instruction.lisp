@@ -64,12 +64,27 @@
   (:documentation "The valid addressing modes for INS."))
 
 
+(defgeneric instruction-opcode (ins)
+  (:documentation "The opcode bytes for the INS."))
+
+
 (defgeneric instruction-bytes (ins)
   (:documentation "Generate the bytes for INS."))
 
 
 (defgeneric instruction-assemble (ins)
   (:documentation "Return the bytes constructed from assembling INS."))
+
+
+;; ---------- Default methods ----------
+
+(defmethod instruction-bytes ((ins instruction))
+  (let ((opcode (instruction-opcode ins))
+	(bytes (addressing-mode-bytes (instruction-addressing-mode ins))))
+    (cond ((consp opcode)
+	   (append opcode bytes))
+	  (t
+	   (cons opcode bytes)))))
 
 
 ;; ---------- Macro interface ----------
