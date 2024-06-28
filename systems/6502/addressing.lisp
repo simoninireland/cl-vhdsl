@@ -34,7 +34,7 @@
   "")
 
 
-(defmethod addressing-mode-bytes ((mode immediate))
+(defmethod addressing-mode-bytes ((mode implicit))
   nil)
 
 
@@ -113,6 +113,14 @@ the default."
   "#((?:[0-9]+)|(?:[0-9a-fA-F]+H))")
 
 
+(defmethod addressing-mode-parse ((mode immediate) ss)
+  (setf (slot-value mode 'value) (assembler-parse-number (car ss))))
+
+
+(defmethod addressing-mode-argument ((cls (eql 'immediate)) s)
+  (assembler-parse-number s))
+
+
 (defmethod addressing-mode-bytes ((mode immediate))
   (list (immediate-value mode)))
 
@@ -131,19 +139,11 @@ The address is an absolute address within the entire address
 space of the processor."))
 
 
-(defmethod addressing-mode-data ((mode absolute) arch)
-  (memory-read-byte (architecture-memory arch) (absolute-address mode)))
-
-
 (defmethod addressing-mode-regexp ((cls (eql 'absolute)))
   "((?:[0-9]+)|(?:[0-9a-fA-F]+H))")
 
-
-(defmethod addressing-mode-argument ((cls (eql 'absolute)) s)
-  (let )
-
-
-  )
+(defmethod addressing-mode-parse ((mode absolute) ss)
+  (setf (slot-value mode 'address) (assembler-parse-number (car ss))))
 
 (defun little-endian-word-16 (w)
   "Return a list of bytes in the 16-bit word, little-endian."
@@ -170,7 +170,7 @@ The offset is used to construct an address within page zero."))
 
 
 (defmethod addressing-mode-bytes ((mode zero-page))
-  (little-endian-word-8 (zero-page-address mode)))
+  (little-endian-word-16 (zero-page-address mode)))
 
 
 ;; ---------- Absolute indexed ----------
@@ -187,14 +187,13 @@ The address is an absolute address wihtin the entire address
 space of the processor."))
 
 
-(defmethod addressing-mode-data ((mode absolute) arch)
-  (let ((index (absolute-indexed-index mode))))
-  (memory-read-byte mem (+ (absolute-address mode)
-			   (X arch))))
-
-
 (defmethod addressing-mode-regexp ((cls (eql 'absolute-indexed)))
-  "((?:[0-9]+)|(?:[0-9a-fA-F]+H)), \\s*([XY])")
+  "((?:[0-9]+)|(?:[0-9a-fA-F]+H)),\\s*([XY])")
+
+
+(defmethod addressing-mode-parse ((mode absolute-indexed) ss)
+  (setf (slot-value mode 'address) (assembler-parse-number (car ss)))
+  (setf (slot-value mode 'index) (cadr ss)))
 
 
 (defmethod addressing-mode-bytes ((mode absolute-indexed))
@@ -209,10 +208,6 @@ space of the processor."))
 
 Rather than spcifying an offset into page zero, the offset is
 relative to the current program counter."))
-
-
-(defmethod addressing-mode-bytes ((mode relative))
-  (little-endian-word-8 (relative-offset mode)))
 
 
 ;; ---------- Indexed indirect ----------
@@ -230,7 +225,7 @@ the contents of the index register are added."))
 
 
 (defmethod addressing-mode-bytes ((mode indexed-indirect))
-  (little-endian-word-16 (indexed-indirect-address mode)))
+  (little-endian-word-16 (indexed-indirect-index mode)))
 
 
 ;; ---------- Indirect indexed ----------
@@ -249,7 +244,7 @@ index register are added to it."))
 
 
 (defmethod addressing-mode-bytes ((mode indirect-indexed))
-  (little-endian-word-16 (indirect-indexed-address mode)))
+  (little-endian-word-16 (indirect-indexed-index mode)))
 
 
 ;; ---------- Addressing mode encoding/decoding ----------
@@ -264,7 +259,7 @@ index register are added to it."))
 (defmethod addressing-mode-encode ((mode absolute)) #2r011)
 (defmethod addressing-mode-encode ((mode immediate)) #2r010)
 (defmethod addressing-mode-encode ((mode absolute-indexed))
-  (if (equal (absolute-indexed-index mode) X)
+  (if (equal (absolute-indexed-index mode) 'X)
       #2r111
       #2r110))
 

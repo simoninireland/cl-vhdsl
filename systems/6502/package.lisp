@@ -25,6 +25,7 @@
   (:export
    ;; addressing modes
    ;; (all but the classes can be hidden eventually)
+   #:implicit
    #:immediate
    #:immediate-value
    #:absolute
@@ -39,4 +40,9 @@
    #:STA
 
    ;; assembler
+   #:*assembler-instructions*
+   #:*assembler-addressing-modes*
+   #:assembler-parse-number
+   #:assembler-parse-instruction
+   #:assembler-parse-line
    ))

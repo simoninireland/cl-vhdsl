@@ -99,23 +99,17 @@ This also removes trailing whitespace."
   "Parse FIELDS as an instruction."
   (let ((inscls (assembler-get-mnemonic (car fields) *assembler-instructions*)))
     (if inscls
-	;; we have an instruction
-	(let ((addrcls (assembler-get-addressing-mode (cadr fields) *assembler-addressing-modes*)))
+	;; we have an instruction, pare its addressing mode argument
+	(let* ((modes (instruction-addressing-modes inscls))
+	       (addrcls (assembler-get-addressing-mode (cadr fields) modes)))
 	  (if addrcls
-	      ;; we have an addressing mode
-	      (let* ((mode (make-instance addrcls))
+	      ;; we have an addressing mode, construct the instruction
+	      (let* ((mode (make-instance (car addrcls) :parse (cadr addrcls)))
 		     (ins (make-instance inscls :addressing-mode mode)))
 		ins)
 
 	      ;; no addressing mode, fail
-	      (error "Instruction ~a needs an argument" (instruction-mnemonic inscls))
-	      )
-
-	  )
-	)
-
-    )
-  )
+	      (error "Instruction ~a needs an argument" (instruction-mnemonic inscls)))))))
 
 
 (defun assembler-parse-line (s)
