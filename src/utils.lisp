@@ -1,4 +1,4 @@
-;; Helper functions and macros
+			;; Helper functions and macros
 ;;
 ;; Copyright (C) 2024 Simon Dobson
 ;;
@@ -28,6 +28,16 @@
 	(return i))))
 
 
-;; ---------- if-let macro ----------
+(defun non-nil-subseq (l)
+  "Return the non-nil sub-sequence of L.
 
-;; TBD, as in Emacs Lisp
+This will extract the first such sub-sequence, beginning from the index
+extracted by `index-not-nil' and containing all elements up to the
+next nil element of the end of the sequence."
+  (alexandria:when-let ((i (index-non-nil l)))
+    (dolist (j (alexandria:iota (- (length l) (1+ i)) :start 1))
+      (if (null (elt l (+ i j)))
+	  (return-from non-nil-subseq (subseq l i (+ i j)))))
+
+    ;; if we get here, the rest of the list is non-nil
+    (subseq l i)))

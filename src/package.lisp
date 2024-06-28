@@ -23,4 +23,5 @@
   (:use :cl)
   (:export
    ;; utilities
-   #:index-non-nil))
+   #:index-non-nil
+   #:non-nil-subseq))
