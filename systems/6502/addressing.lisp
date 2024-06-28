@@ -31,7 +31,10 @@
 
 
 (defmethod addressing-mode-regexp ((cls (eql 'implicit)))
-  "")
+  "()")
+
+
+(defmethod addressing-mode-parse ((mode implicit) ss))
 
 
 (defmethod addressing-mode-bytes ((mode implicit))
@@ -150,7 +153,6 @@ space of the processor."))
   (let ((l (logand w #16rFF))
 	(h (logand (ash w -8) #16rFF )))
     (list l h)))
-
 
 (defmethod addressing-mode-bytes ((mode absolute))
   (little-endian-word-16 (absolute-address mode)))

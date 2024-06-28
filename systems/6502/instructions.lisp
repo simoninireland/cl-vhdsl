@@ -85,3 +85,17 @@
 	 opcode)
     (setf-bitfields opcode (1 0 0 b b b 0 1))
     opcode))
+
+
+;; ---------- Increment and decrement----------
+
+(defclass DEX (instruction)
+  ()
+  (:documentation "DEcrement index register X."))
+
+
+(defmethod instruction-mnemonic ((ins (eql 'DEX))) "DEX")
+(defmethod instruction-addressing-modes ((ins (eql 'DEX)))
+  '(implicit))
+(defmethod instruction-opcode ((ins LDA))
+  #2r11001010)

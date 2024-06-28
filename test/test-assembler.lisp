@@ -95,10 +95,18 @@
 
 (test test-simple-instruction
   "Test we can parse an instruction."
-  (let ((*assembler-instructions* (list 'LDA 'LDX 'STA))
-	(*assembler-addressing-modes* (list 'immediate 'absolute 'absolute-indexed)))
+  (let ((*assembler-instructions* (list 'LDA 'LDX 'STA 'DEX))
+	(*assembler-addressing-modes* (list 'implicit 'immediate 'absolute 'absolute-indexed)))
     (assembler-parse-instruction '("LDA" "#123"))
     (assembler-parse-instruction '("LDA" "1234H"))
     (assembler-parse-instruction '("LDA" "123, X"))
+    (assembler-parse-instruction '("DEX" ""))
+
+    ;; missing addressing mode (and doesn't allow implicit addressing)
     (signals error
-      (assembler-parse-instruction '("LDA" "")))))
+      (assembler-parse-instruction '("LDA" "")))
+
+    ;; incorrect addressing mode
+    (signals error
+      (assembler-parse-instruction '("DEX" "#100")))
+    ))

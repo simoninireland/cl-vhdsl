@@ -39,6 +39,7 @@
    #:LDX
    #:LDY
    #:STA
+   #:DEX
 
    ;; assembler
    #:*assembler-instructions*
