@@ -20,8 +20,9 @@
 (in-package :common-lisp-user)
 
 (defpackage cl-vhdsl/systems/6502
-  (:use :cl :cl-ppcre :cl-interpol
+  (:use :cl :cl-ppcre :cl-interpol :alexandria
 	:cl-vhdsl/def :cl-bitfields)
+  (:import-from :alexandria #:if-let)
   (:export
    ;; addressing modes
    ;; (all but the classes can be hidden eventually)
