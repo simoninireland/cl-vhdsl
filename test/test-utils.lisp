@@ -36,3 +36,16 @@
   (is (equal (index-non-nil '(1 nil)) 0))
   (is (equal (index-non-nil '(nil 1 nil)) 1))
   (is (equal (index-non-nil '(nil nil 1 nil)) 2)))
+
+
+(test test-non-nil-subseq
+  "Test we can extract non-nil sub-sequences of lists."
+  (is (null (non-nil-subseq '())))
+  (is (null (non-nil-subseq '(nil))))
+  (is (null (non-nil-subseq '(nil nil nil))))
+
+  (is (equal (non-nil-subseq '(nil 1 nil)) '(1)))
+  (is (equal (non-nil-subseq '(nil 1)) '(1)))
+  (is (equal (non-nil-subseq '(nil 1 2)) '(1 2)))
+  (is (equal (non-nil-subseq '(nil 1 nil 1 2)) '(1)))
+  (is (equal (non-nil-subseq '(nil 1 2 3 nil 1 2)) '(1 2 3))))

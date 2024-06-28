@@ -21,7 +21,7 @@
 (in-suite cl-vhdsl)
 
 
-;; ---------- Regexps for parsing ----------
+;; ---------- Regexps for parsing opcodes ----------
 
 (test test-instruction-mnemonics
   "Test we can extract mnemoics from instruction objects."
@@ -53,4 +53,52 @@
      (is (string= (assembler-get-mnemonic "LDA" clns re) "LDA"))))
 
 
-;; ---------- Test parsing ----------
+;; ---------- Number parsing ----------
+
+(test test-bases
+  "Test we can parse different number bases."
+  (is (= (assembler-parse-number "0") 0))
+  (is (= (assembler-parse-number "1") 1))
+  (is (= (assembler-parse-number "9") 9))
+  (is (= (assembler-parse-number "009") 9))
+  (is (= (assembler-parse-number "10") 10))
+  (is (= (assembler-parse-number "10B") #2r10))
+  (is (= (assembler-parse-number "10H") #16r10))
+  (is (= (assembler-parse-number "10FFH") #16r10FF))
+
+  (is (= (assembler-parse-number "-20") (- 20)))
+  (is (= (assembler-parse-number "-10H") (- #16r10)))
+
+  (signals error
+    (assembler-parse-number "F"))
+  (signals error
+    (assembler-parse-number "G"))
+  (signals error
+    (assembler-parse-number "2B"))
+  (signals error
+    (assembler-parse-number "--1"))
+  (signals error
+    (assembler-parse-number "10H0")))
+
+
+;; ---------- Regexps for parsing addressing modes ----------
+
+(test test-addressing-mode-regexp
+  "Test we can extract the right addressing mode."
+  (let ((aclns (list 'immediate 'absolute 'absolute-indexed)))
+    (is (equalp (assembler-get-addressing-mode "#123" aclns) '(immediate ("123"))))
+    (is (equalp (assembler-get-addressing-mode "123FH" aclns) '(absolute ("123FH"))))
+    (is (equalp (assembler-get-addressing-mode "123, X" aclns) '(absolute-indexed ("123" "X"))))))
+
+
+;; ---------- Instruction parsing ----------
+
+(test test-simple-instruction
+  "Test we can parse an instruction."
+  (let ((*assembler-instructions* (list 'LDA 'LDX 'STA))
+	(*assembler-addressing-modes* (list 'immediate 'absolute 'absolute-indexed)))
+    (assembler-parse-instruction '("LDA" "#123"))
+    (assembler-parse-instruction '("LDA" "1234H"))
+    (assembler-parse-instruction '("LDA" "123, X"))
+    (signals error
+      (assembler-parse-instruction '("LDA" "")))))
