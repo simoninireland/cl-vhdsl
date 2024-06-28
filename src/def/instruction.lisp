@@ -20,64 +20,6 @@
 (in-package :cl-vhdsl/def)
 (named-readtables:in-readtable :interpol-syntax)
 
-
-;; ---------- Addressing modes ----------
-
-(defclass addressing-mode ()
-  ()
-  (:documentation "A description of an addressing mode."))
-
-
-(defgeneric addressing-mode-regexp (cls)
-  (:documentation "Return the regexp used to represent data in addressin mode CLS."))
-
-
-(defmethod addressing-mode-regexp ((ins addressing-mode))
-  (addressing-mode-regexp (class-name (class-of ins))))
-
-
-(defgeneric addressing-mode-bytes (mode)
-  (:documentation "Return the bytes that encode the address in MODE."))
-
-
-(defun list-of-addressing-modes-p (modes)
-  "Helper predicate to check a list of addressing mode types (not instances)."
-  (and (consp modes)
-       (every #'(lambda (mode) (subtypep mode 'addressing-mode)) modes)))
-
-
-(deftype list-of-addressing-modes ()
-  "The type of lists of addressing modes"
-  `(satisfies list-of-addressing-modes-p))
-
-
-;; ---------- Assembler patterns look-up ----------
-
-(defun assembler-make-addressing-modes-regexp (clns)
-  "Convert a list of class names CLNS to a regexp that recognises their address modes."
-  (flet ((addressing-mode-re (cln)
-	   (let ((mn (addressing-mode-regexp cln)))
-	     #?"(${mn})")))
-    (let ((pats (mapcar #'addressing-mode-re clns)))
-      (format nil "^(?:~{~a~^|~})$" pats))))
-
-
-(defun assembler-get-addressing-mode (s clns &optional re)
-  "Return the class from the list CLNS implementing the addressing mode in S.
-
-If RE is provided it should be a regexp constructed by
-`assembler-make-addressing-modes-regexp' which will be used for the matching.
-This will not be checked against the list of classes. This is an optimisation
-to allow the regexp to be re-used across multiple instructions, rather
-than being re-created."
-  (when (null re)
-    (setq re (assembler-make-addressing-modes-regexp clns)))
-  (multiple-value-bind (suc matches) (scan-to-strings re s)
-    (when suc
-      (let ((i (index-non-nil matches)))
-	(elt clns i)))))
-
-
 ;; ---------- Instructions ----------
 
 (defclass instruction ()

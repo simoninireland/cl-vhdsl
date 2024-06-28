@@ -33,6 +33,7 @@
 		:components ((:file "package")
 			     (:file "types")
 			     (:file "register")
+			     (:file "addressing")
 			     (:file "instruction")))
 	       (:module "emu"
 		:components ((:file "package")
@@ -66,12 +67,12 @@
 	       (:file "addressing")
 	       (:file "instructions")
 	       (:file "assembler"))
-  :in-order-to ((test-op (test-op "6502/test"))))
+  :in-order-to ((test-op (test-op "cl-vhdsl/6502/test"))))
 
 
 (asdf:defsystem "cl-vhdsl/6502/test"
   :description "Tests of VHDSL 6502 emulator."
-  :depends-on ("6502" "cl-ppcre" "fiveam")
+  :depends-on ("cl-vhdsl/6502" "cl-ppcre" "fiveam")
   :pathname "systems/6502/test/"
   :serial t
   :components ((:file "package")
