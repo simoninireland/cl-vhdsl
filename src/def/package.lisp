@@ -29,6 +29,7 @@
    #:signed-8
    #:unsigned-16
    #:signed-16
+   #:list-of-addressing-modes
 
    ;; registers
    #:register
@@ -37,6 +38,7 @@
 
    ;; addressing modes
    #:addressing-mode
+   #:addressing-mode-parse
    #:addressing-mode-regexp
    #:addressing-mode-bytes
 
