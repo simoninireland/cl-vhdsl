@@ -43,6 +43,10 @@
 
 ;; ---------- Helper functions ----------
 
+;; The 6502 assemblers typically allow decimal,hex, octal, and binary
+;; numbers, selected by suffix. I've seen a couple that allow explicit
+;; negative number literals too.
+
 (defvar *assembler-digits* "0123456789ABCDEF"
   "Digits for bases up to 16.")
 
