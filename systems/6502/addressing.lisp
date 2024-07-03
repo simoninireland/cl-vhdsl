@@ -74,7 +74,7 @@ the default."
 	 (m 1)
 	 (n 0))
     ;; check for negative numbers
-    (alexandria:switch (first :test #'char=)
+    (switch (first :test #'char=)
       (#\-
        (setq i 1)
        (setq m (- 1)))
@@ -82,7 +82,7 @@ the default."
        (setq i 1)))
 
     ;; test for trailing radix
-    (alexandria:switch (last :test #'char=)
+    (switch (last :test #'char=)
       (#\H
        (setq radix 16)
        (setq len (1- len)))
@@ -94,7 +94,7 @@ the default."
        (setq len (1- len))))
 
     ;; parse digits against the radix
-    (dolist (j (alexandria:iota (- len i) :start i))
+    (dolist (j (iota (- len i) :start i))
       (setq n (+ (* n radix)
 		 (assembler-parse-digit (elt s j) radix))))
 
@@ -133,6 +133,10 @@ the default."
 
 
 ;; ---------- Absolute ----------
+
+;; The 6502 actually has two forms of absolute addressimg, with
+;; zero-page absolute needing only a two-byte offset into page 0.
+;; Rather than representing this
 
 (defclass absolute (addressing-mode)
   ((address
