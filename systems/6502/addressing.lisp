@@ -136,7 +136,8 @@ the default."
 
 ;; The 6502 actually has two forms of absolute addressimg, with
 ;; zero-page absolute needing only a two-byte offset into page 0.
-;; Rather than representing this
+;; Rather than representing this in a separate class we optimise
+;; it wihtin the bytecode generation.
 
 (defclass absolute (addressing-mode)
   ((address
@@ -164,23 +165,6 @@ space of the processor."))
 
 (defmethod addressing-mode-bytes ((mode absolute))
   (little-endian-word-16 (absolute-address mode)))
-
-
-;; ----------  Zero-page absolute ----------
-
-(defclass zero-page (addressing-mode)
-  ((offset
-    :documentation "The offset into page zero, an 8-bit byte."
-    :type word-8
-    :initarg :address
-    :reader zero-page-address))
-  (:documentation "Absolute zero-page addressing, with an inline 8-bit offset.
-
-The offset is used to construct an address within page zero."))
-
-
-(defmethod addressing-mode-bytes ((mode zero-page))
-  (little-endian-word-16 (zero-page-address mode)))
 
 
 ;; ---------- Absolute indexed ----------
