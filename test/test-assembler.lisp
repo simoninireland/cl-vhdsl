@@ -20,7 +20,6 @@
 (in-package :cl-vhdsl/test)
 (in-suite cl-vhdsl)
 
-
 ;; ---------- Regexps for parsing opcodes ----------
 
 (test test-instruction-mnemonics
@@ -96,7 +95,7 @@
 (test test-simple-instruction
   "Test we can parse an instruction."
   (let ((*assembler-instructions* (list 'LDA 'LDX 'STA 'DEX))
-	(*assembler-addressing-modes* (list 'implicit 'immediate 'absolute 'absolute-indexed)))
+	(*assembler-addressing-modes* (list 'immediate 'absolute 'absolute-indexed)))
     (assembler-parse-instruction '("LDA" "#123"))
     (assembler-parse-instruction '("LDA" "1234H"))
     (assembler-parse-instruction '("LDA" "123, X"))
@@ -110,3 +109,22 @@
     (signals error
       (assembler-parse-instruction '("DEX" "#100")))
     ))
+
+
+;; ---------- S-exp form ----------
+
+(test test-sexp
+  "Test the s-expression form of the assembler."
+  (LDA :addressing-mode (immediate :value 25))
+  (LDA :addressing-mode (absolute :address #16r200))
+  (LDA :addressing-mode (absolute-indexed :address #16r200 :index 'X))
+
+  ;; LDA doesn't allow implicit addressing
+  (signals error
+    (LDA))
+
+  ;; DEX only allows implicit addressing
+  (DEX)
+  (signals error
+    (DEX :mode (immediate :value 25)))
+  )

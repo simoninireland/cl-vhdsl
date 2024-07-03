@@ -26,7 +26,11 @@
   (:documentation "LoaD Accumulator."))
 
 
-(defmethod instruction-mnemonic ((cs (eql 'LDA))) "LDA")
+(defun LDA (&rest args)
+  (let ((ins (apply #'make-instance (cons 'LDA args))))
+    (instruction-check ins)
+    ins))
+(defmethod instruction-mnemonic ((cls (eql 'LDA))) "LDA")
 (defmethod instruction-addressing-modes ((cls (eql 'LDA)))
   '(immediate absolute absolute-indexed))
 (defmethod instruction-opcode ((ins LDA))
@@ -94,8 +98,12 @@
   (:documentation "DEcrement index register X."))
 
 
+(defun DEX (&rest args)
+  (let ((ins (apply #'make-instance (cons 'DEX args))))
+    (instruction-check ins)
+    ins))
 (defmethod instruction-mnemonic ((ins (eql 'DEX))) "DEX")
 (defmethod instruction-addressing-modes ((ins (eql 'DEX)))
-  '(implicit))
+  nil)
 (defmethod instruction-opcode ((ins LDA))
   #2r11001010)

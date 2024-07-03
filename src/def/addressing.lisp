@@ -61,7 +61,8 @@ STRS will be the patterns parsed from the assembler text by
 
 
 (defmethod initialize-instance :after ((mode addressing-mode) &key parse &allow-other-keys)
-  (addressing-mode-parse mode parse))
+  (when parse
+    (addressing-mode-parse mode parse)))
 
 
 ;; ---------- Addressing modes type specifier ----------
@@ -106,4 +107,7 @@ than being re-created."
 	    ;; the strings come back as a vector, but that's hard
 	    ;; to work with: it's easier to keep everything as lists
 	    (ss (coerce (non-nil-subseq matches) 'list)))
-	(list (elt clns i) ss)))))
+	(list (if (null i)
+		  nil
+		  (elt clns i))
+	      ss)))))

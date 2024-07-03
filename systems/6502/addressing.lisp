@@ -19,27 +19,6 @@
 
 (in-package :cl-vhdsl/systems/6502)
 
-;; ---------- Implicit ----------
-
-(defclass implicit (addressing-mode)
-  ()
-  (:documentation "Implicit addressing, with no literal value or address."))
-
-
-(defmethod addressing-mode-data ((mode implicit) arch)
-  nil)
-
-
-(defmethod addressing-mode-regexp ((cls (eql 'implicit)))
-  "()")
-
-
-(defmethod addressing-mode-parse ((mode implicit) ss))
-
-
-(defmethod addressing-mode-bytes ((mode implicit))
-  nil)
-
 
 ;; ---------- Helper functions ----------
 
@@ -112,6 +91,10 @@ the default."
   (:documentation "Immediate addressing, with an inline 8-bit value."))
 
 
+(defun immediate (&rest args)
+  (apply #'make-instance (cons'immediate args)))
+
+
 (defmethod addressing-mode-data ((mode immediate) arch)
   (immediate-value mode))
 
@@ -141,14 +124,20 @@ the default."
 
 (defclass absolute (addressing-mode)
   ((address
-    :documentation "The address, a 16-bit word."
+    :documentation "The address, an 8- or 16-bit word."
     :type word-16
     :initarg :address
     :reader absolute-address))
-  (:documentation "Absolute addressing, with an inline 16-bit address.
+  (:documentation "Absolute addressing, with an inline 8- or 16-bit address.
 
-The address is an absolute address within the entire address
-space of the processor."))
+The address is treated either as an absolute address within
+the entire address space of the processor, or as an 8-bit offset
+into page 0 (which of course is actually just an address too).
+The two alternatives are encoded as different opcodes."))
+
+
+(defun absolute (&rest args)
+  (apply #'make-instance (cons'absolute args)))
 
 
 (defmethod addressing-mode-regexp ((cls (eql 'absolute)))
@@ -180,6 +169,9 @@ space of the processor."))
 The address is an absolute address wihtin the entire address
 space of the processor."))
 
+
+(defun absolute-indexed (&rest args)
+  (apply #'make-instance (cons 'absolute-indexed args)))
 
 (defmethod addressing-mode-regexp ((cls (eql 'absolute-indexed)))
   "((?:[0-9]+)|(?:[0-9a-fA-F]+H)),\\s*([XY])")

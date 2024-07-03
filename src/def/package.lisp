@@ -43,10 +43,12 @@
    #:addressing-mode-bytes
 
    ;; instructions
+   #:abstract-instruction
    #:instruction
    #:instruction-mnemonic
    #:instruction-addressing-mode
    #:instruction-addressing-modes
+   #:instruction-check
    #:instruction-bytes
    #:instruction-assemble
    #:instruction-add-class-for-mnemonic
@@ -64,4 +66,7 @@
    #:memory-write-byte
    #:memory-read-byte
 
+   ;; conditions
+   #:bad-addressing-mode
+   #:unknown-mnemonic
    ))

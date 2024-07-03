@@ -26,7 +26,6 @@
   (:export
    ;; addressing modes
    ;; (all but the classes can be hidden eventually)
-   #:implicit
    #:immediate
    #:immediate-value
    #:absolute
@@ -34,7 +33,7 @@
    #:absolute-indexed
    #:absolute-indexed-index
 
-   ;; instructions
+   ;; instructions (both classes and functions)
    #:LDA
    #:LDX
    #:LDY
@@ -47,4 +46,7 @@
    #:assembler-parse-number
    #:assembler-parse-instruction
    #:assembler-parse-line
+   #:assembler-parse-sexp
+
+   ;; macro interface
    ))

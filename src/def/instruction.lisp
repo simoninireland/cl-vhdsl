@@ -22,29 +22,43 @@
 
 ;; ---------- Instructions ----------
 
-(defclass instruction ()
+(defclass abstract-instruction ()
+  ()
+  (:documentation "The base class for 'real' instruction and pseudo-instructions.
+
+Real instructions are those understood by the processor, that can be
+converted into machine code. Pseudo-instructions (or directives)
+are understood by the assembler and used to provide metadata when
+assembling the instrction stream."))
+
+
+(defgeneric instruction-mnemonic (cls)
+  (:documentation "Return the mnemonic associated with an instruction class.
+
+This applies to both real and pseudo-instructions, and is
+used when building an assembler."))
+
+
+(defmethod instruction-mnemonic ((ins abstract-instruction))
+  (instruction-mnemonic (class-name (class-of ins))))
+
+
+(defclass instruction (abstract-instruction)
   ((mode
     :documentation "The addressing mode (arguments) of the instruction."
-    :type addressing-mode
+    ;;:type addressing-mode
     :initarg :addressing-mode
+    :initform nil
     :reader instruction-addressing-mode))
   (:documentation "An assembly language instruction."))
 
 
-(defgeneric instruction-mnemonic (cls)
-  (:documentation "Return the mnemonic associated with an instruction class."))
-
-
 (defgeneric instruction-addressing-modes (cls)
-  (:documentation "Return the list of addrssing mode classes associated with an instruction class."))
+  (:documentation "Return the list of addressing mode classes associated with an instruction class."))
 
 
-(defmethod instruction-mnemonic ((ins instruction))
-  (instruction-mnemonic (class-name (class-of ins))))
-
-
-(defmethod instruction-addressing-mode ((ins instruction))
-  (instruction-addressing-mode (class-name (class-of ins))))
+(defmethod instruction-addressing-modes ((ins instruction))
+  (instruction-addressing-modes (class-name (class-of ins))))
 
 
 (defgeneric instruction-opcode (ins)
@@ -60,6 +74,30 @@ addressing mode to constrct the bit pattern."))
   (:documentation "The bytes for INS.
 
 The bytes comprise the opcode plus the addressing mode in binary."))
+
+
+(defgeneric instruction-check (ins)
+  (:documentation "Check that INS is a valid instruction.
+
+This will by default check that the addressing mode is legal, as
+defined by `instruction-addressing-modes'. It should be
+specialised (generally by :after methods) to provide any further
+necessary run-time checks.
+
+The method returns INS unchanged."))
+
+
+(defmethod instruction-check ((ins instruction))
+  (let ((mode (instruction-addressing-mode ins))
+	(modes (instruction-addressing-modes ins)))
+    (if (and (null mode)
+	     (null modes))
+	ins
+	(if (notany (lambda (m) (typep mode m)) modes)
+	    (error (make-instance 'bad-addressing-mode
+				  :instruction ins
+				  :addressing-mode mode))
+	    ins))))
 
 
 ;; ---------- Instruction lookup ----------

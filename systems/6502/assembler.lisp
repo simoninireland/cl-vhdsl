@@ -61,30 +61,54 @@ of a hash followed by a number.")
 
 ;; ---------- Assembler state ----------
 
-(defvar *assembler-symbols-alist* '()
-  "An alist of symbols.
-
-A symbol is mapped to one of:
-
-- An integer, representing an offset into the instruction stream
--
-")
-
-
-
-;; ---------- Helper functions ----------
-
 (defvar *assembler-instructions* nil
   "The list of instruction classes used by the assembler.")
 
 
-(defvar *assembler-addressing-modes* nil
-  "The list of addressing mode classes used by the assembler.")
+(defvar *assembler-directives* nil
+  "The list of directives used by the assembler.")
 
 
-(defvar *assembler-symbol-table-alist* '()
-  "An alist storing the symols available to the assembler.")
+(defvar *assembler-symbol-table* (make-hash-table)
+  "An hash table of symbols.
 
+A symbol is mapped to one of:
+
+- A pair (:integer . val) representing an integer constant
+- A pair (:offset . off) representing a relative offset from PC
+- A pair (:address . addr) representing an absolute address
+")
+
+
+(defvar *assembler-pc* 0
+  "The assembler's program counter.")
+
+
+
+;; ---------- Pseudo-functions and directives ----------
+
+(defclass directive (abstract-instruction)
+  ()
+  (:documentation "Assembler directives."))
+
+
+(defgeneric assembler-directive-action (dir)
+  (:documentation "The effect of DIR on the assembler's state."))
+
+
+(defclass equ (directive)
+  ((value
+    :documentation "The value."
+    :type integer
+    :initarg :value
+    :reader assembler-equ-value))
+  (:documentation "A .EQU directive that defines a value."))
+
+
+(defmethod instruction-mnemonic ((dir (eql 'equ))) ".EQU")
+
+
+;; ---------- Parsing functions ----------
 
 (defun assembler-uncomment (s)
   "Remove any comments from S.
@@ -96,13 +120,15 @@ This also removes trailing whitespace."
 
 
 (defun assembler-parse-instruction (fields)
-  "Parse FIELDS as an instruction."
-  (if-let ((inscls (assembler-get-mnemonic (car fields) *assembler-instructions*)))
-    ;; we have an instruction, parse its addressing mode argument
+  "Parse FIELDS as an instruction line."
+   (if-let ((inscls (assembler-get-mnemonic (car fields) *assembler-instructions*)))
     (let ((modes (instruction-addressing-modes inscls)))
       (if-let ((addrcls (assembler-get-addressing-mode (cadr fields) modes)))
 	;; we have an addressing mode, construct the instruction
-	(let* ((mode (make-instance (car addrcls) :parse (cadr addrcls)))
+	(let* ((modecls (car addrcls))
+	       (mode (if modecls
+			 (make-instance modecls :parse (cadr addrcls))
+			 nil))
 	       (ins (make-instance inscls :addressing-mode mode)))
 	  ins)
 
@@ -123,10 +149,20 @@ state of the assembler."
 	    (assembler-parse-instruction (cdr fields))
 
 	    ;; a labelled entry, define the label and then parse the rest
+	    (let ((label (car fields)))
+	      (assembler-parse-labelled-instruction fields))))))
 
 
-	    ))
+;; ---------- Macro interface ----------
 
+(defun assembler-parse-sexp (x)
+  "Parse X as an s-expression defining an assembler (pseudo-)instruction."
+  (let ((opcode (car x)))
+    ;; look-up the instruction
+    (if-let ((inscls (assembler-get-mnemonic x *assembler-instructions*)))
+      ;; we have an instruction
+      (let ((mi (cons inscls (cdr x))))
+	(apply #'make-instance mi))
 
-    )
-  )
+      ;; not a recognised instruction
+      (error (make-instance 'unrecognised-mnemonic :mnemonic opcode)))))
