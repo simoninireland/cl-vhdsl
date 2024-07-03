@@ -32,6 +32,7 @@
 	       (:module "def"
 		:components ((:file "package")
 			     (:file "types")
+			     (:file "conditions")
 			     (:file "register")
 			     (:file "addressing")
 			     (:file "instruction")))
