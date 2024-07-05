@@ -47,7 +47,7 @@
 ;; the `addressing-mode' object and is passed the extracted strings
 ;; under the `:parse' key, which is passes to `addressing-mode-parse'
 ;; as the last part of the initialisation chain (this is what the
-;; `:after' advise is for).
+;; `:after' advice is for).
 
 (defgeneric addressing-mode-regexp (cls)
   (:documentation "Return the regexp used to represent data in addressing mode CLS."))
@@ -63,6 +63,32 @@ STRS will be the patterns parsed from the assembler text by
 (defmethod initialize-instance :after ((mode addressing-mode) &key parse &allow-other-keys)
   (when parse
     (addressing-mode-parse mode parse)))
+
+
+;; ---------- Impicit addressing ----------
+
+(defclass implicit (addressing-mode)
+  ()
+  (:documentation "The implicit addressing mode where all the information is in the instruction."))
+
+
+(defun implicit (&rest args)
+  (apply #'make-instance (cons 'implicit args)))
+
+
+(defmethod addressing-mode-regexp ((cls (eql 'implicit)))
+  "")
+
+
+(defmethod addressing-mode-parse ((mode implicit) ss))
+
+
+(defmethod addressing-mode-argument ((cls (eql 'implicit)) s)
+  nil)
+
+
+(defmethod addressing-mode-bytes ((mode implicit))
+  nil)
 
 
 ;; ---------- Addressing modes type specifier ----------
