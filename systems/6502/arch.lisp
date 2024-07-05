@@ -19,46 +19,46 @@
 
 (in-package :cl-vhdsl/systems/6502)
 
-(defclass 6502-architecture (architecture)
-  ((A
-    :documentation "Accumulator."
-    :type data-register
-    :initform (make-instance 'data-register :name "A" :width 8)
-    :accessor A)
-   (X
-    :documentation "Index register X."
-    :type index-register
-    :initform (make-instance 'index-register :name "X" :width 8)
-    :accessor X)
-   (Y
-    :documentation "Index register Y."
-    :type index-register
-    :initform (make-instance 'index-register :name "Y" :width 8)
-    :accessor Y)
-   (PC
-    :documentation "Program counter."
-    :type address-register
-    :initform (make-instance 'address-register :name "PC" :width 16)
-    :accessor PC)
-   (SP
-    :documentation "Stack pointer."
-    :type index-register
-    :initform (make-instance 'index-register :name "SP" :width 8)
-    :accessor SP)
-   (F
-    :documentation "Flags."
-    :type special-register
-    :initform (make-instance 'special-register :name "F" :width 8)
-    :accessor F)
+(defvar *6502-system* (make-instance 'architecture)
+  "6502 system.")
 
-   (C
-    :documentation "Carry flag."
-    :initform (make-instance 'flag
-			     :name "C" :register F :bit 0)
-    :accessor C)
-   (Z
-    :documentation "Zero flag."
-    :initform (make-instance 'flag
-			     :name "Z" :register F :bit 1)
-    :accessor Z))
-  (:documentation "Architectural description of a 6502."))
+
+(defclass MOS6502-core (core)
+  ()
+  (:documentation "Description of the 6502 processor core."))
+
+
+(defvar *MOS6502* (make-instance 'MOS6502-core)
+  "6502 core.")
+
+
+(setf (core-registers *MOS6502*)
+      (list
+       (make-instance 'data-register :name 'A :width 8
+				     :documentation "The accumulator.")
+       (make-instance 'index-register :name 'X :width 8
+				      :documentation "Index register X.")
+       (make-instance 'index-register :name 'Y :width 8
+		      :documentation "Index register Y.")
+       (make-instance 'address-register :name 'PC :width 16
+					:documentation "Program counter.")
+       (make-instance 'index-register :name 'SP :width 8
+		      :documentation "Stack pointer (offset).")
+       (make-instance 'special-register :name 'P :width 8
+					:documentation "Flags register.")))
+
+
+(setf (core-flags *MOS6502*)
+      (list
+       (make-instance 'flag :name "C" :register 'P :bit 0
+			    :documentation "Carry flag.")
+       (make-instance 'flag :name "Z" :register 'P :bit 1
+			    :documentation "Zero flag.")))
+
+
+(setf (architecture-components *6502-system*)
+      (list
+       :core *MOS6502*
+       :memory (make-instance 'memory :size (floor (* 8 KB)))
+       :address-bus (make-instance 'bus :connections '(:core :memory))
+       :data-bus (make-instance 'bus :connections '(:core :memory))))
