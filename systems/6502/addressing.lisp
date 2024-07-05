@@ -92,7 +92,7 @@ the default."
 
 
 (defun immediate (&rest args)
-  (apply #'make-instance (cons'immediate args)))
+  (apply #'make-instance (cons 'immediate args)))
 
 
 (defmethod addressing-mode-data ((mode immediate) arch)
