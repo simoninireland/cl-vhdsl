@@ -35,30 +35,30 @@
 (setf (core-registers *MOS6502*)
       (list
        (make-instance 'data-register :name 'A :width 8
-					 :documentation "The accumulator.")
+				     :documentation "The accumulator.")
        (make-instance 'index-register :name 'X :width 8
-					  :documentation "Index register X.")
+				      :documentation "Index register X.")
        (make-instance 'index-register :name 'Y :width 8
-					  :documentation "Index register Y.")
-       (make-instance 'address-register :name 'PC :width 16
-					    :documentation "Program counter.")
+				      :documentation "Index register Y.")
+       (make-instance 'program-counter :name 'PC :width 16
+				       :documentation "Program counter.")
        (make-instance 'index-register :name 'SP :width 8
-					  :documentation "Stack pointer (offset).")
+				      :documentation "Stack pointer (offset).")
        (make-instance 'special-register :name 'P :width 8
-					    :documentation "Flags register.")))
+					:documentation "Flags register.")))
 
 
 (setf (core-flags *MOS6502*)
       (list
        (make-instance 'flag :name "C" :register 'P :bit 0
-				:documentation "Carry flag.")
+			    :documentation "Carry flag.")
        (make-instance 'flag :name "Z" :register 'P :bit 1
-				:documentation "Zero flag.")))
+			    :documentation "Zero flag.")))
 
 
 (setf (architecture-components *6502-system*)
       (list
        :core *MOS6502*
-       :memory (make-instance 'memory :size (floor (* 8 KB)))
+       :memory (make-instance 'memory :size (* 8 KB))
        :address-bus (make-instance 'bus :connections '(:core :memory))
        :data-bus (make-instance 'bus :connections '(:core :memory))))
