@@ -79,6 +79,8 @@
    ;; architecture description
    #:architecture
    #:architecture-components
+
+   ;; architecture components
    #:component
    #:core
    #:core-registers
