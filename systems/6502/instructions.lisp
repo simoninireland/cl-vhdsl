@@ -116,7 +116,7 @@
     ins))
 (defmethod instruction-mnemonic ((ins (eql 'DEX))) "DEX")
 (defmethod instruction-addressing-modes ((ins (eql 'DEX)))
-  nil)
+  '(implicit))
 (defmethod instruction-opcode ((ins DEX))
   #2r11001010)
 
