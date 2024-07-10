@@ -19,11 +19,16 @@
 
 (in-package :common-lisp-user)
 
-(defpackage cl-vhdsl/systems/6502
-  (:use :cl :cl-ppcre :cl-interpol :alexandria
-	:cl-vhdsl/def :cl-bitfields)
-  (:import-from :alexandria #:if-let)
+(defpackage cl-vhdsl/6502
+  (:use :cl :cl-ppcre :cl-interpol :cl-bitfields :alexandria
+	:cl-vhdsl/def)
+  (:local-nicknames (:emu :cl-vhdsl/emu))
+
   (:export
+   ;; extended architectural elements
+   #:memory
+   #:memory-instruction
+
    ;; addressing modes
    ;; (all but the classes can be hidden eventually)
    #:immediate
@@ -39,6 +44,8 @@
    #:LDY
    #:STA
    #:DEX
+   #:BNZ
+   #:BRK
 
    ;; assembler
    #:*assembler-instructions*

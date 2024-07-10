@@ -17,11 +17,11 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
-(defpackage cl-vhdsl/systems/6502/test
+(defpackage cl-vhdsl/6502/test
   (:use :cl :cl-ppcre :fiveam
 	:cl-vhdsl :cl-vhdsl/systems/6502)
   (:import-from :fiveam #:is #:test))
 
-(in-package :cl-vhdsl/systems/6502/test)
+(in-package :cl-vhdsl/6502/test)
 
-(def-suite cl-vhdsl/systems/6502)
+(def-suite cl-vhdsl/6502)
