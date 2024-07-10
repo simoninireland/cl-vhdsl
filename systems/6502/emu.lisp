@@ -73,14 +73,13 @@ This saves decoding at run-time."))
 (defun assembler-make-core-registers (core)
   "Return the list of variables needed to represent CORE.
 
-This is a list suitable for `let' that incldues a variable for each
+This is a list suitable for `let' that includes a variable for each
 register, assigned to an instance of the appropriate emulation class."
   (flet ((make-register (r)
-	   `(list
-	    ,(register-name r)
-	    (make-instance 'emu:register
-			   :name ,(register-name r)
-			   :width ,(register-width r)))))
+	   `(,(register-name r)
+	     (make-instance 'emu:register
+			    :name ,(register-name r)
+			    :width ,(register-width r)))))
     (mapcar #'make-register (core-registers core))))
 
 
@@ -88,15 +87,17 @@ register, assigned to an instance of the appropriate emulation class."
   "Return an emulated memory matching MEM.
 
 This is a list appropriate for `let'."
-  `(make-instance 'emu:memory :size ,(emu:memory-size mem)))
+  `(mem (make-instance 'emu:memory :size ,(emu:memory-size mem))))
 
 
 (defun assembler-make-instruction-behaviour (ins)
   "Return the behaviour of INS.
 
 This is returned as a lambda-term encapsulating the behaviour,
-expecting to be closed by the architecture variables.."
-  `(lambda () ,@(instruction-code ins)))
+expecting to be closed by the architecture variables."
+  `(lambda ()
+     (incf (register-value PC) ,(length (instruction-bytes ins)))
+     ,(instruction-code ins)))
 
 
 (defun assembler-make-instruction (ins)
@@ -117,4 +118,20 @@ instruction, and increment PC to the next instruction base address."
       (incf (emu:register-value PC) ,(length bytes)))))
 
 
-;; ---------- Macro interface ----------
+(defun assembler-make-function (core mem ins &key (base #16r300))
+  "Assemble a program to run instruction stream INS on CORE and MEM."
+  `(let (,@(assembler-make-core-registers core)
+	 ,(assembler-make-memory mem))
+     ;; initialise the memory
+     (memory-initialise mem)
+
+     ;; assemble the program
+     (setf (register-value PC) ,base)
+     ,@(mapcar #'car (mapcar #'assembler-make-instruction ins))
+
+     ;; return  a function that, when executed, runs the program
+     (lambda ()
+       (setf (register-value PC) ,base)
+       (catch 'EOP
+	 (let ((ins (memory-instruction mem (emu:register-value PC))))
+	   (funcall ins))))))
