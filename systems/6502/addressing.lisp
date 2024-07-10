@@ -116,7 +116,7 @@ the default."
 
 
 (defmethod addressing-mode-code ((mode immediate))
-  `,(immediate-value mode))
+  (immediate-value mode))
 
 
 ;; ---------- Absolute ----------
@@ -149,7 +149,7 @@ the default."
   (little-endian-word-16 (absolute-address mode)))
 
 (defmethod addressing-mode-code ((mode absolute))
-  `(memory-byte mem ,(absolute-address mode)))
+  `(memory-location mem ,(absolute-address mode)))
 
 
 ;; ---------- Zero-page ----------
@@ -176,7 +176,7 @@ the default."
   (little-endian-word-16 (zero-page-address mode)))
 
 (defmethod addressing-mode-code ((mode zero-page))
-  `(memory-byte mem ,(zero-page-address mode)))
+  `(memory-location mem ,(zero-page-address mode)))
 
 
 ;; ---------- Absolute indexed ----------
@@ -207,7 +207,7 @@ space of the processor."))
   (little-endian-word-16 (absolute-address mode)))
 
 (defmethod addressing-mode-code ((mode absolute-indexed))
-  `(memory-byte mem (+ ,(absolute-address mode) ,(absolute-indexed-index mode))))
+  `(memory-location mem (+ ,(absolute-address mode) ,(absolute-indexed-index mode))))
 
 
 ;; ---------- Relative ----------
@@ -237,7 +237,7 @@ positive or negative."))
   (little-endian-word-8 (relative-offset mode)))
 
 (defmethod addressing-mode-code ((mode relative))
-  `(+ PC ,(relative-offset mode)))
+  `(+ (register-value PC) ,(relative-offset mode)))
 
 
 ;; ---------- Indexed indirect ----------
