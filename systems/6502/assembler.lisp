@@ -17,7 +17,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
-(in-package :cl-vhdsl/systems/6502)
+(in-package :cl-vhdsl/6502)
 (named-readtables:in-readtable :interpol-syntax)
 
 ;; ---------- The regular expressions ----------
@@ -153,7 +153,7 @@ state of the assembler."
 	      (assembler-parse-labelled-instruction fields))))))
 
 
-;; ---------- Macro interface ----------
+;; ---------- Assembler s-expression format ----------
 
 (defun assembler-parse-sexp (x)
   "Parse X as an s-expression defining an assembler (pseudo-)instruction."

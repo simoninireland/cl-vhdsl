@@ -59,6 +59,11 @@
   (:documentation "A register used internally by the processor and offering bitwise access."))
 
 
+(defclass program-counter (special-register)
+  ()
+  (:documentation "A program counter regiser used to track the current instruction."))
+
+
 ;; ---------- Flags within registers ----------
 
 (defclass flag ()
@@ -82,29 +87,3 @@
     :type string
     :initarg :documentation))
   (:documentation "A one-bit flag within a register."))
-
-
-;; ---------- Description of an architecture ----------
-
-(defclass architecture ()
-  ((memory
-    :documentation "The available memory in bytes."
-    :initform (floor (expt 2 16)) ;; 64Kb
-    :initarg :memory-size
-    :accessor architrecture-memory-size))
-  (:documentation "Full architectural description of a processor."))
-
-
-
-
-;; ---------- Macro interface ----------
-
-(defmacro defregister (name &key (width 8) documentation)
-  "Define NAME as a register of WIDTH bits.
-
-WIDTH defaults to 8."
-  (let ((print-name (symbol-name name)))
-    `(defvar ,name (make-instance 'register
-				  :name ,print-name
-				  :width ,width
-				  :documentation ,documentation))))

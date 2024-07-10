@@ -1,4 +1,4 @@
-;; 6502 emulation
+;; 6502 emulation in software
 ;;
 ;; Copyright (C) 2024 Simon Dobson
 ;;
@@ -17,41 +17,55 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
-(in-package :cl-vhdsl/systems/6502)
+(in-package :cl-vhdsl/6502)
 
-;; ---------- Architecture emulation ----------
+;; ---------- Memory ----------
 
-(defclass 6502-emulation (6502-architecture)
-  ((mem
-    :documentation "Memory"
-    :initform (make-array (floor (expt 2 16))            ;; 64Kb
-			  :element-type 'unsigned-8
-			  :initial-element 0)
-    :initarg :memory
-    :reader architecture-memory))
-  (:documentation "An emulation of the 6502 architecture."))
+(defclass memory (emu:memory)
+  ()
+  (:documentation "A memory with pre-decoded instruction cache.
+
+Each location contains a byte of \"real\" content and an optional
+function that holds the behaviour of the location based at that location.
+This saves decoding at run-time."))
 
 
+;; We re-define the access functions to access the car of the pair
+;; at each location, and add `memory-instruction' as an accessor
+;; for the cdr.
+;;
+;; As an alternative to making the instructions setf-able like this
+;; we could specialise `memory-location' to set depending on the
+;; type of ots value argument (byte or function), and add a
+;; different method for accessing the cached instruction.
+
+(defmethod memory-initialise ((mem memory))
+  (setf (emu:memory-locations mem)
+	(make-array (list (emu:memory-size mem))))
+  (let ((locs (emu:memory-locations mem)))
+    (dolist (addr (iota (emu:memory-size mem)))
+      (let ((cell (cons 0 nil)))
+	(setf (aref locs addr) cell)))))
 
 
-;; ---------- Instruction emulation ----------
-
-(defgeneric instruction-emulate (ins mode reg mem)
-  (:documentation "doc"))
+(defmethod memory-location ((mem memory) addr)
+  (car (aref (emu:memory-locations mem) addr)))
 
 
-(defmethod instruction-emulate ((ins LDA) (mode immediate) arch)
-  (let ((v (immediate-value mode)))
-    (setf (A arch) v)
-    (setf (Z arch) (zerop v))))
+(defmethod (setf memory-location) (v (mem memory) addr)
+  (setf (car (aref (emu:memory-locations mem) addr)) v))
 
 
-(defmethod instruction-emulate ((ins LDA) (mode absolute) arch)
-  (let* ((addr (absolute-address mode))
-	 (v (memory-read-byte mem addr)))
-    (setf (A arch) v)
-    (setf (Z arch) (zerop v))))
+(defgeneric memory-instruction (mem addr)
+  (:documentation "Return the instruction cached at location ADDR in MEM."))
 
 
+(defmethod memory-instruction ((mem memory) addr)
+  (cdr (aref (emu:memory-locations mem) addr)))
 
-;; ---------- Top-level excution ----------
+
+(defmethod (setf memory-instruction) (v (mem memory) addr)
+  (setf (cdr (aref (emu:memory-locations mem) addr)) v))
+
+
+;; ---------- Assembly ----------

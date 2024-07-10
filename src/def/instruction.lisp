@@ -50,7 +50,7 @@ used when building an assembler."))
     :initarg :addressing-mode
     :initform nil
     :reader instruction-addressing-mode))
-  (:documentation "An assembly language instruction."))
+  (:documentation "An assembly language instruction runnable by a core."))
 
 
 (defgeneric instruction-addressing-modes (cls)
@@ -90,7 +90,7 @@ The method returns INS unchanged."))
 (defmethod instruction-check ((ins instruction))
   (let ((mode (instruction-addressing-mode ins))
 	(modes (instruction-addressing-modes ins)))
-    (if (and (null mode)
+    (if (and (null mode)              ;; no addressing mode, implicit addressing
 	     (null modes))
 	ins
 	(if (notany (lambda (m) (typep mode m)) modes)
@@ -98,6 +98,23 @@ The method returns INS unchanged."))
 				  :instruction ins
 				  :addressing-mode mode))
 	    ins))))
+
+
+(defgeneric instruction-addressing-mode-code (ins)
+  (:documentation "Return the code representing the behaviour of the addressing mode.
+
+By default this will simply call `addressing-mode-code'."))
+
+
+(defmethod instruction-addressing-mode-code ((ins instruction))
+  (addressing-mode-code (instruction-addressing-mode ins)))
+
+
+(defgeneric instruction-code ()
+  (:documentation "Return the behaviour of the instruction.
+
+The code should be returned quoted, as data, as it will be
+compiled into executable form."))
 
 
 ;; ---------- Instruction lookup ----------

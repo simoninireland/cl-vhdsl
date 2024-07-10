@@ -19,8 +19,29 @@
 
 (in-package :cl-vhdsl/emu)
 
-(define-condition unrecognised-addressing-mode ()
-  ((args
-    :initarg :args
-    :reader unrecognised-addressing-mode-args))
-  (:documentation "Signalled by the assembler when the arguments to an instruction can't be made into a valid addressing mode."))
+(define-condition illegal-memory-access (error)
+  ((address
+    :documentation "Memory address accessed."
+    :initarg :address))
+  (:report (lambda (c str)
+	     (format str "Illegal memory access: ~xH" (slot-value c 'address))))
+  (:documentation "Signalled when an illegal memory address is accessed.
+
+This can happen if the address is outside the valif range of
+the memory, or if the location is unreadable or unwriteable
+for some other reason."))
+
+
+(define-condition illegal-register-access (error)
+  ((register
+    :documentation "The register causing the condition.")
+   (value
+    :documentation "The value beign written."))
+  (:report (lambda (c str)
+	     (format str "Illegal access to register ~s (writing ~a)"
+		     (slot-value c 'register)
+		     (slot-value c 'value))))
+  (:documentation "Condition signalled when a register is accessed illegally.
+
+This typically means that the register is receiving a value
+that's too wide to it."))

@@ -19,6 +19,45 @@
 
 (in-package :cl-vhdsl/emu)
 
-(defclass emulated-register ()
-  ()
+(defclass register ()
+  ((value
+    :documentation "Register current value."
+    :initform 0
+    :accessor register-value)
+   (name
+    :documentation "Register print name."
+    :initarg :name
+    :reader register-name)
+   (width
+    :documentation "Width of the register in bytes."
+    :initform 8
+    :initarg :width
+    :reader register-width))
   (:documentation "A register held as a variable."))
+
+
+(defmethod (setf register-value) (v (r register))
+  ;; check that the proposed value fits into the register
+  (if (>= v (floor (expt 2 (register-width r))))
+      (error (make-instance 'register-overflow :register r :value v))
+      (setf (slot-value r 'value) v)))
+
+
+(defclass flag ()
+  ((register
+    :documentation "The register contaiing the flag."
+    :initarg :register
+    :reader flag-register)
+   (bit
+    :documentation "The bit within the register."
+    :initarg :bit
+    :accessor flag-bit))
+  (:documentation "A single-bit flag within a register."))
+
+
+(defmethod flag-bit ((f flag))
+  (logand 1 (ash (register-value (flag-register f)) (- (flag-bit f)))))
+
+
+(defmethod (setf flag-bit) (b (f flag))
+  (setf (ldb (flag-bit f) (register-value (flag-register f))) b))

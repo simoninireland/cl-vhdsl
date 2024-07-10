@@ -31,16 +31,26 @@
    #:signed-16
    #:list-of-addressing-modes
 
+   ;; Constants
+   #:KB
+   #:MB
+
    ;; registers
    #:register
-   #:print-registern
-   #:def-register
+   #:data-register
+   #:address-register
+   #:index-register
+   #:special-register
+   #:program-counter
+   #:flag
 
    ;; addressing modes
    #:addressing-mode
    #:addressing-mode-parse
    #:addressing-mode-regexp
    #:addressing-mode-bytes
+   #:addressing-mode-code
+   #:implicit
 
    ;; instructions
    #:abstract-instruction
@@ -53,6 +63,8 @@
    #:instruction-assemble
    #:instruction-add-class-for-mnemonic
    #:instruction-class-for-mnemonic
+   #:instruction-code
+   #:instruction-addressing-mode-code
 
    ;; assembler
    #:assembler-get-mnemonic
@@ -60,11 +72,18 @@
    #:assembler-get-addressing-mode
    #:assembler-make-addressing-modes-regexp
 
-   ;; memory
+   ;; architecture description
+   #:architecture
+   #:architecture-components
+   #:component
+   #:core
+   #:core-registers
+   #:core-flags
+   #:core-instruction-set
    #:memory
    #:memory-size
-   #:memory-write-byte
-   #:memory-read-byte
+   #:bus
+   #:bus-connections
 
    ;; conditions
    #:bad-addressing-mode

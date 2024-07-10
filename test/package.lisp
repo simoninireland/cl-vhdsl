@@ -18,7 +18,7 @@
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 (defpackage cl-vhdsl/test
-  (:use :cl :cl-vhdsl :cl-vhdsl/def :cl-vhdsl/systems/6502 :fiveam)
+  (:use :cl :cl-vhdsl :cl-vhdsl/def :cl-vhdsl/6502 :fiveam)
   (:import-from :fiveam #:is #:test))
 
 (in-package :cl-vhdsl/test)

@@ -63,7 +63,7 @@ or synthesised in the final system."))
   ((size
     :documentation "Size of memory in bytes."
     :initarg :size
-    :initform (floor (expt 2 16))                    ;; 64Kb by default
+    :initform (* 64 KB)                                 ;; 64KB by default
     :reader memory-size))
   (:documentation "A linear byte-addressable RAM."))
 

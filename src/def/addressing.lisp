@@ -36,6 +36,13 @@
   (:documentation "Return the bytes that encode the address in MODE."))
 
 
+(defgeneric addressing-mode-code (mode)
+  (:documentation "Return the code to be used to implement the behaviour.
+
+The code should be returned quoted, as data, as it will be compiled
+into executable form."))
+
+
 ;; These three functions are used to parse an addressing mode from its
 ;; assembler source form. `addressing-mode-regexp' should return the
 ;; regexp identifying the addressing mode in assembly code source.

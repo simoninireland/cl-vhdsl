@@ -17,7 +17,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
-(in-package :cl-vhdsl/systems/6502)
+(in-package :cl-vhdsl/6502)
 
 ;; ---------- Loads ----------
 
@@ -46,6 +46,10 @@
   (:documentation "LoaD index register X."))
 
 
+(defun LDX (&rest args)
+  (let ((ins (apply #'make-instance (cons 'LDX args))))
+    (instruction-check ins)
+    ins))
 (defmethod instruction-mnemonic ((ins (eql 'LDX))) "LDX")
 (defmethod instruction-addressing-modes ((ins (eql 'LDX)))
   '(immediate absolute))
@@ -62,6 +66,10 @@
   (:documentation "LoaD index register X."))
 
 
+(defun LDY (&rest args)
+  (let ((ins (apply #'make-instance (cons 'LDY args))))
+    (instruction-check ins)
+    ins))
 (defmethod instruction-mnemonic ((ins (eql 'LDY))) "LDY")
 (defmethod instruction-addressing-modes ((ins (eql 'LDY)))
   '(immediate absolute))
@@ -80,6 +88,10 @@
   (:documentation "STore Accumulator."))
 
 
+(defun STA (&rest args)
+  (let ((ins (apply #'make-instance (cons 'STA args))))
+    (instruction-check ins)
+    ins))
 (defmethod instruction-mnemonic ((ins (eql 'STA))) "STA")
 (defmethod instruction-addressing-modes ((ins (eql 'STA)))
   '(immediate absolute absolute-indexed))
@@ -107,3 +119,30 @@
   nil)
 (defmethod instruction-opcode ((ins DEX))
   #2r11001010)
+
+
+;; ---------- Branches ----------
+
+(defclass BNZ (instruction)
+  ()
+  (:documentation "Branch if Not Zero"))
+
+
+(defun BNZ (&rest args)
+  (let ((ins (apply #'make-instance (cons 'BNZ args))))
+    (instruction-check ins)
+    ins))
+(defmethod instruction-mnemonic ((ins (eql 'BNZ))) "BNZ")
+(defmethod instruction-addressing-modes ((ins (eql 'BNZ)))
+  '(relative))
+
+
+;; ---------- Miscellaneous ----------
+
+(defclass BRK (instruction)
+  ()
+  (:documentation "BReaK execution."))
+
+(defmethod instruction-mnemonic ((ins (eql 'BRK))) "BRK")
+(defmethod instruction-addressing-modes ((ins (eql 'BRK)))
+  '(implicit))

@@ -20,17 +20,24 @@
 (in-package :common-lisp-user)
 
 (defpackage cl-vhdsl/emu
-  (:use :cl :cl-vhdsl/def)
+  (:use :cl)
   (:export
    ;; memory
-   #:emulated-memory
-   #:make-emulated-memory
-   #:memory-write-byte
-   #:memory-read-byte
+   #:memory
+   #:memory-initialise
+   #:memory-size
+   #:memory-locations
+   #:memory-location
+
+   ;; registers
+   #:register
+   #:register-value
+   #:flag
+   #:flag-register  ; delete
+   #:flag-bit       ; delete
+   #:flag-value
 
    ;; conditions
-   #:unrecognised-addressing-mode
-
-   ;; utilities
-   ;; to be refactored
+   #:illegal-memory-access
+   #:illegal-register-access
    ))

@@ -17,7 +17,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
-(in-package :cl-vhdsl/systems/6502)
+(in-package :cl-vhdsl/6502)
 
 
 ;; ---------- Helper functions ----------
@@ -115,30 +115,23 @@ the default."
   (list (immediate-value mode)))
 
 
-;; ---------- Absolute ----------
+(defmethod addressing-mode-code ((mode immediate))
+  `,(immediate-value mode))
 
-;; The 6502 actually has two forms of absolute addressimg, with
-;; zero-page absolute needing only a two-byte offset into page 0.
-;; Rather than representing this in a separate class we optimise
-;; it wihtin the bytecode generation.
+
+;; ---------- Absolute ----------
 
 (defclass absolute (addressing-mode)
   ((address
-    :documentation "The address, an 8- or 16-bit word."
+    :documentation "The address, a 16-bit word."
     :type word-16
     :initarg :address
     :reader absolute-address))
-  (:documentation "Absolute addressing, with an inline 8- or 16-bit address.
-
-The address is treated either as an absolute address within
-the entire address space of the processor, or as an 8-bit offset
-into page 0 (which of course is actually just an address too).
-The two alternatives are encoded as different opcodes."))
+  (:documentation "Absolute addressing, with an inline 16-bit address."))
 
 
 (defun absolute (&rest args)
-  (apply #'make-instance (cons'absolute args)))
-
+  (apply #'make-instance (cons 'absolute args)))
 
 (defmethod addressing-mode-regexp ((cls (eql 'absolute)))
   "((?:[0-9]+)|(?:[0-9a-fA-F]+H))")
@@ -154,6 +147,36 @@ The two alternatives are encoded as different opcodes."))
 
 (defmethod addressing-mode-bytes ((mode absolute))
   (little-endian-word-16 (absolute-address mode)))
+
+(defmethod addressing-mode-code ((mode absolute))
+  `(memory-byte mem ,(absolute-address mode)))
+
+
+;; ---------- Zero-page ----------
+
+(defclass zero-page (addressing-mode)
+  ((address
+    :documentation "The offset into page zero, an 8-bit word."
+    :type word-8
+    :initarg :address
+    :reader zero-page-address))
+  (:documentation "Absolute addressing, with an inline 8-bit page zero address."))
+
+
+(defun zero-page (&rest args)
+  (apply #'make-instance (cons 'zero-page args)))
+
+(defmethod addressing-mode-regexp ((cls (eql 'zero-page)))
+  "((?:[0-9]+)|(?:[0-9a-fA-F]+H))")
+
+(defmethod addressing-mode-parse ((mode zero-page) ss)
+  (setf (slot-value mode 'address) (assembler-parse-number (car ss))))
+
+(defmethod addressing-mode-bytes ((mode zero-page))
+  (little-endian-word-16 (zero-page-address mode)))
+
+(defmethod addressing-mode-code ((mode zero-page))
+  `(memory-byte mem ,(zero-page-address mode)))
 
 
 ;; ---------- Absolute indexed ----------
@@ -176,24 +199,45 @@ space of the processor."))
 (defmethod addressing-mode-regexp ((cls (eql 'absolute-indexed)))
   "((?:[0-9]+)|(?:[0-9a-fA-F]+H)),\\s*([XY])")
 
-
 (defmethod addressing-mode-parse ((mode absolute-indexed) ss)
   (setf (slot-value mode 'address) (assembler-parse-number (car ss)))
   (setf (slot-value mode 'index) (cadr ss)))
 
-
 (defmethod addressing-mode-bytes ((mode absolute-indexed))
   (little-endian-word-16 (absolute-address mode)))
+
+(defmethod addressing-mode-code ((mode absolute-indexed))
+  `(memory-byte mem (+ ,(absolute-address mode) ,(absolute-indexed-index mode))))
 
 
 ;; ---------- Relative ----------
 
-(defclass relative (zero-page)
-  ()
-  (:documentation "Reletive addressing, with an inline 8-bit offset.
+(defclass relative (addressing-mode)
+  ((offset
+    :documentation "The offset from the program counter.."
+    :type index-register
+    :initarg :offset
+    :reader relative-offset))
+  (:documentation "Relative addressing, with an inline 8-bit offset.
 
-Rather than spcifying an offset into page zero, the offset is
-relative to the current program counter."))
+The offset is relative to the current program counter, and may be
+positive or negative."))
+
+
+(defun relative (&rest args)
+    (apply #'make-instance (cons 'relative args)))
+
+(defmethod addressing-mode-regexp ((cls (eql 'relative)))
+  "((?:[0-9]+)|(?:[0-9a-fA-F]+H))")
+
+(defmethod addressing-mode-parse ((mode relative) ss)
+  (setf (slot-value mode 'offset) (assembler-parse-number (car ss))))
+
+(defmethod addressing-mode-bytes ((mode relative))
+  (little-endian-word-8 (relative-offset mode)))
+
+(defmethod addressing-mode-code ((mode relative))
+  `(+ PC ,(relative-offset mode)))
 
 
 ;; ---------- Indexed indirect ----------
