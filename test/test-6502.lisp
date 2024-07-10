@@ -1,26 +1,23 @@
-(defprogram
-  (.equ :label "SOURCE" :value #16r200)
-  (.equ :label "DEST" :value #16r300)
-  (.org :address #16r100)
-  (.label :label "START")
-  (LDX :mode (immediate :value 25))
-  (.label :label "COPY")
-  (LDA :mode (absolute-indexed :address-label "SOURCE" :index X))
-  (SDA :mode (absolute-indexed :address-label "DEST" :index X))
+(assemble (:origin #16r1000)
+  (.DEFINE SOURCE #16r200)
+  (.DEFINE DEST #16r300)
+  (.DEFINE SIZE 25)
+  (LDX :mode (immediate :value (.FROM SIZE)))
+  (.LABEL COPY)
+  (LDA :mode (absolute-indexed :address (.FROM) SOURCE
+			       :index X))
+  (STA :mode (absolute-indexed :address (.FROM DEST)
+			       :index X))
   (DEX)
-  (BNZ :label "COPY")
-  (.end))
+  (BNZ :mode (relative :offset (.FROM COPY))))
 
+
+(in-package :cl-vhdsl/systems/6502)
+
+(assemble (:origin #16r1000)
+  (lda :addressing-mode (immediate :value 12))
+  )
 
 (list
- (LDX :mode (immediate :value 25))
- (LDA :mode (absolute-indexed
-	     :address #16r200
-	     :index X))
- (SDA :mode (absolute-indexed
-	     :address #16r200
-	     :index X))
- (DEX)
- (BNZ :mode (relative :offset -9))
-
+ (make-instance 'LDA :addressing-mode (immediate :vlue 100))
  )
