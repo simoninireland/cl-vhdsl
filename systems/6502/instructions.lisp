@@ -39,6 +39,10 @@
 	 opcode)
     (setf-bitfields opcode (1 0 1 b b b 0 1))
     opcode))
+(defmethod instruction-code ((ins LDA))
+  `(progn
+     (setf (emu:register-value A) ,(instruction-addressing-mode-code ins))
+     (setf (emu:flag-value Z) (= (emu:register-value A) 0))))
 
 
 (defclass LDX (instruction)
@@ -59,6 +63,10 @@
 	 opcode)
     (setf-bitfields opcode (1 0 1 b b b 1 0))
     opcode))
+(defmethod instruction-code ((ins LDX))
+  `(progn
+     (setf (emu:register-value X) ,(instruction-addressing-mode-code ins))
+     (setf (emu:flag-value Z) (= (emu:register-value X) 0))))
 
 
 (defclass LDY (instruction)
@@ -79,6 +87,10 @@
 	 opcode)
     (setf-bitfields opcode (1 0 1 b b b 0 0))
     opcode))
+(defmethod instruction-code ((ins LDY))
+  `(progn
+     (setf (emu:register-value Y) ,(instruction-addressing-mode-code ins))
+     (setf (emu:flag-value Z) (= (emu:register-value Y) 0))))
 
 
 ;; ---------- Saves ----------
@@ -95,12 +107,14 @@
 (defmethod instruction-mnemonic ((ins (eql 'STA))) "STA")
 (defmethod instruction-addressing-modes ((ins (eql 'STA)))
   '(immediate absolute absolute-indexed))
-(defmethod instruction-opcode ((ins LDA))
+(defmethod instruction-opcode ((ins STA))
   (let* ((mode (instruction-addressing-mode ins))
 	 (b (addressing-mode-encode mode))
 	 opcode)
     (setf-bitfields opcode (1 0 0 b b b 0 1))
     opcode))
+(defmethod instruction-code ((ins STA))
+  `((setf ,(instruction-addressing-mode-code ins) (emu:register-value A))))
 
 
 ;; ---------- Increment and decrement----------
@@ -119,6 +133,10 @@
   '(implicit))
 (defmethod instruction-opcode ((ins DEX))
   #2r11001010)
+(defmethod instruction-code ((ins DEX))
+  `(progn
+     (decf (emu:register-value X))
+     (setf (emu:flag-value Z) (= (emu:register-value X) 0))))
 
 
 ;; ---------- Branches ----------
@@ -135,9 +153,16 @@
 (defmethod instruction-mnemonic ((ins (eql 'BNZ))) "BNZ")
 (defmethod instruction-addressing-modes ((ins (eql 'BNZ)))
   '(relative))
+(defmethod instruction-code ((ins BNZ))
+  `((if (= (emu:flag-value Z) 0)
+	(setf (register-value PC) (+ (register-value PC)
+				     ,(relative-offset (instruction-addressing-mode ins)))))))
 
 
 ;; ---------- Miscellaneous ----------
+
+;; At the moment this isn't the actual BRK instruction, which
+;; jumps to an interrupt vector: this version stops execution.
 
 (defclass BRK (instruction)
   ()
@@ -146,3 +171,7 @@
 (defmethod instruction-mnemonic ((ins (eql 'BRK))) "BRK")
 (defmethod instruction-addressing-modes ((ins (eql 'BRK)))
   '(implicit))
+(defmethod instruction-opcode ((ins BRK))
+  0)
+(defmethod instruction-code ((ins BRK))
+  `(throw 'EOP t))
