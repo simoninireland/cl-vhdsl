@@ -37,6 +37,8 @@
 
    ;; registers
    #:register
+   #:register-name
+   #:register-width
    #:data-register
    #:address-register
    #:index-register
@@ -58,7 +60,9 @@
    #:instruction-mnemonic
    #:instruction-addressing-mode
    #:instruction-addressing-modes
+   #:instruction-opcode
    #:instruction-check
+   #:instruction-addressing-mode-bytes
    #:instruction-bytes
    #:instruction-assemble
    #:instruction-add-class-for-mnemonic

@@ -69,3 +69,52 @@ This saves decoding at run-time."))
 
 
 ;; ---------- Assembly ----------
+
+(defun assembler-make-core-registers (core)
+  "Return the list of variables needed to represent CORE.
+
+This is a list suitable for `let' that incldues a variable for each
+register, assigned to an instance of the appropriate emulation class."
+  (flet ((make-register (r)
+	   `(list
+	    ,(register-name r)
+	    (make-instance 'emu:register
+			   :name ,(register-name r)
+			   :width ,(register-width r)))))
+    (mapcar #'make-register (core-registers core))))
+
+
+(defun assembler-make-memory (mem)
+  "Return an emulated memory matching MEM.
+
+This is a list appropriate for `let'."
+  `(make-instance 'emu:memory :size ,(emu:memory-size mem)))
+
+
+(defun assembler-make-instruction-behaviour (ins)
+  "Return the behaviour of INS.
+
+This is returned as a lambda-term encapsulating the behaviour,
+expecting to be closed by the architecture variables.."
+  `(lambda () ,@(instruction-code ins)))
+
+
+(defun assembler-make-instruction (ins)
+  "Return the code to assemble INS.
+
+This is returned as a list of code required to place the bytes of the
+instruction into memory based at PC, decode and cache the
+instruction, and increment PC to the next instruction base address."
+  (let ((bytes (instruction-bytes ins)))
+    `((setf (memory-instruction mem (register-value PC))
+	    ,(assembler-make-instruction-behaviour ins))
+      ,@(mapcar (lambda (i)
+		  `(setf (emu:memory-location mem ,(if (> i 0)
+						       `(+ PC ,i)
+						       'PC))
+			 ,(elt bytes i)))
+		(iota (length bytes)))
+      (incf (emu:register-value PC) ,(length bytes)))))
+
+
+;; ---------- Macro interface ----------

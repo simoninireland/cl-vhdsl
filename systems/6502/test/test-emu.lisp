@@ -55,3 +55,17 @@
 	(funcall ins))))
   (emu:register-value A)
   )
+
+
+(defmethod addressing-mode-code ((mode immediate))
+  (immediate-value mode))
+
+(defmethod instruction-code ((ins LDA))
+  `((setf (emu:register-value A) ,(instruction-addressing-mode-code ins))
+    (setf (emu:flag-value Z) (= (emu:register-value A) 0))))
+
+(assembler-make-core-registers *MOS6502*)
+(assembler-make-memory (make-instance 'memory :size (* 8 KB)))
+(assembler-make-instruction-behaviour (make-instance 'LDA :addressing-mode (immediate :value 24)))
+(instruction-opcode (make-instance 'LDA :addressing-mode (immediate :value 24)))
+(print (assembler-make-instruction (make-instance 'LDA :addressing-mode (immediate :value 24))))

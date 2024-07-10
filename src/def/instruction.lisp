@@ -67,13 +67,32 @@ used when building an assembler."))
 For most processors an opcode is a single byte; some use
 multi-byte instructions. This method can return either
 a byte or a list of bytes, typically making use of the
-addressing mode to constrct the bit pattern."))
+addressing mode to construct the bit pattern."))
+
+
+(defgeneric instruction-addressing-mode-bytes (ins)
+  (:documentation "Return the bytes representing the addressing mode of INS.
+
+By default this will simply call `addressing-mode-bytes'."))
+
+
+(defmethod instruction-addressing-mode-bytes ((ins instruction))
+  (addressing-mode-bytes (instruction-addressing-mode ins)))
 
 
 (defgeneric instruction-bytes (ins)
   (:documentation "The bytes for INS.
 
-The bytes comprise the opcode plus the addressing mode in binary."))
+The bytes comprise the opcode plus the addressing mode in binary.
+The default implementatio simply concatenates the results of
+`instruction-opcode' and `addressing-mode-bytes'"))
+
+
+(defmethod instruction-bytes ((ins instruction))
+  (let ((opcode (instruction-opcode ins)))
+    (if (consp opcode)
+	(append opcode (instruction-addressing-mode-bytes ins))
+	(cons opcode (instruction-addressing-mode-bytes ins)))))
 
 
 (defgeneric instruction-check (ins)
@@ -87,10 +106,12 @@ necessary run-time checks.
 The method returns INS unchanged."))
 
 
+;; Should we force a mode, not assume none is implicit?
+
 (defmethod instruction-check ((ins instruction))
   (let ((mode (instruction-addressing-mode ins))
 	(modes (instruction-addressing-modes ins)))
-    (if (and (null mode)              ;; no addressing mode, implicit addressing
+    (if (and (null mode) ;; no addressing mode, implicit addressing
 	     (null modes))
 	ins
 	(if (notany (lambda (m) (typep mode m)) modes)
@@ -110,8 +131,8 @@ By default this will simply call `addressing-mode-code'."))
   (addressing-mode-code (instruction-addressing-mode ins)))
 
 
-(defgeneric instruction-code ()
-  (:documentation "Return the behaviour of the instruction.
+(defgeneric instruction-code (ins)
+  (:documentation "Return the behaviour of the instruction INS.
 
 The code should be returned quoted, as data, as it will be
 compiled into executable form."))
@@ -142,17 +163,6 @@ than being re-created."
     (when suc
       (let ((i (index-non-nil matches)))
 	(elt clns i)))))
-
-
-;; ---------- Default methods ----------
-
-(defmethod instruction-bytes ((ins instruction))
-  (let ((opcode (instruction-opcode ins))
-	(bytes (addressing-mode-bytes (instruction-addressing-mode ins))))
-    (cond ((consp opcode)
-	   (append opcode bytes))
-	  (t
-	   (cons opcode bytes)))))
 
 
 ;; ---------- Macro interface ----------
