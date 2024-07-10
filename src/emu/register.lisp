@@ -45,7 +45,7 @@
 
 (defclass flag ()
   ((register
-    :documentation "The register contaiing the flag."
+    :documentation "The register containing the flag."
     :initarg :register
     :reader flag-register)
    (bit
