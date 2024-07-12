@@ -44,11 +44,11 @@ or synthesised in the final system."))
 (defclass core (component)
   ((registers
     :documentation "The registers defined in the core."
-    :initform '()
+    :initform (make-hash-table)
     :accessor core-registers)
    (flags
     :documentation "The status flags defined in the core."
-    :initform '()
+    :initform (make-hash-table)
     :accessor core-flags)
    (instruction-set
     :documentation "The instruction set of the core."
@@ -61,11 +61,11 @@ or synthesised in the final system."))
 
 (defclass memory (component)
   ((size
-    :documentation "Size of memory in bytes."
+    :documentation "Number of locations in the memory."
     :initarg :size
-    :initform (* 64 KB)                                 ;; 64KB by default
+    :initform (* 64 KB)                                 ;; 64Klocs by default
     :reader memory-size))
-  (:documentation "A linear byte-addressable RAM."))
+  (:documentation "A linear location-addressable RAM."))
 
 
 ;; ---------- Buses ----------

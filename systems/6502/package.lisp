@@ -20,8 +20,7 @@
 (in-package :common-lisp-user)
 
 (defpackage cl-vhdsl/6502
-  (:use :cl :cl-ppcre :cl-interpol :cl-bitfields :alexandria
-	:cl-vhdsl/def)
+  (:use :cl :cl-ppcre :cl-interpol :cl-bitfields :alexandria :cl-vhdsl/def)
   (:local-nicknames (:emu :cl-vhdsl/emu))
 
   (:export

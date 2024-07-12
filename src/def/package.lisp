@@ -45,13 +45,16 @@
    #:special-register
    #:program-counter
    #:flag
+   #:flag-name
+   #:flag-register
+   #:flag-bit
 
    ;; addressing modes
    #:addressing-mode
    #:addressing-mode-parse
    #:addressing-mode-regexp
    #:addressing-mode-bytes
-   #:addressing-mode-code
+   #:addressing-mode-behaviour
    #:implicit
 
    ;; instructions
@@ -67,8 +70,8 @@
    #:instruction-assemble
    #:instruction-add-class-for-mnemonic
    #:instruction-class-for-mnemonic
-   #:instruction-code
-   #:instruction-addressing-mode-code
+   #:instructin-behaviour
+   #:instruction-argument
 
    ;; assembler
    #:assembler-get-mnemonic
@@ -78,16 +81,20 @@
 
    ;; architecture description
    #:architecture
+   #:component
    #:architecture-components
 
-   ;; architecture components
-   #:component
+   ;; cores
    #:core
    #:core-registers
    #:core-flags
    #:core-instruction-set
+
+   ;; memory
    #:memory
    #:memory-size
+
+   ;; buses
    #:bus
    #:bus-connections
 

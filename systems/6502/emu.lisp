@@ -21,7 +21,7 @@
 
 ;; ---------- Memory ----------
 
-(defclass memory (emu:memory)
+(defclass cached-memory (emu:memory)
   ()
   (:documentation "A memory with pre-decoded instruction cache.
 
@@ -36,10 +36,10 @@ This saves decoding at run-time."))
 ;;
 ;; As an alternative to making the instructions setf-able like this
 ;; we could specialise `memory-location' to set depending on the
-;; type of ots value argument (byte or function), and add a
+;; type of its value argument (byte or function), and add a
 ;; different method for accessing the cached instruction.
 
-(defmethod memory-initialise ((mem memory))
+(defmethod emu:memory-initialise ((mem cached-memory))
   (setf (emu:memory-locations mem)
 	(make-array (list (emu:memory-size mem))))
   (let ((locs (emu:memory-locations mem)))
@@ -48,11 +48,11 @@ This saves decoding at run-time."))
 	(setf (aref locs addr) cell)))))
 
 
-(defmethod memory-location ((mem memory) addr)
+(defmethod emu:memory-location ((mem cached-memory) addr)
   (car (aref (emu:memory-locations mem) addr)))
 
 
-(defmethod (setf memory-location) (v (mem memory) addr)
+(defmethod (setf emu:memory-location) (v (mem cached-memory) addr)
   (setf (car (aref (emu:memory-locations mem) addr)) v))
 
 
@@ -60,78 +60,12 @@ This saves decoding at run-time."))
   (:documentation "Return the instruction cached at location ADDR in MEM."))
 
 
-(defmethod memory-instruction ((mem memory) addr)
+(defmethod memory-instruction ((mem cached-memory) addr)
   (cdr (aref (emu:memory-locations mem) addr)))
 
 
-(defmethod (setf memory-instruction) (v (mem memory) addr)
+(defmethod (setf memory-instruction) (v (mem cached-memory) addr)
   (setf (cdr (aref (emu:memory-locations mem) addr)) v))
 
 
-;; ---------- Assembly ----------
-
-(defun assembler-make-core-registers (core)
-  "Return the list of variables needed to represent CORE.
-
-This is a list suitable for `let' that includes a variable for each
-register, assigned to an instance of the appropriate emulation class."
-  (flet ((make-register (r)
-	   `(,(register-name r)
-	     (make-instance 'emu:register
-			    :name ,(register-name r)
-			    :width ,(register-width r)))))
-    (mapcar #'make-register (core-registers core))))
-
-
-(defun assembler-make-memory (mem)
-  "Return an emulated memory matching MEM.
-
-This is a list appropriate for `let'."
-  `(mem (make-instance 'emu:memory :size ,(emu:memory-size mem))))
-
-
-(defun assembler-make-instruction-behaviour (ins)
-  "Return the behaviour of INS.
-
-This is returned as a lambda-term encapsulating the behaviour,
-expecting to be closed by the architecture variables."
-  `(lambda ()
-     (incf (register-value PC) ,(length (instruction-bytes ins)))
-     ,(instruction-code ins)))
-
-
-(defun assembler-make-instruction (ins)
-  "Return the code to assemble INS.
-
-This is returned as a list of code required to place the bytes of the
-instruction into memory based at PC, decode and cache the
-instruction, and increment PC to the next instruction base address."
-  (let ((bytes (instruction-bytes ins)))
-    `((setf (memory-instruction mem (register-value PC))
-	    ,(assembler-make-instruction-behaviour ins))
-      ,@(mapcar (lambda (i)
-		  `(setf (emu:memory-location mem ,(if (> i 0)
-						       `(+ PC ,i)
-						       'PC))
-			 ,(elt bytes i)))
-		(iota (length bytes)))
-      (incf (emu:register-value PC) ,(length bytes)))))
-
-
-(defun assembler-make-function (core mem ins &key (base #16r300))
-  "Assemble a program to run instruction stream INS on CORE and MEM."
-  `(let (,@(assembler-make-core-registers core)
-	 ,(assembler-make-memory mem))
-     ;; initialise the memory
-     (memory-initialise mem)
-
-     ;; assemble the program
-     (setf (register-value PC) ,base)
-     ,@(mapcar #'car (mapcar #'assembler-make-instruction ins))
-
-     ;; return  a function that, when executed, runs the program
-     (lambda ()
-       (setf (register-value PC) ,base)
-       (catch 'EOP
-	 (let ((ins (memory-instruction mem (emu:register-value PC))))
-	   (funcall ins))))))
+;; ---------- Cores ----------

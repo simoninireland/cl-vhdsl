@@ -67,9 +67,10 @@ initialised with zeros."))
 ;; ---------- Registers ----------
 
 (defclass register ()
-  ((name
+  ((print-name
     :documentation "The register's print name."
-    :initarg :name)
+    :initarg :name
+    :reader register-name)
    (value
     :documentation "The register's value."
     :initform 0
@@ -94,12 +95,16 @@ Registers provide sanity checks on the sizes of values written."))
 ;; ---------- Flags ----------
 
 (defclass flag ()
-  ((register
+  ((print-name
+    :documentation "The register's print name."
+    :initarg :name
+    :reader flag-name)
+   (register
     :documentation "The register containing the flag."
     :initarg :register
     :reader flag-register)
    (bit
-    :documentation "The bot within the register."
+    :documentation "The bit within the register."
     :initarg :bit
     :reader flag-bit))
   (:documentation "A one-bit flag within an emulated register."))
@@ -120,3 +125,89 @@ Registers provide sanity checks on the sizes of values written."))
 	  (if b
 	      (logior v mask)
 	      (logand v (lognot mask))))))
+
+
+;; ---------- Cores ----------
+
+(defclass core ()
+  ((register-table
+     :documentation "Hash table mapping register names to emulated registers."
+     :initform (make-hash-table)
+     :reader core-registers)
+   (flag-table
+    :documentation "Hash table mapping flag names to emulated registers."
+    :initform (make-hash-table)
+    :reader core-flags)
+   (memory
+    :documentation "Main memory."
+    :initarg :memory
+    :reader core-memory))
+  (:documentation "An emulated core."))
+
+
+(defgeneric core-add-register (c r)
+  (:documentation "Add register R to core ."))
+
+
+(defmethod core-add-register ((c core) r)
+  (setf (gethash (register-name r) (core-registers c)) r))
+
+
+(defgeneric core-add-flag (c f)
+  (:documentation "Add lag F to core ."))
+
+
+(defmethod core-add-flag ((c core) f)
+  (setf (gethash (flag-name f) (core-flags c)) f))
+
+
+(defgeneric core-register (rname c)
+  (:documentation "Return the  register RNAME on core C"))
+
+
+(defmethod core-register (rname (c core))
+  (gethash rname (core-registers c)))
+
+
+(defgeneric core-register-value (rname c)
+  (:documentation "Return the value of register RNAME on core C"))
+
+
+(defmethod core-register-value (rname (c core))
+  (register-value (core-register rname c)))
+
+
+(defmethod (setf core-register-value) (v rname (c core))
+  (setf (register-value (core-register rname c)) v))
+
+
+(defgeneric core-flag (fname c)
+  (:documentation "Return the flag FNAME on core C"))
+
+
+(defmethod core-flag (fname (c core))
+  (gethash fname (core-flags c)))
+
+
+(defgeneric core-flag-value (fname c)
+  (:documentation "Return the value of flag FNAME on core C"))
+
+
+(defmethod core-flag-value (fname (c core))
+  (flag-value (core-flag fname c)))
+
+
+(defmethod (setf core-flag-value) (v fname (c core))
+  (setf (flag-value (core-flag fname c)) v))
+
+
+(defgeneric core-memory-location (addr c)
+  (:documentation "Return the value stord at memory address ADDR on core C"))
+
+
+(defmethod core-memory-location (addr (c core))
+  (memory-location (core-memory c) addr))
+
+
+(defmethod (setf core-memory-location) (v addr (c core))
+  (setf (memory-location (core-memory c) addr) v))

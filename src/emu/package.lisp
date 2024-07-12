@@ -33,9 +33,18 @@
    #:register
    #:register-value
    #:flag
-   #:flag-register  ; delete
-   #:flag-bit       ; delete
    #:flag-value
+
+   ;; cores
+   #:core
+   #:core-add-register
+   #:core-register
+   #:core-register-value
+   #:core-add-flag
+   #:core-flag
+   #:core-flag-value
+   #:core-memory
+   #:core-memory-location
 
    ;; conditions
    #:illegal-memory-access

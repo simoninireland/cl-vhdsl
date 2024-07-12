@@ -19,53 +19,66 @@
 
 (in-package :cl-vhdsl/6502)
 
-(let* ((A (make-instance 'emu:register :name "A" :width 8))
-       (PC (make-instance 'emu:register :name "PC" :width 16))
-       (P (make-instance 'emu:register :name "P" :width 8))
-       (Z (make-instance 'emu:flag :register P :bit 0))
-       (mem (make-instance 'memory :size (* 8 KB))))
+(defun make-emu-core (core mem)
+  "Build an emulation of CORE connected to the given MEM."
+  (let ((c (make-instance 'emu:core :memory mem)))
+    (maphash #'(lambda (rname r)
+		 (emu:core-add-register c (make-instance 'emu:register
+							 :name rname
+							 :width (register-width r))))
+	     (core-registers core))
+    (maphash #'(lambda (fname f)
+	       (emu:core-add-flag c (make-instance 'emu:flag
+				     :name fname
+				     :register (emu:core-register (flag-register f) c)
+				     :bit (flag-bit f))))
+	     (core-flags core))
+
+    c))
+
+
+(defun load-instruction (ins mem addr)
+  "Load INS at address ADDR of MEM, returning the new PC."
+  (let* ((bs (instruction-bytes ins))
+	 (n (length bs)))
+    (dolist (i (iota n))
+      (setf (memory-location mem (+ addr i)) (elt bs i))
+      (setf (memory-instruction mem (+ addr i))
+	    (lambda (c)
+	      (incf (emu:core-register-value 'PC c) n)
+	      (instruction-behaviour ins c))))
+    (+ addr n)))
+
+
+(defun load-program (p mem &key (initial #16r300))
+  "Load P into memory MEM."
+  (let ((pc initial))
+    (dolist (ins p)
+      (setq pc (load-instruction ins mem pc)))))
+
+
+(defun run-instruction (c mem addr)
+  "Run the instruction stored at ADDR of MEM on core C."
+  (let ((ins (memory-instruction mem addr)))
+    (funcall ins c)))
+
+
+(defun run-program  (c &key (initial #16r300))
+  "Run the program loaded onto core C, starting from the INITIAL address."
+  (let ((mem (emu:core-memory c)))
+    (setf (emu:core-register-value 'PC c) initial)
+    (catch 'EOP
+      (loop (run-instruction c mem (emu:core-register-value 'PC c))))))
+
+
+(let* ((mem (make-instance 'cached-memory  :size (* 8 KB)))
+       (core (make-emu-core *MOS6502* mem)))
   (memory-initialise mem)
-  (setf (emu:memory-location mem #16r200) 25)
-
-  (setf (emu:register-value PC) #16r400)
-  (print(emu:register-value PC))
-  (setf (memory-instruction mem (emu:register-value PC))
-	(lambda ()
-	  (progn
-	    (princ "LDA")
-	    (setf (emu:register-value A) (emu:memory-location mem #16r200))
-	    (setf (emu:flag-value Z) (= (emu:register-value A) 0)))))
-  (incf (emu:register-value PC) 3)
-  (print(emu:register-value PC))
-
-  (setf (memory-instruction mem (emu:register-value PC))
-	(lambda ()
-	  (throw 'EOP t)))
-  (incf (emu:register-value PC) 1)
-  (print(emu:register-value PC))
-
-  (setf (emu:register-value PC) #16r400)
-  (print (emu:register-value PC))
-  (print (emu:memory-location mem (emu:register-value PC)))
-  (catch 'EOP
-    (loop
-      (let ((ins (memory-instruction mem (emu:register-value PC))))
-	(print (emu:register-value PC))
-	(incf (emu:register-value PC) 3)
-	(funcall ins))))
-  (emu:register-value A)
+  (let ((p (list (make-instance 'LDA :addressing-mode (immediate :value 25))
+		 (make-instance 'STA :addressing-mode (absolute :address #16r200))
+		 (make-instance 'BRK :addressing-mode (implicit)))))
+    (load-program p mem)
+    (run-program core)
+    (memory-location mem #16r200)
+    )
   )
-
-
-(defmethod addressing-mode-code ((mode immediate))
-  (immediate-value mode))
-
-(defmethod instruction-code ((ins LDA))
-  `((setf (emu:register-value A) ,(instruction-addressing-mode-code ins))
-    (setf (emu:flag-value Z) (= (emu:register-value A) 0))))
-
-(assembler-make-core-registers *MOS6502*)
-(assembler-make-memory (make-instance 'memory :size (* 8 KB)))
-(assembler-make-instruction-behaviour (make-instance 'LDA :addressing-mode (immediate :value 24)))
-(instruction-opcode (make-instance 'LDA :addressing-mode (immediate :value 24)))
-(print (assembler-make-instruction (make-instance 'LDA :addressing-mode (immediate :value 24))))

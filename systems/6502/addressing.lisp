@@ -19,7 +19,6 @@
 
 (in-package :cl-vhdsl/6502)
 
-
 ;; ---------- Helper functions ----------
 
 ;; The 6502 assemblers typically allow decimal,hex, octal, and binary
@@ -114,8 +113,7 @@ the default."
 (defmethod addressing-mode-bytes ((mode immediate))
   (list (immediate-value mode)))
 
-
-(defmethod addressing-mode-code ((mode immediate))
+(defmethod addressing-mode-behaviour ((mode immediate) c)
   (immediate-value mode))
 
 
@@ -148,8 +146,8 @@ the default."
 (defmethod addressing-mode-bytes ((mode absolute))
   (little-endian-word-16 (absolute-address mode)))
 
-(defmethod addressing-mode-code ((mode absolute))
-  `(memory-location mem ,(absolute-address mode)))
+(defmethod addressing-mode-behaviour ((mode absolute) c)
+  (absolute-address mode))
 
 
 ;; ---------- Zero-page ----------
@@ -175,8 +173,8 @@ the default."
 (defmethod addressing-mode-bytes ((mode zero-page))
   (little-endian-word-16 (zero-page-address mode)))
 
-(defmethod addressing-mode-code ((mode zero-page))
-  `(memory-location mem ,(zero-page-address mode)))
+(defmethod addressing-mode-behaviour ((mode zero-page) c)
+  (zero-page-address mode) c)
 
 
 ;; ---------- Absolute indexed ----------
@@ -206,8 +204,9 @@ space of the processor."))
 (defmethod addressing-mode-bytes ((mode absolute-indexed))
   (little-endian-word-16 (absolute-address mode)))
 
-(defmethod addressing-mode-code ((mode absolute-indexed))
-  `(memory-location mem (+ ,(absolute-address mode) ,(absolute-indexed-index mode))))
+(defmethod addressing-mode-behaviour ((mode absolute-indexed) c)
+  (+ (absolute-address mode)
+     (emu:core-register-value (absolute-indexed-index mode) c)))
 
 
 ;; ---------- Relative ----------
@@ -236,8 +235,8 @@ positive or negative."))
 (defmethod addressing-mode-bytes ((mode relative))
   (little-endian-word-8 (relative-offset mode)))
 
-(defmethod addressing-mode-code ((mode relative))
-  `(+ (register-value PC) ,(relative-offset mode)))
+(defmethod addressing-mode-behaviour ((mode relative) c)
+  (relative-offset mode))
 
 
 ;; ---------- Indexed indirect ----------

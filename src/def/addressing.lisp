@@ -36,11 +36,8 @@
   (:documentation "Return the bytes that encode the address in MODE."))
 
 
-(defgeneric addressing-mode-code (mode)
-  (:documentation "Return the code to be used to implement the behaviour.
-
-The code should be returned quoted, as data, as it will be compiled
-into executable form."))
+(defgeneric addressing-mode-behaviour (mode c)
+  (:documentation "Return the data specified by MODE on core C."))
 
 
 ;; These three functions are used to parse an addressing mode from its
@@ -82,17 +79,13 @@ STRS will be the patterns parsed from the assembler text by
 (defun implicit (&rest args)
   (apply #'make-instance (cons 'implicit args)))
 
-
 (defmethod addressing-mode-regexp ((cls (eql 'implicit)))
   "")
 
-
 (defmethod addressing-mode-parse ((mode implicit) ss))
 
-
-(defmethod addressing-mode-argument ((cls (eql 'implicit)) s)
+(defmethod addressing-mode-behaviour ((mode implicit) c)
   nil)
-
 
 (defmethod addressing-mode-bytes ((mode implicit))
   nil)

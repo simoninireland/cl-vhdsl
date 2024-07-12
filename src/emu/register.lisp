@@ -24,7 +24,7 @@
     :documentation "Register current value."
     :initform 0
     :accessor register-value)
-   (name
+   (print-name
     :documentation "Register print name."
     :initarg :name
     :reader register-name)
@@ -48,6 +48,10 @@
     :documentation "The register containing the flag."
     :initarg :register
     :reader flag-register)
+   (print-name
+    :documentation "Flag print name."
+    :initarg :name
+    :reader register-name)
    (bit
     :documentation "The bit within the register."
     :initarg :bit

@@ -19,41 +19,36 @@
 
 (in-package :cl-vhdsl/6502)
 
-(defvar *6502-system* (make-instance 'architecture)
+(defparameter *6502-system* (make-instance 'architecture)
   "6502 system.")
 
 
-(defclass MOS6502-core (core)
-  ()
-  (:documentation "Description of the 6502 processor core."))
-
-
-(defvar *MOS6502* (make-instance 'MOS6502-core)
+(defparameter *MOS6502* (make-instance 'core)
   "6502 core.")
 
 
-(setf (core-registers *MOS6502*)
-      (list
-       (make-instance 'data-register :name 'A :width 8
-				     :documentation "The accumulator.")
-       (make-instance 'index-register :name 'X :width 8
-				      :documentation "Index register X.")
-       (make-instance 'index-register :name 'Y :width 8
-				      :documentation "Index register Y.")
-       (make-instance 'program-counter :name 'PC :width 16
-				       :documentation "Program counter.")
-       (make-instance 'index-register :name 'SP :width 8
-				      :documentation "Stack pointer (offset).")
-       (make-instance 'special-register :name 'P :width 8
-					:documentation "Flags register.")))
+(dolist (r (list
+	    (make-instance 'data-register :name 'A :width 8
+					      :documentation "The accumulator.")
+	    (make-instance 'index-register :name 'X :width 8
+					       :documentation "Index register X.")
+	    (make-instance 'index-register :name 'Y :width 8
+					       :documentation "Index register Y.")
+	    (make-instance 'program-counter :name 'PC :width 16
+						:documentation "Program counter.")
+	    (make-instance 'index-register :name 'SP :width 8
+					       :documentation "Stack pointer (offset).")
+	    (make-instance 'special-register :name 'P :width 8
+						 :documentation "Flags register.")))
+  (setf (gethash (register-name r) (core-registers *MOS6502*)) r))
 
 
-(setf (core-flags *MOS6502*)
-      (list
-       (make-instance 'flag :name "C" :register 'P :bit 0
-			    :documentation "Carry flag.")
-       (make-instance 'flag :name "Z" :register 'P :bit 1
-			    :documentation "Zero flag.")))
+(dolist (f (list
+	    (make-instance 'flag :name 'C :register 'P :bit 0
+				     :documentation "Carry flag.")
+	    (make-instance 'flag :name 'Z :register 'P :bit 1
+				     :documentation "Zero flag.")))
+  (setf (gethash (flag-name f) (core-flags *MOS6502*)) f))
 
 
 (setf (architecture-components *6502-system*)

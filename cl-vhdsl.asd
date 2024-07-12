@@ -69,7 +69,8 @@
 	       (:file "arch")
 	       (:file "addressing")
 	       (:file "instructions")
-	       (:file "assembler"))
+	       (:file "assembler")
+	       (:file "emu"))
   :in-order-to ((test-op (test-op "cl-vhdsl/6502/test"))))
 
 

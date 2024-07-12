@@ -29,17 +29,19 @@
 Real instructions are those understood by the processor, that can be
 converted into machine code. Pseudo-instructions (or directives)
 are understood by the assembler and used to provide metadata when
-assembling the instrction stream."))
+assembling the instruction stream."))
 
 
-(defgeneric instruction-mnemonic (cls)
-  (:documentation "Return the mnemonic associated with an instruction class.
+(defgeneric instruction-mnemonic (inscls)
+  (:documentation "Return the mnemonic associated with INSCLS.
 
-This applies to both real and pseudo-instructions, and is
-used when building an assembler."))
+INSCLS may be a class name (symbol) or an instance of the
+`abstract-instruction' class. This applies to both real and
+pseudo-instructions, and is used when building an assembler."))
 
 
 (defmethod instruction-mnemonic ((ins abstract-instruction))
+  ;; map instance to its class name
   (instruction-mnemonic (class-name (class-of ins))))
 
 
@@ -53,11 +55,15 @@ used when building an assembler."))
   (:documentation "An assembly language instruction runnable by a core."))
 
 
-(defgeneric instruction-addressing-modes (cls)
-  (:documentation "Return the list of addressing mode classes associated with an instruction class."))
+(defgeneric instruction-addressing-modes (inscls)
+  (:documentation "Return the list of addressing mode classes for INSCLS.
+
+INSCLS may be a class name (symbol) or an instance of the
+`instruction' class."))
 
 
 (defmethod instruction-addressing-modes ((ins instruction))
+  ;; map instance to its class name
   (instruction-addressing-modes (class-name (class-of ins))))
 
 
@@ -121,21 +127,21 @@ The method returns INS unchanged."))
 	    ins))))
 
 
-(defgeneric instruction-addressing-mode-code (ins)
-  (:documentation "Return the code representing the behaviour of the addressing mode.
+(defgeneric instruction-behaviour (ins c)
+  (:documentation "Return the behaviour of INS on core C.
 
-By default this will simply call `addressing-mode-code'."))
-
-
-(defmethod instruction-addressing-mode-code ((ins instruction))
-  (addressing-mode-code (instruction-addressing-mode ins)))
+The instruction can access C to get at registers, memory, and so on,
+as well as the behaviour of its own addressing mode."))
 
 
-(defgeneric instruction-code (ins)
-  (:documentation "Return the behaviour of the instruction INS.
+(defgeneric instruction-argument (ins c)
+  (:documentation "Return the argument of INS on core C.
 
-The code should be returned quoted, as data, as it will be
-compiled into executable form."))
+The argument is specified by the addressing mode of INS."))
+
+
+(defmethod instruction-argument ((ins instruction) c)
+  (addressing-mode-behaviour (instruction-addressing-mode ins) c))
 
 
 ;; ---------- Instruction lookup ----------
