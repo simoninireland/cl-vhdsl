@@ -1,4 +1,4 @@
-;; System definition
+;; System definitions
 ;;
 ;; Copyright (C) 2023--2024 Simon Dobson
 ;;
@@ -41,6 +41,8 @@
 	       (:module "emu"
 		:components ((:file "package")
 			     (:file "arch")
+			     (:file "cached-memory")
+			     (:file "emu")
 			     (:file "conditions"))))
   :in-order-to ((test-op (test-op "cl-vhdsl/test"))))
 
@@ -82,3 +84,17 @@
   :components ((:file "package")
 	       (:file "test-assembler"))
   :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))
+
+
+;; ---------- SAP-1 emulator ----------
+
+(asdf:defsystem "cl-vhdsl/SAP-1"
+  :description "A SAP-1 emulator in software"
+  :author "Simon Dobson <simoninireland@gmail.com"
+  :license "GPL3"
+  :depends-on ("alexandria" "cl-ppcre" "cl-vhdsl")
+  :pathname "systems/sap-1/"
+  :serial t
+  :components ((:file "package")
+	       (:file "sap-1")
+	       (:file "emu")))
