@@ -24,10 +24,6 @@
   (:local-nicknames (:emu :cl-vhdsl/emu))
 
   (:export
-   ;; extended architectural elements
-   #:memory
-   #:memory-instruction
-
    ;; addressing modes
    ;; (all but the classes can be hidden eventually)
    #:immediate

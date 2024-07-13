@@ -19,66 +19,90 @@
 
 (in-package :cl-vhdsl/6502)
 
-(defun make-emu-core (core mem)
-  "Build an emulation of CORE connected to the given MEM."
-  (let ((c (make-instance 'emu:core :memory mem)))
-    (maphash #'(lambda (rname r)
-		 (emu:core-add-register c (make-instance 'emu:register
-							 :name rname
-							 :width (register-width r))))
-	     (core-registers core))
-    (maphash #'(lambda (fname f)
-	       (emu:core-add-flag c (make-instance 'emu:flag
-				     :name fname
-				     :register (emu:core-register (flag-register f) c)
-				     :bit (flag-bit f))))
-	     (core-flags core))
-
-    c))
-
-
-(defun load-instruction (ins mem addr)
-  "Load INS at address ADDR of MEM, returning the new PC."
-  (let* ((bs (instruction-bytes ins))
-	 (n (length bs)))
-    (dolist (i (iota n))
-      (setf (memory-location mem (+ addr i)) (elt bs i))
-      (setf (memory-instruction mem (+ addr i))
-	    (lambda (c)
-	      (incf (emu:core-register-value 'PC c) n)
-	      (instruction-behaviour ins c))))
-    (+ addr n)))
-
-
-(defun load-program (p mem &key (initial #16r300))
-  "Load P into memory MEM."
-  (let ((pc initial))
-    (dolist (ins p)
-      (setq pc (load-instruction ins mem pc)))))
-
-
-(defun run-instruction (c mem addr)
-  "Run the instruction stored at ADDR of MEM on core C."
-  (let ((ins (memory-instruction mem addr)))
-    (funcall ins c)))
-
-
-(defun run-program  (c &key (initial #16r300))
-  "Run the program loaded onto core C, starting from the INITIAL address."
-  (let ((mem (emu:core-memory c)))
-    (setf (emu:core-register-value 'PC c) initial)
-    (catch 'EOP
-      (loop (run-instruction c mem (emu:core-register-value 'PC c))))))
-
-
-(let* ((mem (make-instance 'cached-memory  :size (* 8 KB)))
-       (core (make-emu-core *MOS6502* mem)))
-  (memory-initialise mem)
+(let* ((mem (make-instance 'emu:cached-memory  :size (* 8 KB)))
+       (core (emu:make-core *MOS6502*)))
+  (emu:memory-initialise mem)
   (let ((p (list (make-instance 'LDA :addressing-mode (immediate :value 25))
 		 (make-instance 'STA :addressing-mode (absolute :address #16r200))
 		 (make-instance 'BRK :addressing-mode (implicit)))))
-    (load-program p mem)
-    (run-program core)
-    (memory-location mem #16r200)
+    (emu:load-program p mem)
+    (emu:run-program core mem)
+    (emu:memory-location mem #16r200)
     )
+  )
+
+
+(defun create-instruction (mnemonic mode mem pc)
+  "doc"
+  (let ((ins (funcall #'make-instance mnemonic :addressing-mode mode)))
+    (load-instruction ins mem pc)))
+
+
+(defmacro defprogram (var (mem &key (initial #16r300)) &body body)
+  "Assemble a program to a list of instructions."
+  `(macrolet ((LDA (mode)
+		`(setq pc (create-instruction 'LDA ,mode mem pc)))
+	      (STA (mode)
+		`(setq pc (create-instruction 'STA ,mode mem pc)))
+	      (DEX (mode)
+		`(setq pc (create-instruction 'DEX ,mode mem pc)))
+	      (INX (mode)
+		`(setq pc (create-instruction 'INX ,mode mem pc)))
+	      (TAX (mode)
+		`(setq pc (create-instruction 'TAX ,mode mem pc)))
+	      (BEQ (mode)
+		`(setq pc (create-instruction 'BEQ ,mode mem pc)))
+	      (BNZ (mode)
+		`(setq pc (create-instruction 'BNZ ,mode mem pc)))
+	      (BRK (mode)
+		`(setq pc (create-instruction 'BRK ,mode mem pc)))
+
+	      (immediate (&rest args)
+		`(apply #'make-instance (list 'immediate ,@args)))
+	      (absolute (&rest args)
+		`(apply #'make-instance (list 'absolute ,@args)))
+	      (absolute-indexed (&rest args)
+		`(apply #'make-instance (list 'absolute-indexed ,@args)))
+	      (relative (&rest args)
+		`(apply #'make-instance (list 'relative ,@args)))
+
+	      (.LABEL (label)
+		`(setf (gethash ',label symbols) pc))
+	      (.TO-LABEL (label)
+		`(if-let ((addr (gethash ',label symbols)))
+		  (- addr pc)
+		  (print "Forward reference"))))
+     (let ((mem ,mem)
+	   (pc ,initial)
+	   (symbols (make-hash-table)))
+       ,@body
+       mem)))
+
+
+
+(let ((mem (make-instance 'cached-memory :size (* 8 KB))))
+  (memory-initialise mem)
+  (defprogram test (mem)
+    (LDA (immediate :value 100))))
+
+
+(defprogram copy-block ((make-instance 'cached-memory :size (* 8 KB)) :initial #16r400)
+  (let ((SOURCE #16r200)
+	(DEST #16r300)
+	(LEN #16r2ff))
+    (.LABEL START)
+    (LDA (absolute :address LEN))
+    (BEQ (relative :offset (.TO-LABEL END)))
+    ;;(TAX)
+    ;;(INX)
+    (.LABEL COPY)
+    (LDA (absolute-indexed :address SOURCE :index 'X))
+    (STA (absolute-indexed :address DEST :index 'X))
+    ;;(DEX)
+    (BNZ (relative :offset (.TO-LABEL COPY)))
+    (.LABEL END)
+    ;;(BRK)
+    )
+
+
   )

@@ -70,7 +70,7 @@
    #:instruction-assemble
    #:instruction-add-class-for-mnemonic
    #:instruction-class-for-mnemonic
-   #:instructin-behaviour
+   #:instruction-behaviour
    #:instruction-argument
 
    ;; assembler

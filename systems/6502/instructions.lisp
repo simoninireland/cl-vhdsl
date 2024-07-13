@@ -170,4 +170,4 @@
 (defmethod instruction-opcode ((ins BRK))
   0)
 (defmethod instruction-behaviour ((ins BRK) c)
-  (throw 'EOP t))
+  (emu:core-end-program c))

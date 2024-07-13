@@ -129,24 +129,32 @@ Registers provide sanity checks on the sizes of values written."))
 
 ;; ---------- Cores ----------
 
+(defparameter *END-PROGRAM* (gensym)
+  "Catch tag for ending program execution on a core.")
+
+
 (defclass core ()
   ((register-table
-     :documentation "Hash table mapping register names to emulated registers."
-     :initform (make-hash-table)
-     :reader core-registers)
+    :documentation "Hash table mapping register names to emulated registers."
+    :initform (make-hash-table)
+    :reader core-registers)
+   (pc
+    :documentation "The designated program counter register."
+    :initform nil
+    :reader core-pc)
+   (mem
+    :documentation "The memory the core is attached to."
+    :initarg :memory
+    :accessor core-memory)
    (flag-table
     :documentation "Hash table mapping flag names to emulated registers."
     :initform (make-hash-table)
-    :reader core-flags)
-   (memory
-    :documentation "Main memory."
-    :initarg :memory
-    :reader core-memory))
+    :reader core-flags))
   (:documentation "An emulated core."))
 
 
 (defgeneric core-add-register (c r)
-  (:documentation "Add register R to core ."))
+  (:documentation "Add register R to core."))
 
 
 (defmethod core-add-register ((c core) r)
@@ -167,6 +175,18 @@ Registers provide sanity checks on the sizes of values written."))
 
 (defmethod core-register (rname (c core))
   (gethash rname (core-registers c)))
+
+
+(defgeneric core-pc-value (c)
+  (:documentation "Return the value of the program counter on core C"))
+
+
+(defmethod core-pc-value ((c core))
+  (register-value (core-pc c)))
+
+
+(defmethod (setf core-pc-value) (addr (c core))
+  (setf (register-value (core-pc c)) addr))
 
 
 (defgeneric core-register-value (rname c)
@@ -211,3 +231,11 @@ Registers provide sanity checks on the sizes of values written."))
 
 (defmethod (setf core-memory-location) (v addr (c core))
   (setf (memory-location (core-memory c) addr) v))
+
+
+(defgeneric core-end-program (c)
+  (:documentation "End execution of a program on C"))
+
+
+(defmethod core-end-program ((c core))
+  (throw *END-PROGRAM* t))

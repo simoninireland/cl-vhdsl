@@ -20,7 +20,8 @@
 (in-package :common-lisp-user)
 
 (defpackage cl-vhdsl/emu
-  (:use :cl)
+  (:use :cl :alexandria)
+  (:local-nicknames (:def :cl-vhdsl/def))
   (:export
    ;; memory
    #:memory
@@ -28,6 +29,8 @@
    #:memory-size
    #:memory-locations
    #:memory-location
+   #:cached-memory
+   #:memory-instruction
 
    ;; registers
    #:register
@@ -39,12 +42,24 @@
    #:core
    #:core-add-register
    #:core-register
+   #:core-pc
+   #:core-pc-value
    #:core-register-value
    #:core-add-flag
    #:core-flag
    #:core-flag-value
    #:core-memory
    #:core-memory-location
+
+   ;; construction
+   #:make-core
+   #:load-instruction
+   #:load-program
+
+   ;; execution
+   #:run-instruction
+   #:run-program
+   #:core-end-program
 
    ;; conditions
    #:illegal-memory-access
