@@ -17,7 +17,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
-;; The SAP-1 ("Simple as Possible - 1") is described in:
+;; The SAP-1 ("Simple as Possible - 1") processor is described in:
 ;;
 ;; Albert Paul Malvino and Jerald Brown. Digital Computer Electronics.
 ;; McGraw-Hill. ISBN 0-02-800594-5. 1999.
@@ -42,7 +42,7 @@
 					  :documentation "Output register.")
 	    (make-instance 'program-counter :name 'PC :width 4
 					    :documentation "Program counter.")))
-  (setf (gethash (register-namer) (core-registers *SAP-1-core*)) r))
+  (setf (gethash (register-name r) (core-registers *SAP-1-core*)) r))
 
 
 ;; ---------- Addressing modes ----------
@@ -50,12 +50,21 @@
 (defclass absolute (addressing-mode)
   ((addr
     :documentation "The address, a 4-bit word."
+    :initarg :address
     :reader absolute-address))
   (:documentation "doc"))
 
 
-(defmethod addressing-mode-behaviour ((mode absolute))
+(defun absolute (&rest args)
+  (apply #'make-instance (cons 'absolute args)))
+
+
+(defmethod addressing-mode-behaviour ((mode absolute) c)
   (absolute-address mode))
+
+
+(defmethod addressing-mode-bytes ((mode absolute))
+  '())
 
 
 ;; ---------- Instruction set ----------
@@ -72,15 +81,15 @@
 
 
 (defmethod instruction-opcode ((ins LDA))
-  (let* ((a (instruction-argument ins))
+  (let* ((a (absolute-address (instruction-addressing-mode ins)))
 	 opcode)
     (setf-bitfields opcode (0 0 0 0 a a a a))
     opcode))
 
 
 (defmethod instruction-behaviour ((ins LDA) c)
-  (setf (core-register-value 'A c)
-	(core-memory-location (instruction-argument ins c)) c))
+  (setf (emu:core-register-value 'A c)
+	(emu:core-memory-location (instruction-argument ins c) c)))
 
 
 ;; ADD
@@ -94,17 +103,17 @@
   '(absolute))
 
 
-(defmethod instruction-opcode ((ins LADD))
-  (let* ((a (instruction-argument ins))
+(defmethod instruction-opcode ((ins ADD))
+  (let* ((a (absolute-address (instruction-addressing-mode ins)))
 	 opcode)
     (setf-bitfields opcode (0 0 0 1 a a a a))
     opcode))
 
 
 (defmethod instruction-behaviour ((ins ADD) c)
-  (setf (core-register-value 'A c)
-	(+ (core-register-value 'A c)
-	   (core-memory-location (instruction-argument ins c) c))))
+  (setf (emu:core-register-value 'A c)
+	(+ (emu:core-register-value 'A c)
+	   (emu:core-memory-location (instruction-argument ins c) c))))
 
 ;; SUB
 
@@ -113,21 +122,22 @@
   (:documentation "SUBtract value at address from the accumultor."))
 
 
-(defmethod instruction-addressing-mode ((ins (eql 'SUB))
-  '(absolute)))
+(defmethod instruction-addressing-mode ((ins (eql 'SUB)))
+  '(absolute))
 
 
 (defmethod instruction-opcode ((ins SUB))
-  (let* ((a (instruction-argument ins))
+  (let* ((a (absolute-address (instruction-addressing-mode ins)))
 	 opcode)
     (setf-bitfields opcode (0 0 1 0 a a a a))
     opcode))
 
 
 (defmethod instruction-behaviour ((ins SUB) c)
-  (setf (core-register-value 'A c)
-	(- (core-register-value 'A c)
-	   (core-memory-location (instruction-argument ins c) c))))
+  (setf (emu:core-register-value 'A c)
+	(- (emu:core-register-value 'A c)
+	   (emu:core-memory-location (instruction-argument ins c) c))))
+
 
 ;; OUT
 
@@ -136,8 +146,8 @@
   (:documentation "Copy the accumulator to the output register."))
 
 
-(defmethod instruction-addressing-mode ((ins (eql 'OUT))
-  '(implicit)))
+(defmethod instruction-addressing-mode ((ins (eql 'OUT)))
+  '(implicit))
 
 
 (defmethod instruction-opcode ((ins OUT))
@@ -147,7 +157,7 @@
 
 
 (defmethod instruction-behaviour ((ins OUT) c)
-  (setf (core-register-value 'OUT c) (core-register-value 'A c)))
+  (setf (emu:core-register-value 'OUT c) (emu:core-register-value 'A c)))
 
 
 ;; HLT
@@ -168,4 +178,4 @@
 
 
 (defmethod instruction-behaviour ((ins HLT) c)
-  (throw 'EOP t))
+  (emu:core-end-program c))
