@@ -52,7 +52,7 @@
     :documentation "The address, a 4-bit word."
     :initarg :address
     :reader absolute-address))
-  (:documentation "doc"))
+  (:documentation "An absolute address, stored inline."))
 
 
 (defun absolute (&rest args)
@@ -96,7 +96,7 @@
 
 (defclass ADD (instruction)
   ()
-  (:documentation "ADD value ad address to the accumultor."))
+  (:documentation "ADD value ad address to the accumulator."))
 
 
 (defmethod instruction-addressing-mode ((ins (eql 'ADD)))
@@ -119,7 +119,7 @@
 
 (defclass SUB (instruction)
   ()
-  (:documentation "SUBtract value at address from the accumultor."))
+  (:documentation "SUBtract value at address from the accumulator."))
 
 
 (defmethod instruction-addressing-mode ((ins (eql 'SUB)))
@@ -143,7 +143,7 @@
 
 (defclass OUT (instruction)
   ()
-  (:documentation "Copy the accumulator to the output register."))
+  (:documentation "Copy the accumulator to the OUTput register."))
 
 
 (defmethod instruction-addressing-mode ((ins (eql 'OUT)))
