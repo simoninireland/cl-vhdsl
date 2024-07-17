@@ -96,8 +96,7 @@
   :pathname "systems/sap-1/"
   :serial t
   :components ((:file "package")
-	       (:file "sap-1")
-	       )
+	       (:file "sap-1"))
   :in-order-to ((test-op (test-op "cl-vhdsl/SAP-1/test"))))
 
 
