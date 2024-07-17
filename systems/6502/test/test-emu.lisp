@@ -1,4 +1,4 @@
-;; Tests of software emulation
+;; Tests of 6502 software emulation
 ;;
 ;; Copyright (C) 2024 Simon Dobson
 ;;
