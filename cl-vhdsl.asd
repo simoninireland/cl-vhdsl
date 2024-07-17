@@ -97,4 +97,15 @@
   :serial t
   :components ((:file "package")
 	       (:file "sap-1")
-	       (:file "emu")))
+	       )
+  :in-order-to ((test-op (test-op "cl-vhdsl/SAP-1/test"))))
+
+
+(asdf:defsystem "cl-vhdsl/SAP-1/test"
+  :description "Tests of VHDSL SAP-1 emulator."
+  :depends-on ("cl-vhdsl/SAP-1" "cl-ppcre" "fiveam")
+  :pathname "systems/sap-1/test/"
+  :serial t
+  :components ((:file "package")
+	       (:file "test-emu"))
+  :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))
