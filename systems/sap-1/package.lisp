@@ -1,4 +1,4 @@
-;; Package definition for the SAP-1emulator
+;; Package definition for the SAP-1 emulator
 ;;
 ;; Copyright (C) 2024 Simon Dobson
 ;;
@@ -19,6 +19,19 @@
 
 (in-package :common-lisp-user)
 
-(defpackage cl-vhdsl/SAP1
+(defpackage cl-vhdsl/SAP-1
   (:use :cl :cl-ppcre :cl-interpol :cl-bitfields :alexandria :cl-vhdsl/def)
-  (:local-nicknames (:emu :cl-vhdsl/emu)))
+  (:local-nicknames (:emu :cl-vhdsl/emu))
+
+  (:export
+   ;; core and architecture
+   #:*SAP-1-architecture*
+   #:*SAP-1-core*
+
+   ;; instruction set an addressing modes
+   #:absolute
+   #:LDA
+   #:ADD
+   #:SUB
+   #:OUT
+   #:HLT))
