@@ -18,9 +18,9 @@
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 (defpackage cl-vhdsl/6502/test
-  (:use :cl :cl-ppcre :fiveam
-	:cl-vhdsl :cl-vhdsl/systems/6502)
-  (:import-from :fiveam #:is #:test))
+  (:use :cl :cl-ppcre
+	:cl-vhdsl :cl-vhdsl/6502)
+  (:import-from :fiveam #:is #:test #:def-suite))
 
 (in-package :cl-vhdsl/6502/test)
 
