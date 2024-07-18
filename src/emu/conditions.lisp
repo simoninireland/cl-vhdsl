@@ -1,4 +1,4 @@
-;; Fully-software-emulated memory
+;; Conditions for fully-software-emulated architectures
 ;;
 ;; Copyright (C) 2024 Simon Dobson
 ;;
