@@ -59,7 +59,8 @@
   :components ((:file "package")
 	       (:file "test-utils")
 	       ;;(:file "test-assembler")
-	       (:file "test-wires"))
+	       (:file "test-wires")
+	       (:file "test-registers"))
   :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))
 
 
