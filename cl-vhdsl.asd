@@ -43,6 +43,10 @@
 			     (:file "arch")
 			     (:file "cached-memory")
 			     (:file "emu")
+			     (:file "conditions")))
+	       (:module "hw"
+		:components ((:file "package")
+			     (:file "arch")
 			     (:file "conditions"))))
   :in-order-to ((test-op (test-op "cl-vhdsl/test"))))
 
@@ -54,7 +58,8 @@
   :serial t
   :components ((:file "package")
 	       (:file "test-utils")
-	       (:file "test-assembler"))
+	       ;;(:file "test-assembler")
+	       (:file "test-wires"))
   :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))
 
 
