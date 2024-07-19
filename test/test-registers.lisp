@@ -40,11 +40,7 @@
 					 :write-enable (hw:pin-wire wr))))
 
     ;; put a value on the bus
-    (map nil (lambda (p)
-	       (setf (hw:pin-state p) 0))
-	 data-bus-connector)
-    (setf (hw:pin-state (elt data-bus-connector 0)) 1)
-    (setf (hw:pin-state (elt data-bus-connector 2)) 1)
+    (hw:pins-from-value data-bus-connector #2r101)
 
     ;; enable the register and set its value as writeable from the bus
     (setf (hw:pin-state en) 1)
@@ -83,8 +79,8 @@
     ;; clock the register
     (setf (hw:pin-state clk) 1)
 
-    ;; check we loaded the value
-    (let ((v (hw:register-value reg)))
-      (dolist (i (iota (hw:register-width reg)))
-	(is (equal (hw:pin-state (elt data-bus-connector i))
-		   (logand (ash v (- i)) 1)))))))
+    ;; check we place the value on the bus
+    (let ((v (hw:register-value reg))
+	  (rv (hw:pins-to-value data-bus-connector)))
+      (is (equal v #2r10110))
+      (is (equal v rv)))))
