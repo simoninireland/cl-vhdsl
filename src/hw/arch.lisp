@@ -398,7 +398,13 @@ Pins can be in one of several states, including:
 
 Registers must be connected to a bus and three wires. The data bus must
 have at least as many wires as the register. The three other wires are
-for clock, register enable, and write enable."))
+for clock, register enable, and write enable.
+
+When write is enabled then at the next rising clock edge then the
+value of the register will be written from the bus. When write is
+disabled, read is enabled and the value of the register will be made
+available on the bus. Write-enable should be see from the perspective
+of a client outside the register."))
 
 
 (defmethod initialize-instance :after ((r register) &rest initargs)
@@ -421,25 +427,25 @@ for clock, register enable, and write enable."))
   (declare (ignore p))            ;; we only have one trigger pin
 
   (when (and (component-enabled-p r)
-	     (register-read-enabled-p r))
+	     (register-write-enabled-p r))
     (register-value-from-data-bus r)))
 
 
 (defmethod component-pin-changed ((r register))
-  (if (register-read-enabled-p r)
-      ;; set all data bus pins to :reading
-      (map nil (lambda (p)
+  (if (component-enabled-p r)
+      (if (register-write-enabled-p r)
+	  ;; set all data bus pins to :reading
+	  (map nil (lambda (p)
 		 (setf (pin-state p) :reading))
 	   (register-data-bus r))
 
-      (if (component-enabled-p r)
-	  ;; set data bus pins to the value of the register
-	  (register-value-to-data-bus r)
+	  ;; put the value of the register onto the data bus pins
+	  (register-value-to-data-bus r))
 
-	  ;; tristate the bus
-	  (map nil (lambda (p)
-		     (setf (pin-state p) :tristate))
-	       (register-data-bus r)))))
+      ;; tri-state the data bus
+       (map nil (lambda (p)
+		 (setf (pin-state p) :tristate))
+	   (register-data-bus r))))
 
 
 (defun register-value-to-data-bus (r)
