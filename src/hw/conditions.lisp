@@ -20,7 +20,7 @@
 (in-package :cl-vhdsl/hw)
 
 
-(define-condition conflicting-asserted-values (warning)
+(define-condition conflicting-asserted-values ()
   ((wire
     :documentation "The wire on which the conflict occurs."
     :initarg :wire))
@@ -33,7 +33,7 @@ Values conflict when more than one component attached to a wire
 asserts a value on it, i.e., is not tri-stated."))
 
 
-(define-condition reading-floating-value (error)
+(define-condition reading-floating-value ()
   ((wire
     :documentation "The wire with the floating value."
     :initarg :wire)
