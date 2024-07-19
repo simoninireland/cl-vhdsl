@@ -26,5 +26,4 @@
   (:import-from :fiveam #:is #:test))
 
 (in-package :cl-vhdsl/test)
-
 (def-suite cl-vhdsl)
