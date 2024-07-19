@@ -1,4 +1,4 @@
-			;; Helper functions and macros
+;; Helper functions and macros
 ;;
 ;; Copyright (C) 2024 Simon Dobson
 ;;
@@ -41,3 +41,25 @@ next nil element of the end of the sequence."
 
     ;; if we get here, the rest of the list is non-nil
     (subseq l i)))
+
+
+;; ---------- Unique-ifying lists ----------
+
+;; Should probably generalise this to include:
+;; - use of a different tests
+;; - flag to maintain the order of elements
+
+(defun uniquify (l &key (test #'equal) in-order)
+  "Return a list consisting of only the unique elements of list L.
+
+The elements are tested with `equal' unless a different test is
+given using :test. The resulting list doesn't follow the order
+of L unless :in-order is given.
+"
+  (let ((res '()))
+    (dolist (e l)
+      (unless (member e res :test test)
+	(setq res (cons e res))))
+    (if in-order
+	(reverse res)
+	res)))

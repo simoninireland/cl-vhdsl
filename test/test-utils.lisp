@@ -49,3 +49,54 @@
   (is (equal (non-nil-subseq '(nil 1 2)) '(1 2)))
   (is (equal (non-nil-subseq '(nil 1 nil 1 2)) '(1)))
   (is (equal (non-nil-subseq '(nil 1 2 3 nil 1 2)) '(1 2 3))))
+
+
+;; ---------- Unique-ifying ----------
+
+(test test-unique-empty
+  "Test an empty list bis unique."
+  (is (equal (uniquify '()) '())))
+
+
+(test test-unique-unchanged
+  "Test we leave all elements if there are none to remove."
+  (let* ((l1 '(1 2 3 4 5))
+	 (l2 (uniquify l1)))
+    (dolist (e l1)
+      (is (member e l2)))
+    (dolist (e l2)
+      (is (member e l1)))))
+
+
+(test test-unique-remove-one
+  "Test we remove a duplicate element."
+  (let* ((l1 '(1 5 2 3 4 5))
+	 (l2 (uniquify l1)))
+    (dolist (e l1)
+      (is (member e l2)))
+    (is (equal (length l2) (1- (length l1))))))
+
+
+(test test-unique-remove-one-several
+  "Test we remove a duplicate element when duplicateed several times."
+  (let* ((l1 '(1 5 2 3 5 4 5))
+	 (l2 (uniquify l1)))
+    (dolist (e l1)
+      (is (member e l2)))
+    (is (equal (length l2) (- (length l1) 2)))))
+
+
+(test test-unique-remove-two
+  "Test we two remove duplicate elements."
+  (let* ((l1 '(1 5 2 3 4 5 4))
+	 (l2 (uniquify l1)))
+    (dolist (e l1)
+      (is (member e l2)))
+    (is (equal (length l2) (- (length l1) 2)))))
+
+
+(test test-unique-in-order
+  "Test we leave the order the same if we don't remove any duplicates."
+  (let* ((l1 '(1 2 3 4 5))
+	 (l2 (uniquify l1 :in-order t)))
+    (is (equal l1 l2))))
