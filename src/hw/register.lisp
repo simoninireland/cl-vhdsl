@@ -57,21 +57,19 @@ of a client outside the register."))
   (declare (ignore initargs))
 
   ;; attach a pin to the write-enable wire and set it for reading
-  (setf (slot-value r 'write-enable) (make-instance 'pin
-						    :component r
-						    :wire (slot-value r 'write-enable)
-						    :state :reading))
+  (setf (slot-value r 'write-enable)
+	(pin-for-wire (slot-value r 'write-enable)
+		      :component r
+		      :state :reading))
 
   ;; attach pins to the data bus wires
   (setf (slot-value r 'data-bus)
-	(map 'vector (lambda (w)
-		       (make-instance 'pin :wire w :state :tristate))
-	     (bus-wires (slot-value r 'data-bus)))))
+	(pins-for-wires (bus-wires (slot-value r 'data-bus))
+			:component r)))
 
 
 (defmethod component-pin-triggered ((r register) p (v (eql 1)))
   (declare (ignore p))            ;; we only have one trigger pin
-
   (when (and (component-enabled-p r)
 	     (register-write-enabled-p r))
     (register-value-from-data-bus r)))
@@ -81,39 +79,25 @@ of a client outside the register."))
   (if (component-enabled-p r)
       (if (register-write-enabled-p r)
 	  ;; set all data bus pins to :reading
-	  (map nil (lambda (p)
-		 (setf (pin-state p) :reading))
-	   (register-data-bus r))
+	  (setf (pins-states (register-data-bus r)) :reading)
 
 	  ;; put the value of the register onto the data bus pins
 	  (register-value-to-data-bus r))
 
       ;; tri-state the data bus
-       (map nil (lambda (p)
-		 (setf (pin-state p) :tristate))
-	   (register-data-bus r))))
+      (setf (pins-states (register-data-bus r)) :tristate)))
 
 
 (defun register-value-to-data-bus (r)
   "Move the value of R to the pins of the data bus."
-  (let ((nv (register-value r))
-	(pins (register-data-bus r)))
-    (dolist (i (iota (register-width r)))
-      (setf (pin-state (elt pins i)) (logand nv 1))
-      (setf nv (ash nv -1)))))
+  (pins-from-value (register-data-bus r) (register-value r)))
 
 
 (defun register-value-from-data-bus (r)
   "Make the value on the pins of the data bus the value of R.
 
 This implies that the pins are all :reading."
-  (let* ((nv 0)
-	 (pins (register-data-bus r))
-	 (n (1- (length pins))))
-    (dolist (i (iota (register-width r)))
-      (setf nv (+ (ash nv 1)
-		  (pin-state (elt pins (- n i))))))
-    (setf (slot-value r 'value) nv)))
+  (setf (slot-value r 'value) (pins-to-value (register-data-bus r))))
 
 
 (defun register-write-enabled-p (r)

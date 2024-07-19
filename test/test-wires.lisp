@@ -168,8 +168,8 @@
 	 (p1 (make-instance 'hw:pin :wire w))
 	 (p2 (make-instance 'hw:pin :wire w)))
     (setf (hw:pin-state p2) :reading)
-    (signals (error 'reading-floating-value)
-      (hw:pin-state p2) :floating)))
+    (signals (hw:reading-floating-value)
+      (hw:pin-state p2))))
 
 
 ;; ---------- Buses ----------

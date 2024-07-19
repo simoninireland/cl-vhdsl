@@ -353,6 +353,60 @@ caused the notification."))
       (setf (slot-value p 'state) nv)
       (setf (wire-state (pin-wire p) p ov) nv))))
 
+;; ---------- Manipulating several pins simultaneousosly ----------
+
+(defun pins-states (ps)
+  "Return a sequence of state values for the pins PS."
+  (map 'vector #'pin-state ps))
+
+
+(defmethod (setf pins-states) (nv ps)
+  (map nil (lambda (p)
+	     (setf (pin-state p) nv))
+       ps))
+
+
+(defun pin-for-wire (w &key component (state :tristate))
+  "Return a pin connected to wire W.
+
+The pin default to :tristate, which can be changed using the
+STATE keyword. It will be attached to COMPONENT."
+   (make-instance 'pin :wire w :state state :component component))
+
+
+(defun pins-for-wires (ws &key component (state :tristate))
+  "Return a sequence of pins attached to with wires in WS.
+
+The pins default to :tristate, whcih can be changed using the
+STATE keyword. They will be attached to COMPONENT."
+  (map 'vector (lambda (w)
+		 (pin-for-wire w :state state :component component))
+       ws))
+
+
+(defun pins-from-value (ps v)
+  "Move the value of V onto the pins PS.
+
+The least-significant bit of V goes onto the first pin
+in the sequence PS, and so on."
+  (let ((nv v))
+    (dolist (i (iota (length ps)))
+      (setf (pin-state (elt ps i)) (logand nv 1))
+      (setf nv (ash nv -1)))))
+
+
+(defun pins-to-value (ps)
+  "Move the values of the pins in PS into an integer.
+
+The first pin in the sequence PS is moved to the least-significant
+bit of the value, and so on."
+  (let* ((v 0)
+	 (n (1- (length ps))))
+    (dolist (i (iota (length ps)))
+      (setf v (+ (ash v 1)
+		 (pin-state (elt ps (- n i))))))
+    v))
+
 
 ;; ---------- Buses ----------
 
