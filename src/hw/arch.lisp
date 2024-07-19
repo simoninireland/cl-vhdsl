@@ -471,7 +471,7 @@ This implies that the pins are all :reading."
 
 
 (defun register-write-enabled-p (r)
-  "Test if the R is write-enabled.
+  "Test if R is write-enabled.
 
 Write-enabled means that the write enable pin is high, and that the
 register is writeable from the data bus at the next rising clock edge."
@@ -479,7 +479,7 @@ register is writeable from the data bus at the next rising clock edge."
 
 
 (defun register-read-enabled-p (r)
-  "Test if the R is read-enabled.
+  "Test if R is read-enabled.
 
 Read-enabled means that the write enable pin is low, and the value of
 the register is available to be read from the data bus."
