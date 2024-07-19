@@ -46,7 +46,37 @@
     (setf (hw:pin-state (elt data-bus-connector 0)) 1)
     (setf (hw:pin-state (elt data-bus-connector 2)) 1)
 
-    ;; enable the register and set it to read from the bus
+    ;; enable the register and set its value as writeable from the bus
+    (setf (hw:pin-state en) 1)
+    (setf (hw:pin-state wr) 1)
+
+    ;; clock the register
+    (setf (hw:pin-state clk) 1)
+
+    ;; check we loaded the value
+    (is (equal (hw:register-value reg) #2r101))))
+
+
+(test test-register-save
+  "Test a register puts values onto its bus correctly."
+  (let* ((data-bus (make-instance 'hw:bus :width 8))
+	 (data-bus-connector (map 'vector
+				  (lambda (w)
+				    (make-instance 'hw:pin :wire w :state :reading))
+				  (hw:bus-wires data-bus)))
+	 (clk (make-instance 'hw:pin :state 0))
+	 (en (make-instance 'hw:pin :state 0))
+	 (wr (make-instance 'hw:pin :state 0))
+	 (reg (make-instance'hw:register :width 8
+					 :bus data-bus
+					 :clock (hw:pin-wire clk)
+					 :enable (hw:pin-wire en)
+					 :write-enable (hw:pin-wire wr))))
+
+    ;; put a value into the register
+    (setf (hw:register-value reg) #2r10110)
+
+    ;; enable the register and set its value as readable from the bus
     (setf (hw:pin-state en) 1)
     (setf (hw:pin-state wr) 0)
 
@@ -54,4 +84,7 @@
     (setf (hw:pin-state clk) 1)
 
     ;; check we loaded the value
-    (is (equal (hw:register-value reg) #2r101))))
+    (let ((v (hw:register-value reg)))
+      (dolist (i (iota (hw:register-width reg)))
+	(is (equal (hw:pin-state (elt data-bus-connector i))
+		   (logand (ash v (- i)) 1)))))))
