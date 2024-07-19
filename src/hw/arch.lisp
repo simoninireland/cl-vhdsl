@@ -1,4 +1,4 @@
-;; Fully-software-emulated hardware components
+;; Underlying services for fully-software-emulated hardware components
 ;;
 ;; Copyright (C) 2024 Simon Dobson
 ;;
@@ -311,9 +311,16 @@ Pins can be in one of several states, including:
 
 - 1, asserting a logical 1
 - 0, asserting a logical 0
-- :read, reading the state of the wire
+- :reading, reading the state of the wire
 - :tristate, effectively disconnected from the wire
-- :trigger, like read but waiting for an edge"))
+- :trigger, like read but waiting for an edge
+
+The main difference between :reading and :trigger is how changes to
+the underlying wire state are notified to the attached components. For
+a :reading pin, a change causes a call to `component-pin-changed'
+on the pin's component. For :trigger pins, a change causes a call
+to `component-pin-triggered', which also specifies the pin that
+caused the notification."))
 
 
 (defmethod initialize-instance :after ((p pin) &rest initargs)
@@ -371,116 +378,3 @@ Pins can be in one of several states, including:
       (setf (elt wires i)
 	    (make-instance 'wire)))
     (setf (slot-value b 'wires) wires)))
-
-
-;; ---------- Registers ----------
-
-(defclass register (component clocked)
-  ((width
-    :documentation "The width of the register."
-    :initarg :width
-    :initform 8
-    :reader register-width)
-   (value
-    :documentation "The register's current value."
-    :initarg :value
-    :initform 0
-    :accessor register-value)
-   (data-bus
-    :documentation "The data bus the register is connected to."
-    :initarg :bus
-    :reader register-data-bus)
-   (write-enable
-    :documentation "The write-enable."
-    :initarg :write-enable
-    :reader register-write-enable))
-  (:documentation "A register.
-
-Registers must be connected to a bus and three wires. The data bus must
-have at least as many wires as the register. The three other wires are
-for clock, register enable, and write enable.
-
-When write is enabled then at the next rising clock edge then the
-value of the register will be written from the bus. When write is
-disabled, read is enabled and the value of the register will be made
-available on the bus. Write-enable should be see from the perspective
-of a client outside the register."))
-
-
-(defmethod initialize-instance :after ((r register) &rest initargs)
-  (declare (ignore initargs))
-
-  ;; attach a pin to the write-enable wire and set it for reading
-  (setf (slot-value r 'write-enable) (make-instance 'pin
-						    :component r
-						    :wire (slot-value r 'write-enable)
-						    :state :reading))
-
-  ;; attach pins to the data bus wires
-  (setf (slot-value r 'data-bus)
-	(map 'vector (lambda (w)
-		       (make-instance 'pin :wire w :state :tristate))
-	     (bus-wires (slot-value r 'data-bus)))))
-
-
-(defmethod component-pin-triggered ((r register) p (v (eql 1)))
-  (declare (ignore p))            ;; we only have one trigger pin
-
-  (when (and (component-enabled-p r)
-	     (register-write-enabled-p r))
-    (register-value-from-data-bus r)))
-
-
-(defmethod component-pin-changed ((r register))
-  (if (component-enabled-p r)
-      (if (register-write-enabled-p r)
-	  ;; set all data bus pins to :reading
-	  (map nil (lambda (p)
-		 (setf (pin-state p) :reading))
-	   (register-data-bus r))
-
-	  ;; put the value of the register onto the data bus pins
-	  (register-value-to-data-bus r))
-
-      ;; tri-state the data bus
-       (map nil (lambda (p)
-		 (setf (pin-state p) :tristate))
-	   (register-data-bus r))))
-
-
-(defun register-value-to-data-bus (r)
-  "Move the value of R to the pins of the data bus."
-  (let ((nv (register-value r))
-	(pins (register-data-bus r)))
-    (dolist (i (iota (register-width r)))
-      (setf (pin-state (elt pins i)) (logand nv 1))
-      (setf nv (ash nv -1)))))
-
-
-(defun register-value-from-data-bus (r)
-  "Make the value on the pins of the data bus the value of R.
-
-This implies that the pins are all :reading."
-  (let* ((nv 0)
-	 (pins (register-data-bus r))
-	 (n (1- (length pins))))
-    (dolist (i (iota (register-width r)))
-      (setf nv (+ (ash nv 1)
-		  (pin-state (elt pins (- n i))))))
-    (setf (slot-value r 'value) nv)))
-
-
-(defun register-write-enabled-p (r)
-  "Test if R is write-enabled.
-
-Write-enabled means that the write enable pin is high, and that the
-register is writeable from the data bus at the next rising clock edge."
-  (equal (pin-state (register-write-enable r)) 1))
-
-
-(defun register-read-enabled-p (r)
-  "Test if R is read-enabled.
-
-Read-enabled means that the write enable pin is low, and the value of
-the register is available to be read from the data bus."
-  (equal (pin-state (register-write-enable r)) 0))

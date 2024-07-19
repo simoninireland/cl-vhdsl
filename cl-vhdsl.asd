@@ -47,6 +47,7 @@
 	       (:module "hw"
 		:components ((:file "package")
 			     (:file "arch")
+			     (:file "register")
 			     (:file "conditions"))))
   :in-order-to ((test-op (test-op "cl-vhdsl/test"))))
 
