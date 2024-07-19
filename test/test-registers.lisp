@@ -18,35 +18,40 @@
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 (in-package :cl-vhdsl/test)
+(in-suite cl-vhdsl)
 
 
 ;; ---------- Registers ----------
 
-(let* ((data-bus (make-instance 'hw:bus :width 8))
-       (data-bus-connector (map 'vector
-				(lambda (w)
-				  (make-instance 'hw:pin :wire w :state 0))
-				(hw:bus-wires data-bus)))
-       (clk (make-instance 'hw:pin :wire (make-instance 'hw:wire)))
-       (en (make-instance 'hw:pin :wire (make-instance 'hw:wire)))
-       (wr (make-instance 'hw:pin :wire (make-instance 'hw:wire)))
-       (reg (make-instance'hw:register :width 8
-				       :bus data-bus
-				       :clock (hw:pin-wire clk)
-				       :enable (hw:pin-wire en)
-				       :write-enable (hw:pin-wire wr))))
+(test test-register-load
+  "Test a register loads values off its bus correctly."
+  (let* ((data-bus (make-instance 'hw:bus :width 8))
+	 (data-bus-connector (map 'vector
+				  (lambda (w)
+				    (make-instance 'hw:pin :wire w))
+				  (hw:bus-wires data-bus)))
+	 (clk (make-instance 'hw:pin :state 0))
+	 (en (make-instance 'hw:pin :state 0))
+	 (wr (make-instance 'hw:pin :state 0))
+	 (reg (make-instance'hw:register :width 8
+					 :bus data-bus
+					 :clock (hw:pin-wire clk)
+					 :enable (hw:pin-wire en)
+					 :write-enable (hw:pin-wire wr))))
 
-  ;; set all the control pins to the right values
-  (setf (hw:pin-state clk) 0)
-  (setf (hw:pin-state en) 0)
-  (setf (hw:pin-state wr) 0)
+    ;; put a value on the bus
+    (map nil (lambda (p)
+	       (setf (hw:pin-state p) 0))
+	 data-bus-connector)
+    (setf (hw:pin-state (elt data-bus-connector 0)) 1)
+    (setf (hw:pin-state (elt data-bus-connector 2)) 1)
 
-  ;; put a value on the bus
-  (setf (hw:pin-state (elt data-bus-connector 0)) 1)
-  (setf (hw:pin-state (elt data-bus-connector 2)) 1)
+    ;; enable the register and set it to read from the bus
+    (setf (hw:pin-state en) 1)
+    (setf (hw:pin-state wr) 0)
 
-  ;; set up write enable and enable the register
-  (setf (hw:pin-state en) 1)
-  (setf (hw:pin-state wr) 1)
+    ;; clock the register
+    (setf (hw:pin-state clk) 1)
 
-  )
+    ;; check we loaded the value
+    (is (equal (hw:register-value reg) #2r101))))

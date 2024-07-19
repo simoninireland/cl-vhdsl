@@ -25,10 +25,26 @@
   ((pins-table
     :documentation "A hash table mapping pin names to pins. Pins may have several names."
     :initform (make-hash-table)
-    :reader component-pins))
+    :reader component-pins)
+    (enable
+    :documentation "The component-enable pin."
+    :initarg :enable
+    :reader component-enable))
   (:documentation "A component in an architecture.
 
 Components encapsulate functions and offer a pin-based interface."))
+
+
+(defmethod initialize-instance :after ((c component) &rest initargs)
+  (declare (ignore initargs))
+
+  ;; create a pin for the enable wire
+  (setf (slot-value c 'enable) (make-instance 'pin
+					      :component c
+					      :wire (slot-value c 'enable)
+					      :state :reading
+					      :component c))
+)
 
 
 (defmethod component-pin ((c component) n)
@@ -41,6 +57,60 @@ Components encapsulate functions and offer a pin-based interface."))
       (if (gethash n pt)
 	  (error "Duplicate pin name ~a on component ~a" n c)
 	  (setf (gethash n pt) p)))))
+
+
+(defgeneric component-enabled-p (c)
+  (:documentation "Test whether the component is enabled."))
+
+
+(defmethod component-enabled-p ((c component))
+  (equal (pin-state (component-enable c)) 1))
+
+
+(defgeneric component-pin-changed (c)
+  (:documentation "A callback called whenever a C's pin change level.
+
+This only applies to pins that are :reading and whose state is changed
+by some other component. The default does nothing: a combinatorial
+component would define its pin logic here to re-compute it when
+its inputs changed."))
+
+
+(defmethod component-pin-changed ((c component)))
+
+
+(defgeneric component-pin-triggered (c p v)
+  (:documentation "A callback called whenever a trigger pin on W changes value.
+
+P is the pin triggered and V its new value. This method is only called
+on :trigger pins. The default does nothing: a sequential component
+would override or advise this method to perform its triggering action.
+Specialise V to the direction of edge of interest."))
+
+
+(defmethod component-pin-triggered ((c component) p v))
+
+
+
+(defclass clocked ()
+  ((clock
+    :documentation "The component's clock pin."
+    :initarg :clock
+    :reader component-clock))
+  (:documentation "A mixin for a component that has a clock line.
+
+Clocked components do most of their active work when the clock
+transitions, although they can change state at other times too."))
+
+
+(defmethod initialize-instance :after ((c clocked) &rest initargs)
+  (declare (ignore initargs))
+
+  ;; create a pin for the enable clock wire
+  (setf (slot-value c 'clock) (make-instance 'pin
+					     :component c
+					     :wire (slot-value c 'clock)
+					     :state :trigger)))
 
 
 ;; ---------- Wires ----------
@@ -94,17 +164,6 @@ indicating a non-asserting state."
 	 (error "Strange value ~a assigned to wire" v))))
 
 
-(defun wire-conflicting-assertion-p (w nv)
-  "Test whether asserting NV on W generates a state conflict.
-
-States conflict when NV is different to the present state, is not
-tri-stating, and asserts one logic value while another component is
-asserting the other."
-  (and (not (equal nv (wire-state w)))
-       (not (equal nv :tristate))
-       (wire-any-pin-asserting-p w (wire-other-logic-value nv))))
-
-
 (defun wire-floating-p (w)
   "Test whether W is floating."
   (equal (slot-value w 'state) :floating))
@@ -118,6 +177,14 @@ asserting the other."
 (defun wire-pins-asserting (w v)
   "Return the list of pins of W asserting V."
   (gethash v (wire-pin-assertions w)))
+
+
+(defun wire-components-with-pins-asserting (w v)
+  "Return a list of all components of pins of W asserting V."
+  ;; filter-out any nulls, from pins without an associated component
+  ;; (usually global pins like clocks)
+  (remove-if #'null
+	     (mapcar #'pin-component (wire-pins-asserting w v))))
 
 
 (defun wire-pin-asserting-p (w p v)
@@ -152,6 +219,48 @@ list for V."
 	  (list p))))
 
 
+(defun wire-determine-state (w)
+  "Determine the electrical state 0f W.
+
+The wire is in states 0 or 1 if only that logic value is being asserted
+by any pin, and :floating otherwise. Pins that are :reading,
+:trigger, or :tristate have no effect."
+  (cond ((and (wire-any-pin-asserting-p w 0)
+	      (not (wire-any-pin-asserting-p w 1)))
+	 0)
+	((and (wire-any-pin-asserting-p w 1)
+	      (not (wire-any-pin-asserting-p w 0)))
+	 1)
+	(t
+	 :floating)))
+
+
+(defun wire-update-state-and-trigger (w)
+  "Update the state of W and notify any pins.
+
+The components of :reading pins are notified by calling
+`component-pin-changed' once per component. The components of :trigger
+pins are notifed by calling `component-pin-triggered' once per pin: if
+a single component happened to have two or ore :tigger pins attached
+to the same wire, it would get multiple notifications, one for each
+pin. (This siutaion is assumed to be unusual.)"
+  (let* ((wire-ov (slot-value w 'state))
+	 (wire-nv (wire-determine-state w)))
+     (when (not (equal wire-ov wire-nv))
+	 ;; store the new state
+	 (setf (slot-value w 'state) wire-nv)
+
+	 ;; propagate changes
+	 (when (wire-logic-value-p wire-nv)
+	   ;; for :reading pins, call their components' change notification
+	   (dolist (c (wire-components-with-pins-asserting w :reading))
+	     (component-pin-changed c))
+
+	   ;; for :trigger pins, call the pin's change notification
+	   (dolist (p (wire-pins-asserting w :trigger))
+	     (component-pin-triggered (pin-component p) p wire-nv))))))
+
+
 (defmethod wire-add-pin ((w wire) p)
   (let ((v (slot-value p 'state)))
     ;; check we don't already know this pin
@@ -161,60 +270,22 @@ list for V."
     ;; record the pin
     (setf (wire-pins w) (cons p (wire-pins w)))
 
-    ;; place the component into the correct bucket
+    ;; place the pin into the correct bucket
     (wire-add-pin-asserting w p v)
 
     ;; set the wire's state based on this new pin
-    (if (wire-conflicting-assertion-p w v)
-	(progn
-	  (setf (slot-value w 'state) :floating)
-	  (signal (make-instance 'conflicting-asserted-values :wire w)))
-	(if (wire-logic-value-p v)
-	    (setf (slot-value w 'state) v)))))
+    (wire-update-state-and-trigger w)))
 
 
-(defmethod (setf wire-state) (nv (w wire) p)
-  (let ((wire-ov (slot-value w 'state))
-	(pin-ov (slot-value p 'state))
-	wire-nv)
-    (when (not (equal wire-ov nv))
-      ;; state is changing, remove pin from old bucket
-      (wire-remove-pin-asserting w p pin-ov)
+(defmethod (setf wire-state) (nv (w wire) p ov)
+  (when (not (equal ov nv))
+    ;; state is changing, remove pin from old bucket and place
+    ;; into new bucket
+    (wire-remove-pin-asserting w p ov)
+    (wire-add-pin-asserting w p nv)
 
-      ;; check for conflicts
-      (when (wire-conflicting-assertion-p w nv)
-	;; new assertion conflicts with others
-	(wire-add-pin-asserting w p nv)
-	(setf (slot-value w 'state) :floating)
-	(signal (make-instance 'conflicting-asserted-values :wire w)))
-
-      ;; put pin into the correct bucket
-      (wire-add-pin-asserting w p nv)
-
-      ;; determine new wire state
-      (if (wire-logic-value-p nv)
-	  ;; set logic value
-	  (setq wire-nv nv)
-
-	  ;; not a logic level, determine the new value
-	  (setq wire-nv
-		(cond ((wire-any-pin-asserting-p w 0) 0)
-		      ((wire-any-pin-asserting-p w 1) 1)
-		      (t :floating))))
-
-      ;; set the new state
-      (setf (slot-value w 'state) wire-nv)
-
-      ;; propagate our new state to any :reading or :trigger pins
-      ;; if the wire has achieved a new logic level: floating
-      ;; values don't trigger a notification (but will signal
-      ;; a condition if the pin is read)
-      (when (not (and (equal wire-nv pin-ov)
-		      (wire-logic-value-p wire-nv)))
-	(dolist (p (wire-pins-asserting w :reading))
-	  (pin-wire-state-changed p wire-nv))
-	(dolist (p (wire-pins-asserting w :trigger))
-	  (pin-wire-state-changed p wire-nv))))))
+    ;; set the wire's state based on this new pin
+    (wire-update-state-and-trigger w)))
 
 
 ;; ---------- Pins ----------
@@ -222,6 +293,7 @@ list for V."
 (defclass pin ()
   ((component
     :documentation "The component the pin is attached to."
+    :initform nil
     :initarg :component
     :reader pin-component)
    (wire
@@ -246,6 +318,7 @@ Pins can be in one of several states, including:
 
 (defmethod initialize-instance :after ((p pin) &rest initargs)
   (declare (ignore initargs))
+
   ;; if there's no wire been supplied, create one
   (when (null (pin-wire p))
     (setf (slot-value p 'wire) (make-instance 'wire)))
@@ -258,32 +331,20 @@ Pins can be in one of several states, including:
   (let ((pin-state (slot-value p 'state)))
     (if (equal pin-state :reading)
 	(let ((w (pin-wire p)))
-	  (if (wire-floating-p w)
-	      (signal (make-instance 'reading-floating-value :wire w))
-	      (wire-state w)))
+	  (when (wire-floating-p w)
+	    ;; signal to allow rejection of floating logic levels
+	    (error (make-instance 'reading-floating-value :pin p :wire w)))
+
+	  ;; if not floating, and we return from the condition, return the value
+	  (wire-state w))
 	(error "Reading from non-reading pin ~a" p))))
 
 
 (defmethod (setf pin-state) (nv (p pin))
   (let ((ov (slot-value p 'state)))
     (when (not (equal ov nv))
-      (setf (wire-state (pin-wire p) p) nv)
-      (setf (slot-value p 'state) nv))))
-
-
-(defgeneric pin-wire-state-changed (p v)
-  (:documentation "Notification method called when the wire P is attached to changes.
-
-This method is called when the value of the wire changes to V due to
-actions not caused by P: essentially is't a notification that someone
-else asserted a new value on the wire.
-
-The default does nothing: you can override or advise the method to
-provide functions."))
-
-
-(defmethod pin-wire-state-changed ((p pin) v)
-  (declare (ignore p v)))
+      (setf (slot-value p 'state) nv)
+      (setf (wire-state (pin-wire p) p ov) nv))))
 
 
 ;; ---------- Buses ----------
@@ -314,7 +375,7 @@ provide functions."))
 
 ;; ---------- Registers ----------
 
-(defclass register (component)
+(defclass register (component clocked)
   ((width
     :documentation "The width of the register."
     :initarg :width
@@ -329,21 +390,13 @@ provide functions."))
     :documentation "The data bus the register is connected to."
     :initarg :bus
     :reader register-data-bus)
-   (clock
-    :documentation "The clock."
-    :initarg :clock
-    :reader register-clock)
-   (enable
-    :documentation "The register-enable."
-    :initarg :enable
-    :reader register-enable)
    (write-enable
     :documentation "The write-enable."
     :initarg :write-enable
     :reader register-write-enable))
   (:documentation "A register.
 
-Registers must be connected to a bus and two wires. The data bus must
+Registers must be connected to a bus and three wires. The data bus must
 have at least as many wires as the register. The three other wires are
 for clock, register enable, and write enable."))
 
@@ -351,17 +404,75 @@ for clock, register enable, and write enable."))
 (defmethod initialize-instance :after ((r register) &rest initargs)
   (declare (ignore initargs))
 
-  ;; replace wires with pins connected to those wires
-  (dolist (slot '(clock enable write-enable))
-    (setf (slot-value r slot) (make-instance 'pin
-					     :component r
-					     :wire (slot-value r slot))))
+  ;; attach a pin to the write-enable wire and set it for reading
+  (setf (slot-value r 'write-enable) (make-instance 'pin
+						    :component r
+						    :wire (slot-value r 'write-enable)
+						    :state :reading))
 
-  ;; set up all the triggers
-  (defmethod pin-wire-state-changed ((p (eql (register-write-enable r))) (v (eql 1)))
-    (let ((reg (pin-component p)))
-      ;; change data bus to all :reading
-      (dolist (p (register-data-bus reg))
-	(setf (pin-state p) :reading))))
+  ;; attach pins to the data bus wires
+  (setf (slot-value r 'data-bus)
+	(map 'vector (lambda (w)
+		       (make-instance 'pin :wire w :state :tristate))
+	     (bus-wires (slot-value r 'data-bus)))))
 
-  )
+
+(defmethod component-pin-triggered ((r register) p (v (eql 1)))
+  (declare (ignore p))            ;; we only have one trigger pin
+
+  (when (and (component-enabled-p r)
+	     (register-read-enabled-p r))
+    (register-value-from-data-bus r)))
+
+
+(defmethod component-pin-changed ((r register))
+  (if (register-read-enabled-p r)
+      ;; set all data bus pins to :reading
+      (map nil (lambda (p)
+		 (setf (pin-state p) :reading))
+	   (register-data-bus r))
+
+      (if (component-enabled-p r)
+	  ;; set data bus pins to the value of the register
+	  (register-value-to-data-bus r)
+
+	  ;; tristate the bus
+	  (map nil (lambda (p)
+		     (setf (pin-state p) :tristate))
+	       (register-data-bus r)))))
+
+
+(defun register-value-to-data-bus (r)
+  "Move the value of R to the pins of the data bus."
+  (let ((nv (register-value r))
+	(pins (register-data-bus r)))
+    (dolist (i (iota (register-width r)))
+      (setf (pin-state (elt pins i)) (logand nv 1))
+      (setf nv (ash nv -1)))))
+
+
+(defun register-value-from-data-bus (r)
+  "Make the value on the pins of the data bus the value of R.
+
+This implies that the pins are all :reading."
+  (let* ((nv 0)
+	 (pins (register-data-bus r))
+	 (n (1- (length pins))))
+    (dolist (i (iota (register-width r)))
+      (setf nv (+ (ash nv 1)
+		  (pin-state (elt pins (- n i))))))
+    (setf (slot-value r 'value) nv)))
+
+
+(defun register-write-enabled-p (r)
+  "Test if the R is write-enabled.
+
+Write-enabled means that the write enable pin is high."
+  (equal (pin-state (register-write-enable r)) 1))
+
+
+(defun register-read-enabled-p (r)
+  "Test if the R is read-enabled.
+
+Read-enabled means that the write enable pin is highlow."
+  (equal (pin-state (register-write-enable r)) 0))

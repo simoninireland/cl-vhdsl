@@ -37,9 +37,9 @@ asserts a value on it, i.e., is not tri-stated."))
   ((wire
     :documentation "The wire with the floating value."
     :initarg :wire)
-   (piin]
+   (pin
     :documentation "The pin being read."
-    :initarg :pin]))
+    :initarg :pin))
   (:report (lambda (c str)
 	     (format str "Pin ~a is reading a floating value from ~a"
 		     (slot-value c 'pin)

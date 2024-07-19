@@ -111,10 +111,12 @@
   "Test asserting two pins to different values."
   (let* ((w (make-instance 'hw:wire))
 	 (p1 (make-instance 'hw:pin :wire w))
-	 (p2 (make-instance 'hw:pin :wire w)))
+	 (p2 (make-instance 'hw:pin :wire w))
+	 (p3 (make-instance 'hw:pin :wire w :state :reading)))
     (setf (hw:pin-state p1) 0)
-    (signals (hw:conflicting-asserted-values)
-      (setf (hw:pin-state p2) 1))))
+    (setf (hw:pin-state p2) 1)   ; this send the wire floating
+    (signals (hw:reading-floating-value)
+      (hw:pin-state p3))))
 
 
 (test test-assert-pins-tristated
@@ -168,40 +170,6 @@
     (setf (hw:pin-state p2) :reading)
     (signals (error 'reading-floating-value)
       (hw:pin-state p2) :floating)))
-
-
-(test test-pin-notified
-  "Test a pin is notiied when its readable value changes."
-  (let* ((w (make-instance 'hw:wire))
-	 (p1 (make-instance 'hw:pin :wire w))
-	 (p2 (make-instance 'hw:pin :wire w))
-	 (seen 0))
-    (setf (hw:pin-state p2) :reading)
-    (is (equal seen 0))
-
-    ;; specific callback for p2's wire changing state
-    (defmethod hw:pin-wire-state-changed ((p (eql p2)) v)
-      (incf seen))
-
-    ;; assert the other pin to change state
-    (setf (hw:pin-state p1) 1)
-    (is (equal (hw:pin-state p2) 1))
-    (is (equal seen 1))
-
-    ;; assert it again at the same value, make sure there's no callback
-    (setf (hw:pin-state p1) 1)
-    (is (equal (hw:pin-state p2) 1))
-    (is (equal seen 1))
-
-    ;; assert to the opposite value
-    (setf (hw:pin-state p1) 0)
-    (is (equal (hw:pin-state p2) 0))
-    (is (equal seen 2))
-
-    ;; remove the reading state, make sure there's no callback
-    (setf (hw:pin-state p2) :tristate)
-    (setf (hw:pin-state p1) 1)
-    (is (equal seen 2))))
 
 
 ;; ---------- Buses ----------

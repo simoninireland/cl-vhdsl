@@ -28,6 +28,10 @@
    ;; components
    #:component
    #:component-pin
+   #:component-enabled-p
+   #:component-pin-changed
+   #:component-pin-triggered
+   #:clocked
 
    ;; wires and pins
    #:wire
@@ -37,7 +41,6 @@
    #:pin
    #:pin-state
    #:pin-wire
-   #:pin-wire-state-changed
    #:pin-component
 
    ;; buses

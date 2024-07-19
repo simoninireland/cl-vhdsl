@@ -24,4 +24,5 @@
   (:export
    ;; utilities
    #:index-non-nil
-   #:non-nil-subseq))
+   #:non-nil-subseq
+   #:uniquify))
