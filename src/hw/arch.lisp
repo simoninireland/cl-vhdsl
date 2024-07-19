@@ -353,6 +353,7 @@ caused the notification."))
       (setf (slot-value p 'state) nv)
       (setf (wire-state (pin-wire p) p ov) nv))))
 
+
 ;; ---------- Manipulating several pins simultaneousosly ----------
 
 (defun pins-states (ps)
@@ -377,8 +378,15 @@ STATE keyword. It will be attached to COMPONENT."
 (defun pins-for-wires (ws &key component (state :tristate))
   "Return a sequence of pins attached to with wires in WS.
 
+WS may be a sequnece of wires, or a bus.
+
 The pins default to :tristate, whcih can be changed using the
 STATE keyword. They will be attached to COMPONENT."
+  ;; if passed a us, extract its wires
+  (if (typep ws 'bus)
+      (setq ws (bus-wires ws)))
+
+  ;; create a vector of pins corresponding to the wires
   (map 'vector (lambda (w)
 		 (pin-for-wire w :state state :component component))
        ws))
