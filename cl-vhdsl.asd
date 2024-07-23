@@ -24,7 +24,8 @@
   :author "Simon Dobson <simoninireland@gmail.com"
   :version (:read-file-form "version.sexp")
   :license "GPL3"
-  :depends-on ("alexandria" "cl-bitfields" "cl-ppcre" "cl-interpol")
+  :depends-on ("alexandria" "cl-bitfields" "cl-ppcre" "cl-interpol"
+	       "closer-mop" "slot-extra-options")
   :pathname "src/"
   :serial t
   :components ((:file "package")
@@ -46,8 +47,10 @@
 			     (:file "conditions")))
 	       (:module "hw"
 		:components ((:file "package")
+			     (:file "mop")
 			     (:file "arch")
 			     (:file "register")
+			     (:file "alu")
 			     (:file "conditions"))))
   :in-order-to ((test-op (test-op "cl-vhdsl/test"))))
 
@@ -59,6 +62,7 @@
   :serial t
   :components ((:file "package")
 	       (:file "test-utils")
+	       (:file "test-mop")
 	       ;;(:file "test-assembler")
 	       (:file "test-wires")
 	       (:file "test-registers"))

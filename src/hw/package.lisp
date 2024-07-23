@@ -20,12 +20,20 @@
 (in-package :common-lisp-user)
 
 (defpackage cl-vhdsl/hw
-  (:use :cl :alexandria)
+  (:use :cl :alexandria :serapeum)
   (:local-nicknames (:def :cl-vhdsl/def))
-  (:import-from :alexandria #:iota #:switch)
+  (:import-from :closer-mop
+		#:class-slots
+		#:class-precedence-list
+		#:slot-definition-name)
+  (:import-from :slot-extra-options
+		#:def-extra-options-metaclass
+		#:slot-exists-and-bound-p)
 
   (:export
    ;; components
+   #:metacomponent
+   #:make-pin-for-role
    #:component
    #:component-pin
    #:component-enabled-p
@@ -60,7 +68,12 @@
    #:register-width
    #:register-value
 
+   ;; arithmetic logic
+   #:alu
+
    ;; conditions
    #:conflicting-asserted-values
    #:reading-floating-value
+   #:unrecognised-alu-operation
+   #:mismatched-wires
    ))
