@@ -60,8 +60,6 @@
 
    ;; accessing multiple pins simultaneously
    #:pins-states
-   #:pin-for-wire
-   #:pins-for-wires
    #:pins-to-value
    #:pins-from-value
 
