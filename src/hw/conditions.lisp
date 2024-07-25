@@ -49,3 +49,48 @@ asserts a value on it, i.e., is not tri-stated."))
 This is almost certainly an error, as it suggests that the component
 expects a logic value but isn't getting one, presumably because no
 other component is asserting a value on the wire."))
+
+
+(define-condition unrecognised-alu-operation ()
+  ((opcode
+    :documentation "The opcode for the operation requested."
+    :initarg :opcode)
+   (a
+    :documentation "The a-side operand."
+    :initarg :pin)
+   (b
+    :documentation "The b-side operand."
+    :initarg :pin))
+  (:report (lambda (c str)
+	     (format str "ALU operation can't be performed (opcode ~a, a=~a, b=~a)"
+		     (slot-value c 'opcode)
+		     (slot-value c 'a)
+		     (slot-value c 'b))))
+  (:documentation "Condition signalled when an ALU cannot perform an operation.
+
+This is likely to be caused by an unrecognised opcode being presented to
+the ALU's operation-select bus. It might also be an issue with the operands."))
+
+
+(define-condition mismatched-wires ()
+  ((component
+    :documentation "Th component the wires are being attached to."
+    :initarg :component)
+   (slot
+    :documentation "Tyhe slot on the component being wired-up.")
+   (expected
+    :documentation "The number of wires expected"
+    :initarg :expected)
+   (got
+    :documentation "The number of wires received."
+    :initarg :received))
+  (:report (lambda (c str)
+	     (format str "Expected ~s wires for slot ~s on component ~s, got ~s"
+		     (slot-value c 'expected)
+		     (slot-value c 'slot)
+		     (slot-value c 'component)
+		     (slot-value c 'got))))
+  (:documentation "Condition signalled when an unexpected number of wires is received.
+
+This is probably a mismatch between the width of a bus and the width
+of the pin interface slot it is being attached to."))
