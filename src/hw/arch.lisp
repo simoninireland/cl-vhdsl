@@ -171,7 +171,7 @@ pin. (This siutaion is assumed to be unusual.)"
   (let ((v (slot-value p 'state)))
     ;; check we don't already know this pin
     (when (wire-known-pin-p w p)
-      (error "Pin ~a is already attached to ~a" p w))
+      (error "Pin ~s is already attached to wire ~s" p w))
 
     ;; record the pin
     (setf (wire-pins w) (cons p (wire-pins w)))
@@ -205,7 +205,7 @@ pin. (This siutaion is assumed to be unusual.)"
    (wire
     :documentation "The wire the pin connects to."
     :initarg :wire
-    :initform nil
+    :initform (make-instance 'wire)
     :accessor pin-wire)
    (state
     :documentation "The state being asseted by the component onto the wire."
@@ -232,9 +232,7 @@ caused the notification."))
 (defmethod initialize-instance :after ((p pin) &rest initargs)
   (declare (ignore initargs))
 
-  ;; create a new wire if none is provided
-  (if (null (pin-wire p))
-      (setf (pin-wire p) (make-instance 'wire))))
+  (wire-add-pin (pin-wire p) p))
 
 
 (defmethod (setf pin-wire) (wire (p pin))
@@ -273,31 +271,6 @@ caused the notification."))
   (map nil (lambda (p)
 	     (setf (pin-state p) nv))
        ps))
-
-
-(defun pin-for-wire (w &key component (state :tristate))
-  "Return a pin connected to wire W.
-
-The pin default to :tristate, which can be changed using the
-STATE keyword. It will be attached to COMPONENT."
-   (make-instance 'pin :wire w :state state :component component))
-
-
-(defun pins-for-wires (ws &key component (state :tristate))
-  "Return a sequence of pins attached to with wires in WS.
-
-WS may be a sequnece of wires, or a bus.
-
-The pins default to :tristate, whcih can be changed using the
-STATE keyword. They will be attached to COMPONENT."
-  ;; if passed a us, extract its wires
-  (if (typep ws 'bus)
-      (setq ws (bus-wires ws)))
-
-  ;; create a vector of pins corresponding to the wires
-  (map 'vector (lambda (w)
-		 (pin-for-wire w :state state :component component))
-       ws))
 
 
 (defun pins-from-value (ps v)
