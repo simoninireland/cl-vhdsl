@@ -40,7 +40,7 @@
 					  :write-enable wr)))
 
     ;; put a value on the bus
-    (hw:pins-from-value data-bus-connector #2r101)
+    (hw:pins-from-value data-bus-connector #2r1101)
 
     ;; enable the register and set its value as writeable from the bus
     (setf (hw:pin-state en) 1)
@@ -50,7 +50,7 @@
     (setf (hw:pin-state clk) 1)
 
     ;; check we loaded the value
-    (is (equal (hw:register-value reg) #2r101))))
+    (is (equal (hw:register-value reg) #2r1101))))
 
 
 (test test-register-save
