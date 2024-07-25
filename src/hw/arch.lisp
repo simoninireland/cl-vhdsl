@@ -19,100 +19,6 @@
 
 (in-package :cl-vhdsl/hw)
 
-;; ---------- Components ----------
-
-(defclass component ()
-  ((pins-table
-    :documentation "A hash table mapping pin names to pins. Pins may have several names."
-    :initform (make-hash-table)
-    :reader component-pins)
-    (enable
-    :documentation "The component-enable pin."
-    :initarg :enable
-    :reader component-enable))
-  (:documentation "A component in an architecture.
-
-Components encapsulate functions and offer a pin-based interface."))
-
-
-(defmethod initialize-instance :after ((c component) &rest initargs)
-  (declare (ignore initargs))
-
-  ;; create a pin for the enable wire
-  (setf (slot-value c 'enable) (make-instance 'pin
-					      :component c
-					      :wire (slot-value c 'enable)
-					      :state :reading
-					      :component c))
-)
-
-
-(defmethod component-pin ((c component) n)
-  (gethash (component-pins c) n))
-
-
-(defmethod (setf component-pin) (p (c component) ns)
-  (let ((pt (component-pins c)))
-    (dolist (n ns)
-      (if (gethash n pt)
-	  (error "Duplicate pin name ~a on component ~a" n c)
-	  (setf (gethash n pt) p)))))
-
-
-(defgeneric component-enabled-p (c)
-  (:documentation "Test whether the component is enabled."))
-
-
-(defmethod component-enabled-p ((c component))
-  (equal (pin-state (component-enable c)) 1))
-
-
-(defgeneric component-pin-changed (c)
-  (:documentation "A callback called whenever a C's pin change level.
-
-This only applies to pins that are :reading and whose state is changed
-by some other component. The default does nothing: a combinatorial
-component would define its pin logic here to re-compute it when
-its inputs changed."))
-
-
-(defmethod component-pin-changed ((c component)))
-
-
-(defgeneric component-pin-triggered (c p v)
-  (:documentation "A callback called whenever a trigger pin on W changes value.
-
-P is the pin triggered and V its new value. This method is only called
-on :trigger pins. The default does nothing: a sequential component
-would override or advise this method to perform its triggering action.
-Specialise V to the direction of edge of interest."))
-
-
-(defmethod component-pin-triggered ((c component) p v))
-
-
-
-(defclass clocked ()
-  ((clock
-    :documentation "The component's clock pin."
-    :initarg :clock
-    :reader component-clock))
-  (:documentation "A mixin for a component that has a clock line.
-
-Clocked components do most of their active work when the clock
-transitions, although they can change state at other times too."))
-
-
-(defmethod initialize-instance :after ((c clocked) &rest initargs)
-  (declare (ignore initargs))
-
-  ;; create a pin for the enable clock wire
-  (setf (slot-value c 'clock) (make-instance 'pin
-					     :component c
-					     :wire (slot-value c 'clock)
-					     :state :trigger)))
-
-
 ;; ---------- Wires ----------
 
 (defclass wire ()
@@ -181,7 +87,7 @@ indicating a non-asserting state."
 
 (defun wire-components-with-pins-asserting (w v)
   "Return a list of all components of pins of W asserting V."
-  ;; filter-out any nulls, from pins without an associated component
+  ;; filter-out any nulls from pins without an associated component
   ;; (usually global pins like clocks)
   (remove-if #'null
 	     (mapcar #'pin-component (wire-pins-asserting w v))))
@@ -295,12 +201,12 @@ pin. (This siutaion is assumed to be unusual.)"
     :documentation "The component the pin is attached to."
     :initform nil
     :initarg :component
-    :reader pin-component)
+    :accessor pin-component)
    (wire
     :documentation "The wire the pin connects to."
     :initarg :wire
     :initform nil
-    :reader pin-wire)
+    :accessor pin-wire)
    (state
     :documentation "The state being asseted by the component onto the wire."
     :initform :tristate
@@ -326,12 +232,14 @@ caused the notification."))
 (defmethod initialize-instance :after ((p pin) &rest initargs)
   (declare (ignore initargs))
 
-  ;; if there's no wire been supplied, create one
-  (when (null (pin-wire p))
-    (setf (slot-value p 'wire) (make-instance 'wire)))
+  ;; create a new wire if none is provided
+  (if (null (pin-wire p))
+      (setf (pin-wire p) (make-instance 'wire))))
 
-  ;; add pin to its wire
-  (wire-add-pin (pin-wire p) p))
+
+(defmethod (setf pin-wire) (wire (p pin))
+  (setf (slot-value p 'wire) wire)
+  (wire-add-pin wire p))
 
 
 (defmethod pin-state ((p pin))

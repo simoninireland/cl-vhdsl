@@ -23,8 +23,11 @@
   (:use :cl :alexandria :serapeum)
   (:local-nicknames (:def :cl-vhdsl/def))
   (:import-from :closer-mop
+		#:standard-class
 		#:class-slots
 		#:class-precedence-list
+		#:validate-superclass
+		#:slot-value-using-class
 		#:slot-definition-name)
   (:import-from :slot-extra-options
 		#:def-extra-options-metaclass
@@ -34,6 +37,10 @@
    ;; components
    #:metacomponent
    #:make-pin-for-role
+   #:pin-role-for-slot
+   #:pins-for-slot
+   #:pin-interface
+   #:pin-interface-p
    #:component
    #:component-pin
    #:component-enabled-p

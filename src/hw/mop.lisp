@@ -25,6 +25,32 @@
 ;; :role, to mark slots as part of the pin interface. These
 ;; markers are then picked up when an object of the class is
 ;; instanciated.
+;;
+;; :pins defined the number of pins in the slot. It should be one of:
+;;
+;; - an integer
+;; - a symbol identifying another slot on the same object that
+;;   contains the width
+;; - T, to denote a slot with undetermined width
+;;
+;; If the width is set to the value of a nother slot, this value
+;; is treated as a constant and assigned to :pins for later queries.
+;;
+;; :role defines the intended use of the pins in the slot, and
+;; should be one of:
+;;
+;; - :io for I/O pins
+;; - :control for control pins that are set to :reading
+;; - :trigger for control trigger pins set to :trigger
+;;
+;; Further roles can be defined by specialising `make-pin-for-role'
+;;
+;; If there are any @initform or :initargs for pin interface slots,
+;; they should contain the wire or wires that the slot's pins should
+;; be connected to.
+;;
+;; If wires are provided and the :pins value is set to T, the number
+;; of wires will be taken as the width of the slot.
 
 (def-extra-options-metaclass metacomponent ()
   ((pins
@@ -39,11 +65,11 @@
 Methods can specialise to provide appropriate pins for new roles."))
 
 
-(defmethod make-pin-for-role ((role (eql ':io)))
+(defmethod make-pin-for-role ((role (eql :io)))
   (make-instance 'pin :state :tristate))
-(defmethod make-pin-for-role ((role (eql ':control)))
+(defmethod make-pin-for-role ((role (eql :control)))
   (make-instance 'pin :state :reading))
-(defmethod make-pin-for-role ((role (eql ':trigger)))
+(defmethod make-pin-for-role ((role (eql :trigger)))
   (make-instance 'pin :state :trigger))
 
 
@@ -59,38 +85,178 @@ slot definition."
 ;; pin interface and create to appropriate pins for them. Other
 ;; (non-pin) slots are left alone.
 
+(defun normalise-wires (pins-wires-or-bus)
+  "Convert PINS-WIRES-OR-BUS into a sequence of wires.
+
+The normalisation process is:
+
+- for a bus, return its wires
+- for a single wire, return it in a sequence
+- for a single pin, return its wire as a sequence
+- for a sequence, normalise each member pin or wire: you
+  can't include a bus in the sequence
+
+Any pins provided have to be connected to wire."
+  (typecase pins-wires-or-bus
+    (bus
+     (bus-wires pins-wires-or-bus))
+
+    (wire
+     (list pins-wires-or-bus))
+
+    (pin
+     (let ((w (pin-wire pins-wires-or-bus)))
+       (if (null w)
+	   (error "Unconnected pin ~s cannot be used" pins-wires-or-bus)
+
+	   (list (pin-wire pins-wires-or-bus)))))
+
+    (sequence
+     (map 'vector (lambda (pin-or-wire)
+		    (typecase pin-or-wire
+		      (wire
+		       pin-or-wire)
+
+		      (pin
+		       (let ((w (pin-wire pins-wires-or-bus)))
+			 (if (null w)
+			     (error "Unconnected pin ~s cannot be used" pins-wires-or-bus)
+			     (pin-wire pin-or-wire))))
+
+		      (t
+		       (error "Unexpected ~s is not a pin or wire" pin-or-wire))))
+	  pins-wires-or-bus))
+    (t
+     (error "Unexpected ~s is not a pin, wire, bus, or sequence" pins-wires-or-bus))))
+
+
 (defmethod make-instance ((cl metacomponent) &rest initargs)
   (declare (ignore initargs))
 
-  (let ((slot-defs (mappend #'class-slots (class-precedence-list cl)))
-	(c (call-next-method)))
+  (let* ((c (call-next-method))	;; call this first to finalise the class
+	 (slot-defs (class-slots cl)))
     (dolist (slot-def slot-defs)
       (when (slot-in-pin-interface slot-def)
 	;; slot is in the pin interface
-	(when (or (slot-definition-initform slot-def)
-		  (slot-definition-initfunction slot-def))
-	  ;; slot shouldn't be initialised
-	  (error (make-instance 'initialised-pin-interface-slot
-				:class cl
-				:name (slot-definition-name slot-def))))
-
-	;; create the pins
 	(let* ((slot (slot-definition-name slot-def))
-	       (width (slot-value slot-def 'pins))
+
+	       ;; number of wires in the slot
+	       (width (let ((w (slot-value slot-def 'pins)))
+			(if (and (symbolp w)
+				 (not (eql w t))) ;; t = undefined
+			    ;; width derived from the value of another slot
+			    (let ((nw (slot-value c w)))
+			      ;; update the :pins attribute to the constant value
+			      (setf (slot-value slot-def 'pins) nw)
+			      nw)
+
+			    ;; width as given
+			    w)))
+
+	       ;; role the slot fulfills
 	       (role (or (and (slot-exists-and-bound-p slot-def 'role)
 			      (slot-value slot-def 'role))
-			 :io)))	      ;; role defaults to :io
+
+			 ;; role defaults to :io
+			 (setf (slot-value slot-def 'role) :io)))
+
+	       ;; wires the slot's pins should be connected to
+	       (wires (if (slot-exists-and-bound-p c slot)
+			  (normalise-wires (slot-value c slot)))))
+
+	  ;; if we have wires, make sure we have enough
+	  (if wires
+	      (cond ((eql width t)
+		     ;; no width, set it to the number of wires we've been given
+		     (setq width (length wires)))
+
+		    ((not (equal (length wires) width))
+		     ;; wrong number of wires, signal an error
+		     (error (make-instance 'mismatched-wires
+					   :component c
+					   :slot slot
+					   :expected width
+					   :received (length wires))))))
+
+	  ;; create the pins
 	  (setf (slot-value c slot)
-		(if (= width 1)
-		    ;; slot gets a single pin
-		    (make-pin-for-role role)
+		(cond ((equal width t)
+		       ;; width not yet known, leave unset
+		       nil)
 
-		    ;; slots gets a vector of pins
-		    (map 'vector
-			 #'(lambda (i)
-			     (declare (ignore i))
-			     (make-pin-for-role role))
-			 (iota width)))))))
+		      ((= width 1)
+		       ;; slot gets a single pin
+		       (let ((pin (make-pin-for-role role)))
+			 (if wires
+			     (setf (pin-wire pin) (elt wires 0)))
+			 (setf (pin-component pin) c)
+			 pin))
 
-    ;; return the now-modified instance
+		      (t
+		       ;; slots gets a vector of pins
+		       (map 'vector
+			    #'(lambda (i)
+				(let ((pin (make-pin-for-role role)))
+				  (if wires
+				      (setf (pin-wire pin) (elt wires i)))
+				  (setf (pin-component pin) c)
+				  pin))
+			    (iota width))))))))
+
+    ;; return the instance
     c))
+
+
+(defmethod validate-superclass ((cl standard-class) (super metacomponent))
+  t)
+
+
+;; ---------- Query pin interface ----------
+
+(defun find-pin-slot-def (c slot &key fatal)
+  "Return the slot definition for SLOT in C.
+
+If FATAL is set to T an error is raised if SLOT does
+not exist or isn't part of the pin interface."
+  (flet ((pin-slot-named (slot-def)
+	   (and (slot-in-pin-interface slot-def)
+		(equal (slot-definition-name slot-def) slot))))
+    (if-let ((slot-defs (remove-if-not #'pin-slot-named
+				       (class-slots (class-of c)))))
+      (car slot-defs)
+
+      (if fatal
+	  (error "No slot named ~s in pin interface of ~s"
+		 slot c)))))
+
+
+(defun pin-interface (c)
+  "Return a list of all the slots of C comprising its pin interface."
+  (let ((slot-defs (remove-if-not #'slot-in-pin-interface
+				  (class-slots (class-of c)))))
+    (mapcar #'slot-definition-name slot-defs)))
+
+
+(defun pin-interface-p (c slot)
+  "Test whether SLOT is in the pin interface of C.
+
+Returns nil if SLOT either isn't a slot in C's pin
+interface, or isn't a slot of C at all."
+  (not (null (find-pin-slot-def c slot))))
+
+
+(defun pins-for-slot (c slot)
+  "Return the number of pins on SLOT of C.
+
+SLOT must be in C's pin interface. The default reads the value
+of the :pins attribute of SLOT in C's class definition."
+  (let ((slot-def (find-pin-slot-def c slot :fatal t)))
+    (slot-value slot-def 'pins)))
+
+
+(defun pin-role-for-slot (c slot)
+  "Return the role assigned to the pins of SLOT in C.
+
+SLOT must be in C's pin interface."
+  (let ((slot-def (find-pin-slot-def c slot :fatal t)))
+    (slot-value slot-def 'role)))

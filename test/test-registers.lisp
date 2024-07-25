@@ -33,11 +33,11 @@
 	 (clk (make-instance 'hw:pin :state 0))
 	 (en (make-instance 'hw:pin :state 0))
 	 (wr (make-instance 'hw:pin :state 0))
-	 (reg (make-instance'hw:register :width 8
-					 :bus data-bus
-					 :clock (hw:pin-wire clk)
-					 :enable (hw:pin-wire en)
-					 :write-enable (hw:pin-wire wr))))
+	 (reg (make-instance 'hw:register :width 8
+					  :clock clk
+					  :enable en
+					  :bus data-bus
+					  :write-enable wr)))
 
     ;; put a value on the bus
     (hw:pins-from-value data-bus-connector #2r101)
@@ -63,11 +63,11 @@
 	 (clk (make-instance 'hw:pin :state 0))
 	 (en (make-instance 'hw:pin :state 0))
 	 (wr (make-instance 'hw:pin :state 0))
-	 (reg (make-instance'hw:register :width 8
-					 :bus data-bus
-					 :clock (hw:pin-wire clk)
-					 :enable (hw:pin-wire en)
-					 :write-enable (hw:pin-wire wr))))
+	 (reg (make-instance 'hw:register :width 8
+					  :clock clk
+					  :enable en
+					  :bus data-bus
+					  :write-enable wr)))
 
     ;; put a value into the register
     (setf (hw:register-value reg) #2r10110)

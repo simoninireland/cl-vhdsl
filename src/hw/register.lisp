@@ -35,11 +35,16 @@
    (data-bus
     :documentation "The data bus the register is connected to."
     :initarg :bus
+    :pins width
+    :role :io
     :reader register-data-bus)
    (write-enable
     :documentation "The write-enable."
     :initarg :write-enable
+    :pins 1
+    :role :control
     :reader register-write-enable))
+  (:metaclass metacomponent)
   (:documentation "A register.
 
 Registers must be connected to a bus and three wires. The data bus must
@@ -53,23 +58,9 @@ available on the bus. Write-enable should be see from the perspective
 of a client outside the register."))
 
 
-(defmethod initialize-instance :after ((r register) &rest initargs)
-  (declare (ignore initargs))
-
-  ;; attach a pin to the write-enable wire and set it for reading
-  (setf (slot-value r 'write-enable)
-	(pin-for-wire (slot-value r 'write-enable)
-		      :component r
-		      :state :reading))
-
-  ;; attach pins to the data bus wires
-  (setf (slot-value r 'data-bus)
-	(pins-for-wires (bus-wires (slot-value r 'data-bus))
-			:component r)))
-
-
 (defmethod component-pin-triggered ((r register) p (v (eql 1)))
   (declare (ignore p))            ;; we only have one trigger pin
+
   (when (and (component-enabled-p r)
 	     (register-write-enabled-p r))
     (register-value-from-data-bus r)))

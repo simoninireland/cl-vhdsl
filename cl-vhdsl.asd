@@ -47,8 +47,9 @@
 			     (:file "conditions")))
 	       (:module "hw"
 		:components ((:file "package")
-			     (:file "mop")
 			     (:file "arch")
+			     (:file "mop")
+			     (:file "component")
 			     (:file "register")
 			     (:file "alu")
 			     (:file "conditions"))))

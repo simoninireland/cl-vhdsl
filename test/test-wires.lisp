@@ -29,17 +29,27 @@
     (is (equal (hw:wire-state w) :floating))))
 
 
-(test test-add-pin
-  "Test adding a first pin."
+(test test-assert-pin-floating
+  "Test asserting a pin t oan initial floating value."
   (let* ((w (make-instance 'hw:wire))
 	 (p (make-instance 'hw:pin :wire w)))
+    (is (eql (hw:pin-wire p) w))
     (is (equal (slot-value p 'hw::state) :tristate))
     (is (equal (hw:wire-state w) :floating))
+    (break)
     (is (hw::wire-pin-asserting-p w p :tristate))))
 
 
+(test test-add-pin-twice
+  "Test we can't add a pin again to the same wire."
+  (let* ((w (make-instance 'hw:wire))
+	 (p (make-instance 'hw:pin :wire w)))
+    (signals (error)
+      (setf (pin-wire p) p))))
+
+
 (test test-assert-pin
-  "Test adding a pin and then asserting it to a logic value."
+  "Test asserting a pin to a logic value."
   (let* ((w (make-instance 'hw:wire))
 	 (p (make-instance 'hw:pin :wire w)))
     (setf (hw:pin-state p) 0)
@@ -85,14 +95,6 @@
     (setf (hw:pin-state p) :reading)
     (is (equal (slot-value p 'hw::state) :reading))
     (is (equal (hw:wire-state w) :floating))))
-
-
-(test test-add-pin-twice
-  "Test we detect multiple addition of pins.."
-  (let* ((w (make-instance 'hw:wire))
-	 (p1 (make-instance 'hw:pin :wire w)))
-    (signals (error)
-      (hw:wire-add-pin w p1))))
 
 
 (test test-assert-pins-same
