@@ -1,4 +1,4 @@
-;; Tests of bus operations
+;; Tests of wire and pin operations
 ;;
 ;; Copyright (C) 2024 Simon Dobson
 ;;
@@ -21,8 +21,6 @@
 (in-suite cl-vhdsl)
 
 
-;; ---------- Wires ----------
-
 (test test-new-wire
   "Test a new wire is initially floating."
   (let ((w (make-instance 'hw:wire)))
@@ -30,13 +28,12 @@
 
 
 (test test-assert-pin-floating
-  "Test asserting a pin t oan initial floating value."
+  "Test asserting a pin to an initial floating value."
   (let* ((w (make-instance 'hw:wire))
 	 (p (make-instance 'hw:pin :wire w)))
     (is (eql (hw:pin-wire p) w))
     (is (equal (slot-value p 'hw::state) :tristate))
     (is (equal (hw:wire-state w) :floating))
-    (break)
     (is (hw::wire-pin-asserting-p w p :tristate))))
 
 
@@ -172,8 +169,3 @@
     (setf (hw:pin-state p2) :reading)
     (signals (hw:reading-floating-value)
       (hw:pin-state p2))))
-
-
-;; ---------- Buses ----------
-
-;; TBD
