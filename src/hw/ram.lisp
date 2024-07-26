@@ -19,7 +19,7 @@
 
 (in-package :cl-vhdsl/hw)
 
-(defclass ram (component clocked)
+(defclass ram (component clocked readwrite)
   ((address-width
     :documentation "The width of the address bus, in bits."
     :initarg :address-bus-width
@@ -31,21 +31,15 @@
    (address-bus
     :documentation "The address bus."
     :initarg :address-bus
-    :pins address-bus-width
+    :pins address-width
     :role :control
     :reader ram-address-bus)
    (data-bus
     :documentation "The data bus."
     :initarg :data-bus
-    :pins data-bus-width
+    :pins data-width
     :role :io
     :reader ram-data-bus)
-   (write-enable
-    :documentation "Write-enable."
-    :initarg :write-enable
-    :pins 1
-    :role :control
-    :reader ram-write-enable)
    (elements
     :documentation "The memory elements."
     :reader ram-elements))
@@ -56,7 +50,7 @@ The RAM is parameterised by its address and data bus widths in bits.
 It needs address and data lines, a clock, an enable, and a write enable."))
 
 
-(defmethod make-instance ((mem ram) &rest initargs)
+(defmethod initialize-instance :after ((mem ram) &rest initargs)
   (declare (ignore initargs))
 
   (setf (slot-value mem 'elements)
@@ -71,43 +65,29 @@ The size of elements is determined by the width of the data bus."
   (floor (expt 2 (slot-value mem 'address-width))))
 
 
-(defun memory-write-enabled-p (mem)
-  "Test if MEM is write-enabled.
-
-Write-enabled means that the write enable pin is high, and that the
-memory is writeable from its data bus at the next rising clock edge."
-  (equal (pin-state (ram-write-enable r)) 1))
-
-
-(defun memory-read-enabled-p (mem)
-  "Test if MEM is read-enabled.
-
-Read-enabled means that the write enable pin is low, and the value of
-the memory  is available to be read from the data bus."
-  (equal (pin-state (ram-write-enable r)) 0))
-
-
 (defmethod component-pin-triggered ((mem ram) p (v (eql 1)))
   (declare (ignore p)) ;; we only have one trigger pin
 
   (when (and (component-enabled-p mem)
-	     (ram-write-enabled-p mem))
+	     (component-write-enabled-p mem))
     (let ((v (pins-to-value (ram-data-bus mem)))
 	  (addr (pins-to-value (ram-address-bus mem))))
-      (setf (aref (ram-elements addr) v)))))
+      (setf (aref (ram-elements mem) addr) v))))
 
 
-(defmethod component-pin-changed ((mam ram))
+(defmethod component-pin-changed ((mem ram))
   (if (component-enabled-p mem)
-      (if (memory-write-enabled-p mem)
+      (if (component-write-enabled-p mem)
 	  ;; set all the data bus pins to :reading
-	  (setf (pins-states (memory--data-bus mem)) :reading)
+	  (setf (pins-states (ram-data-bus mem)) :reading)
 
 	  ;; put the value of the memory addressed on the
-	  ;; address bus onto the data bus
-	  (let ((addr (pins-to-value (ram-address-bus mem))))
-	    (pins-from-value (ram-data-bus mem)
-			     (aref (ram=-elements mem) addr))))
+	  ;; address bus onto the data bus, as long as the
+	  ;; address bus is itself stable
+	  (when (not (pins-floating (ram-address-bus mem)))
+	    (let ((addr (pins-to-value (ram-address-bus mem))))
+	      (pins-from-value (ram-data-bus mem)
+			       (aref (ram-elements mem) addr)))))
 
       ;; tri-state the data bus
-      (setf (pins-states (memory-data-bus mem)) :tristate)))
+      (setf (pins-states (ram-data-bus mem)) :tristate)))
