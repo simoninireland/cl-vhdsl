@@ -78,3 +78,37 @@ Specialise V to the direction of edge of interest."))
 
 Clocked components do most of their active work when the clock
 transitions, although they can change state at other times too."))
+
+
+(defclass readwrite ()
+  ((write-enable
+    :documentation "The component's write-enable pin."
+    :initarg :write-enable
+    :pins 1
+    :role :control))
+  (:metaclass metacomponent)
+  (:documentation "A mixin for a component that has a write-enable line..
+
+This provides a common control line for determining whether a component
+reads data from a bus (when write-enable is high) or makes data available
+on the bus. 'Write' should be seen from the perspective of ourside the
+component.
+
+This only works for components with a single decision on read or write.
+More complicated components might need several such control lines."))
+
+
+(defun component-write-enabled-p (c)
+  "Test if C is write-enabled.
+
+Write-enabled means that the write enable pin is high, and that the
+component is writeable from the data bus at the next rising clock edge."
+  (equal (pin-state (slot-value c 'write-enable)) 1))
+
+
+(defun component-read-enabled-p (c)
+  "Test if C is read-enabled.
+
+Read-enabled means that the write enable pin is low, and the value of
+the component is available to be read from the data bus."
+  (equal (pin-state (slot-value c 'write-enable)) 0))

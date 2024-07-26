@@ -47,6 +47,9 @@
    #:component-pin-changed
    #:component-pin-triggered
    #:clocked
+   #:readwrite
+   #:component-write-enabled-p
+   #:component-read-enabled-p
 
    ;; wires and pins
    #:wire
@@ -60,6 +63,7 @@
 
    ;; accessing multiple pins simultaneously
    #:pins-states
+   #:pins-floating
    #:pins-to-value
    #:pins-from-value
 
@@ -75,6 +79,11 @@
 
    ;; arithmetic logic
    #:alu
+
+   ;; RAM
+   #:ram
+   #:ram-size
+   #:ram-elements
 
    ;; conditions
    #:conflicting-asserted-values

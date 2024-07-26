@@ -169,3 +169,19 @@
     (setf (hw:pin-state p2) :reading)
     (signals (hw:reading-floating-value)
       (hw:pin-state p2))))
+
+
+(test test-pins-floating
+  "Test we can determine when any of a set of pins is floating."
+  (let* ((w1 (make-instance 'hw:wire))
+	 (p1 (make-instance 'hw:pin :wire w1))
+	 (w2 (make-instance 'hw:wire))
+	 (p2 (make-instance 'hw:pin :wire w2))
+	 (p3 (make-instance 'hw:pin :wire w2)))
+    (setf (hw:pin-state p1) 1)
+    (is (null (hw:pins-floating (list p1))))
+    (is (hw:pins-floating (list p2 p3)))
+    (is (hw:pins-floating (list p1 p2 p3)))
+
+    (setf (hw:pin-state p2) 0)
+    (is (null (hw:pins-floating (list p1 p2 p3))))))

@@ -149,7 +149,7 @@ The components of :reading pins are notified by calling
 pins are notifed by calling `component-pin-triggered' once per pin: if
 a single component happened to have two or ore :tigger pins attached
 to the same wire, it would get multiple notifications, one for each
-pin. (This siutaion is assumed to be unusual.)"
+pin. (This situation is assumed to be unusual.)"
   (let* ((wire-ov (slot-value w 'state))
 	 (wire-nv (wire-determine-state w)))
      (when (not (equal wire-ov wire-nv))
@@ -261,6 +261,15 @@ caused the notification."))
 
 
 ;; ---------- Manipulating several pins simultaneousosly ----------
+
+(defun pins-floating (ps)
+  "Test whether any of the pins in PS are floating.
+
+This is used to propagate floating states."
+  (some #'(lambda (p)
+	    (wire-floating-p (pin-wire p)))
+	ps))
+
 
 (defun pins-states (ps)
   "Return a sequence of state values for the pins PS."
