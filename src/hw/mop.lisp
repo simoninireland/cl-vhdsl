@@ -130,83 +130,6 @@ Any pins provided have to be connected to wire."
      (error "Unexpected ~s is not a pin, wire, bus, or sequence" pins-wires-or-bus))))
 
 
-(defmethod make-instance ((cl metacomponent) &rest initargs)
-  (declare (ignore initargs))
-
-  (let* ((c (call-next-method))	;; call this first to finalise the class
-	 (slot-defs (class-slots cl)))
-    (dolist (slot-def slot-defs)
-      (when (slot-in-pin-interface slot-def)
-	;; slot is in the pin interface
-	(let* ((slot (slot-definition-name slot-def))
-
-	       ;; number of wires in the slot
-	       (width (let ((w (slot-value slot-def 'pins)))
-			(if (and (symbolp w)
-				 (not (eql w t))) ;; t = undefined
-			    ;; width derived from the value of another slot
-			    (let ((nw (slot-value c w)))
-			      ;; update the :pins attribute to the constant value
-			      (setf (slot-value slot-def 'pins) nw)
-			      nw)
-
-			    ;; width as given
-			    w)))
-
-	       ;; role the slot fulfills
-	       (role (or (and (slot-exists-and-bound-p slot-def 'role)
-			      (slot-value slot-def 'role))
-
-			 ;; role defaults to :io
-			 (setf (slot-value slot-def 'role) :io)))
-
-	       ;; wires the slot's pins should be connected to
-	       (wires (if (slot-exists-and-bound-p c slot)
-			  (normalise-wires (slot-value c slot)))))
-
-	  ;; if we have wires, make sure we have enough
-	  (if wires
-	      (cond ((eql width t)
-		     ;; no width, set it to the number of wires we've been given
-		     (setq width (length wires)))
-
-		    ((not (equal (length wires) width))
-		     ;; wrong number of wires, signal an error
-		     (error (make-instance 'mismatched-wires
-					   :component c
-					   :slot slot
-					   :expected width
-					   :received (length wires))))))
-
-	  ;; create the pins
-	  (setf (slot-value c slot)
-		(cond ((equal width t)
-		       ;; width not yet known, leave unset
-		       nil)
-
-		      ((= width 1)
-		       ;; slot gets a single pin
-		       (let ((pin (make-pin-for-role role)))
-			 (if wires
-			     (setf (pin-wire pin) (elt wires 0)))
-			 (setf (pin-component pin) c)
-			 pin))
-
-		      (t
-		       ;; slots gets a vector of pins
-		       (map 'vector
-			    #'(lambda (i)
-				(let ((pin (make-pin-for-role role)))
-				  (if wires
-				      (setf (pin-wire pin) (elt wires i)))
-				  (setf (pin-component pin) c)
-				  pin))
-			    (iota width))))))))
-
-    ;; return the instance
-    c))
-
-
 (defmethod validate-superclass ((cl standard-class) (super metacomponent))
   t)
 
@@ -260,3 +183,10 @@ of the :pins attribute of SLOT in C's class definition."
 SLOT must be in C's pin interface."
   (let ((slot-def (find-pin-slot-def c slot :fatal t)))
     (slot-value slot-def 'role)))
+
+
+;; ---------- The metaclass of nano-instructions ----------
+
+;; Nano-instructions are constucted from components
+
+;; TBD

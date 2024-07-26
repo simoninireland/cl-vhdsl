@@ -21,7 +21,7 @@
 (in-suite cl-vhdsl)
 
 
-(defclass test-component ()
+(defclass test-component (hw:component hw:clocked)
   ((data-bus
     :initarg :data-bus
     :pins 8
@@ -29,9 +29,6 @@
    (address-bus
     :pins 16
     :role :io)
-   (clk
-    :pins 1
-    :role :trigger)
    (write-enable
     :pins 1
     :role :control)
@@ -43,7 +40,7 @@
   (:metaclass hw:metacomponent))
 
 
-(defclass test-component-var ()
+(defclass test-component-var (hw:component)
   ((width
     :initarg :width)
    (bus
@@ -54,7 +51,7 @@
 (test test-pins-created
   "Test we create pins for the slots on the pin interface"
   (let ((tc (make-instance 'test-component)))
-    (with-slots (data-bus address-bus clk write-enable io other) tc
+    (with-slots (data-bus address-bus hw::clock write-enable io other) tc
       ;; 8-bit data bus, tristated
       (is (equal (length data-bus) 8))
       (is (equal (hw:pin-role-for-slot tc 'data-bus) :io))
@@ -70,8 +67,8 @@
 	(is (equal (slot-value (elt address-bus i) 'hw::state) :tristate)))
 
       ;; clock pin, triggering
-      (equal (slot-value clk 'hw::state) :trigger)
-      (is (equal (hw:pin-role-for-slot tc 'clk) :trigger))
+      (equal (slot-value hw::clock 'hw::state) :trigger)
+      (is (equal (hw:pin-role-for-slot tc 'hw::clock) :trigger))
 
       ;; write-enable pin, reading
       (equal (slot-value write-enable 'hw::state) :reading)
@@ -92,8 +89,8 @@
   "Test we can extract the pin interface."
   (let* ((tc (make-instance 'test-component))
 	 (slots (hw:pin-interface tc)))
-    (is (equal (length slots) 5))
-    (dolist (s '(data-bus address-bus clk write-enable io))
+    (is (equal (length slots) 6))
+    (dolist (s '(data-bus address-bus hw::clock hw::enable write-enable io))
       (is (member s slots)))))
 
 
@@ -112,7 +109,7 @@
   (let ((tc (make-instance 'test-component)))
     (is (equal (hw:pins-for-slot tc 'data-bus) 8))
     (is (equal (hw:pins-for-slot tc 'address-bus) 16))
-    (is (equal (hw:pins-for-slot tc 'clk) 1))
+    (is (equal (hw:pins-for-slot tc 'hw::clock) 1))
     (is (equal (hw:pins-for-slot tc 'write-enable) 1))
     (is (equal (hw:pins-for-slot tc 'io) 2))
     (signals (error)
