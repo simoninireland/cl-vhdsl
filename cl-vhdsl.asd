@@ -52,6 +52,7 @@
 			     (:file "component")
 			     (:file "register")
 			     (:file "alu")
+			     (:file "ram")
 			     (:file "conditions"))))
   :in-order-to ((test-op (test-op "cl-vhdsl/test"))))
 
@@ -66,7 +67,8 @@
 	       (:file "test-mop")
 	       ;;(:file "test-assembler")
 	       (:file "test-wires")
-	       (:file "test-registers"))
+	       (:file "test-registers")
+	       (:file "test-datapath"))
   :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))
 
 
