@@ -53,6 +53,8 @@
 			     (:file "register")
 			     (:file "alu")
 			     (:file "ram")
+			     (:file "ring-counter")
+			     (:file "control")
 			     (:file "conditions"))))
   :in-order-to ((test-op (test-op "cl-vhdsl/test"))))
 
@@ -68,7 +70,8 @@
 	       ;;(:file "test-assembler")
 	       (:file "test-wires")
 	       (:file "test-registers")
-	       (:file "test-datapath"))
+	       (:file "test-datapath")
+	       (:file "test-ring-counters"))
   :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))
 
 

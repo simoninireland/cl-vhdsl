@@ -25,6 +25,7 @@
   (:import-from :closer-mop
 		#:standard-class
 		#:class-slots
+		#:compute-slots
 		#:class-precedence-list
 		#:validate-superclass
 		#:slot-value-using-class
@@ -76,6 +77,10 @@
    #:register
    #:register-width
    #:register-value
+
+   ;; ring counters
+   #:ring-counter
+   #:ring-counter-reset
 
    ;; arithmetic logic
    #:alu
