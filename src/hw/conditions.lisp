@@ -1,4 +1,4 @@
-;; Conditions for emlated hardware components
+;; Conditions for emulated hardware components
 ;;
 ;; Copyright (C) 2024 Simon Dobson
 ;;
@@ -77,7 +77,8 @@ the ALU's operation-select bus. It might also be an issue with the operands."))
     :documentation "Th component the wires are being attached to."
     :initarg :component)
    (slot
-    :documentation "Tyhe slot on the component being wired-up.")
+    :documentation "Tyhe slot on the component being wired-up."
+    :initarg :slot)
    (expected
     :documentation "The number of wires expected"
     :initarg :expected)
