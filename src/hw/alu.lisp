@@ -59,10 +59,14 @@ operands; the C-side bus that generates the output; and the operation-select
 bus that determines the operation the ALU performs. The available operations
 are:
 
-- #2r000 a + b
-- #2r001 a - b
-- #2r010 a + 1
-- #2r011 a- 1
+- #2r000 a (pas-through)
+- #2r001 a AND b
+- #2r010 a OR b
+- #2r011 NOT a
+- #2r100 a + b
+- #2r101 a - b
+- #2r110 a + 1
+- #2r111 a- 1
 
 The ALU is an entirely combinatorial component. The value on the C-side
 represents the results of computing over the A- and B-sides."))
@@ -75,19 +79,33 @@ represents the results of computing over the A- and B-sides."))
       ;; perform the encoded operation
       (let* ((op (pins-to-value (alu-op-bus a)))
 	     (v (switch (op)
+		  ;; pass-through
+		  (#2r000 (pins-to-value (alu-a-bus a)))
+
+		  ;; logical and
+		  (#2r001 (logand (pins-to-value (alu-a-bus a))
+				  (pins-to-value (alu-b-bus a))))
+
+		  ;; logical or
+		  (#2r010 (logior (pins-to-value (alu-a-bus a))
+				  (pins-to-value (alu-b-bus a))))
+
+		  ;; logical not
+		  (#2r011 (lognot (pins-to-value (alu-a-bus a))))
+
 		  ;; addition
-		  (#2r000 (+ (pins-to-value (alu-a-bus a))
+		  (#2r100 (+ (pins-to-value (alu-a-bus a))
 			     (pins-to-value (alu-b-bus a))))
 
 		  ;; subtraction
-		  (#2r001 (- (pins-to-value (alu-a-bus a))
+		  (#2r101 (- (pins-to-value (alu-a-bus a))
 			     (pins-to-value (alu-b-bus a))))
 
 		  ;; increment (a-side only)
-		  (#2r010 (1+ (pins-to-value (alu-a-bus a))))
+		  (#2r110 (1+ (pins-to-value (alu-a-bus a))))
 
 		  ;; decrement (a-side only)
-		  (#2r011 (1- (pins-to-value (alu-a-bus a))))
+		  (#2r111 (1- (pins-to-value (alu-a-bus a))))
 
 		  (t (error (make-instance 'unrecognised-alu-operation
 					   :opcode op
