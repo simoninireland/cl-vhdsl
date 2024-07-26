@@ -42,7 +42,7 @@
   (let* ((w (make-instance 'hw:wire))
 	 (p (make-instance 'hw:pin :wire w)))
     (signals (error)
-      (setf (pin-wire p) p))))
+      (setf (hw:pin-wire p) p))))
 
 
 (test test-assert-pin
