@@ -31,3 +31,82 @@
 	 (rc (make-instance 'hw:ring-counter :width 4
 					     :bus bus)))
     (is (equal (hw:pins-to-value bus-connector) #2r0001))))
+
+
+(test test-rc-inc
+  "Test the counter increments correctly."
+  (let* ((bus (make-instance 'hw:bus :width 4))
+	 (bus-connector (map 'vector
+			     (lambda (w)
+			       (make-instance 'hw:pin :wire w :state :reading))
+			     (hw:bus-wires bus)))
+	 (clk (make-instance 'hw:pin :state 0))
+	 (rc (make-instance 'hw:ring-counter :width 4
+					     :bus bus
+					     :clock clk)))
+
+    ;; clock the counter twice
+    (dotimes (i 2)
+      (setf (hw:pin-state clk) 1)
+      (setf (hw:pin-state clk) 0))
+
+    (is (equal (hw:pins-to-value bus-connector) #2r0100))))
+
+
+(test test-rc-wrap
+  "Test the counter wraps-around."
+  (let* ((bus (make-instance 'hw:bus :width 4))
+	 (bus-connector (map 'vector
+			     (lambda (w)
+			       (make-instance 'hw:pin :wire w :state :reading))
+			     (hw:bus-wires bus)))
+	 (clk (make-instance 'hw:pin :state 0))
+	 (rc (make-instance 'hw:ring-counter :width 4
+					     :bus bus
+					     :clock clk)))
+
+    ;; clock the counter four times
+    (dotimes (i 4)
+      (setf (hw:pin-state clk) 1)
+      (setf (hw:pin-state clk) 0))
+
+    (is (equal (hw:pins-to-value bus-connector) #2r0001))))
+
+
+(test test-rc-bounded
+  "Test the counter can't be set too high."
+  (let* ((bus (make-instance 'hw:bus :width 4))
+	 (bus-connector (map 'vector
+			     (lambda (w)
+			       (make-instance 'hw:pin :wire w :state :reading))
+			     (hw:bus-wires bus)))
+	 (clk (make-instance 'hw:pin :state 0))
+	 (rc (make-instance 'hw:ring-counter :width 4
+					     :bus bus
+					     :clock clk)))
+
+    (setf (hw::ring-counter-count rc) 9)
+    (is (equal (hw:pins-to-value bus-connector) #2r0001))))
+
+
+(test test-rc-reset
+  "Test the counter resets correctly."
+  (let* ((bus (make-instance 'hw:bus :width 4))
+	 (bus-connector (map 'vector
+			     (lambda (w)
+			       (make-instance 'hw:pin :wire w :state :reading))
+			     (hw:bus-wires bus)))
+	 (clk (make-instance 'hw:pin :state 0))
+	 (rc (make-instance 'hw:ring-counter :width 4
+					     :bus bus
+					     :clock clk)))
+
+    ;; clock the counter twice
+    (dotimes (i 2)
+      (setf (hw:pin-state clk) 1)
+      (setf (hw:pin-state clk) 0))
+    (is (equal (hw:pins-to-value bus-connector) #2r0100))
+
+    ;; then reset
+    (hw:ring-counter-reset rc)
+    (is (equal (hw:pins-to-value bus-connector) #2r0001))))
