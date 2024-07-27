@@ -57,10 +57,8 @@ width is exceeded and it wraps-around back to 0."))
 (defmethod (setf ring-counter-count) (v (rc ring-counter))
   ;; wrap the count if needed
   (if (>= v (ring-counter-width rc))
-      (setq v 0))
-
-  ;; update the count
-  (setf (slot-value rc 'count) v)
+      (setq v 0)
+      (setf (slot-value rc 'count) v))
 
   ;; update the asserted pin
   (let ((mask (ash 1 v)))
@@ -71,4 +69,4 @@ width is exceeded and it wraps-around back to 0."))
   (declare (ignore p))
 
   ;; increment the count
-  (incf (slot-value rc 'count)))
+  (incf (ring-counter-count rc)))
