@@ -136,8 +136,8 @@ Any pins provided have to be connected to wire."
 
 ;; ---------- Query pin interface ----------
 
-(defun find-pin-slot-def (c slot &key fatal)
-  "Return the slot definition for SLOT in C.
+(defun find-pin-slot-def (cl slot &key fatal)
+  "Return the slot definition for SLOT in CL.
 
 If FATAL is set to T an error is raised if SLOT does
 not exist or isn't part of the pin interface."
@@ -145,48 +145,50 @@ not exist or isn't part of the pin interface."
 	   (and (slot-in-pin-interface slot-def)
 		(equal (slot-definition-name slot-def) slot))))
     (if-let ((slot-defs (remove-if-not #'pin-slot-named
-				       (class-slots (class-of c)))))
+				       (class-slots cl))))
       (car slot-defs)
 
       (if fatal
 	  (error "No slot named ~s in pin interface of ~s"
-		 slot c)))))
+		 slot cl)))))
 
 
-(defun pin-interface (c)
-  "Return a list of all the slots of C comprising its pin interface."
+(defun pin-interface (cl)
+  "Return a list of all the slots of class CL comprising its pin interface."
   (let ((slot-defs (remove-if-not #'slot-in-pin-interface
-				  (class-slots (class-of c)))))
+				  (class-slots cl))))
     (mapcar #'slot-definition-name slot-defs)))
 
 
-(defun pin-interface-p (c slot)
-  "Test whether SLOT is in the pin interface of C.
+(defun pin-interface-p (cl slot)
+  "Test whether SLOT is in the pin interface of class CL.
 
-Returns nil if SLOT either isn't a slot in C's pin
-interface, or isn't a slot of C at all."
-  (not (null (find-pin-slot-def c slot))))
+Returns nil if SLOT either isn't a slot in CL's pin
+interface, or isn't a slot of CL at all."
+  (not (null (find-pin-slot-def cl slot))))
 
 
-(defun pins-for-slot (c slot)
-  "Return the number of pins on SLOT of C.
+(defun pins-for-slot (cl slot)
+  "Return the number of pins on SLOT of class CL.
 
 SLOT must be in C's pin interface. The default reads the value
 of the :pins attribute of SLOT in C's class definition."
-  (let ((slot-def (find-pin-slot-def c slot :fatal t)))
+  (let ((slot-def (find-pin-slot-def cl slot :fatal t)))
     (slot-value slot-def 'pins)))
 
 
-(defun pin-role-for-slot (c slot)
-  "Return the role assigned to the pins of SLOT in C.
+(defun pin-role-for-slot (cl slot)
+  "Return the role assigned to the pins of SLOT in class CL.
 
 SLOT must be in C's pin interface."
-  (let ((slot-def (find-pin-slot-def c slot :fatal t)))
+  (let ((slot-def (find-pin-slot-def cl slot :fatal t)))
     (slot-value slot-def 'role)))
 
 
-;; ---------- The metaclass of nano-instructions ----------
+;; ---------- The metaclass of micro-instructions ----------
 
-;; Nano-instructions are constucted from components
-
-;; TBD
+(def-extra-options-metaclass metamicroinstruction ()
+  ((pins
+    :type integer)
+   (role
+    :type symbol)))

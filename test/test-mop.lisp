@@ -54,30 +54,30 @@
     (with-slots (data-bus address-bus hw::clock write-enable io other) tc
       ;; 8-bit data bus, tristated
       (is (equal (length data-bus) 8))
-      (is (equal (hw:pin-role-for-slot tc 'data-bus) :io))
-      (is (equal (hw:pins-for-slot tc 'data-bus) 8))
+      (is (equal (hw:pin-role-for-slot (class-of tc) 'data-bus) :io))
+      (is (equal (hw:pins-for-slot (class-of tc) 'data-bus) 8))
       (dolist (i (iota 8))
 	(is (equal (slot-value (elt data-bus i) 'hw::state) :tristate)))
 
       ;; 16-bit address bus, tristated
       (is (equal (length address-bus) 16))
-      (is (equal (hw:pin-role-for-slot tc 'address-bus) :io))
-      (is (equal (hw:pins-for-slot tc 'address-bus) 16))
+      (is (equal (hw:pin-role-for-slot (class-of tc) 'address-bus) :io))
+      (is (equal (hw:pins-for-slot (class-of tc) 'address-bus) 16))
       (dolist (i (iota 16))
 	(is (equal (slot-value (elt address-bus i) 'hw::state) :tristate)))
 
       ;; clock pin, triggering
       (equal (slot-value hw::clock 'hw::state) :trigger)
-      (is (equal (hw:pin-role-for-slot tc 'hw::clock) :trigger))
+      (is (equal (hw:pin-role-for-slot (class-of tc) 'hw::clock) :trigger))
 
       ;; write-enable pin, reading
       (equal (slot-value write-enable 'hw::state) :reading)
-      (is (equal (hw:pin-role-for-slot tc 'write-enable) :control))
+      (is (equal (hw:pin-role-for-slot (class-of tc) 'write-enable) :control))
 
       ;; 2 io lines, tristated
       (is (equal (length io) 2))
-      (is (equal (hw:pin-role-for-slot tc 'io) :io))
-      (is (equal (hw:pins-for-slot tc 'io) 2))
+      (is (equal (hw:pin-role-for-slot (class-of tc) 'io) :io))
+      (is (equal (hw:pins-for-slot (class-of tc) 'io) 2))
       (dolist (i (iota 2))
 	(is (equal (slot-value (elt io i) 'hw::state) :tristate)))
 
@@ -88,7 +88,7 @@
 (test test-pin-interface
   "Test we can extract the pin interface."
   (let* ((tc (make-instance 'test-component))
-	 (slots (hw:pin-interface tc)))
+	 (slots (hw:pin-interface (class-of tc))))
     (is (equal (length slots) 6))
     (dolist (s '(data-bus address-bus hw::clock hw::enable write-enable io))
       (is (member s slots)))))
@@ -97,26 +97,26 @@
 (test test-pin-interface-p
   "Test we can test that a slot is in the pin interface."
   (let ((tc (make-instance 'test-component)))
-    (is (hw:pin-interface-p tc 'data-bus))
-    (is (not (hw:pin-interface-p  tc 'other)))
+    (is (hw:pin-interface-p (class-of tc) 'data-bus))
+    (is (not (hw:pin-interface-p  (class-of tc) 'other)))
 
     ;; doesn't distinguish non-slots from non-pin slots
-    (is (not (hw:pin-interface-p  tc 'not-a-slot-at-all)))))
+    (is (not (hw:pin-interface-p (class-of tc) 'not-a-slot-at-all)))))
 
 
 (test test-pins-slot
   "Test we can extract the pins from slots."
   (let ((tc (make-instance 'test-component)))
-    (is (equal (hw:pins-for-slot tc 'data-bus) 8))
-    (is (equal (hw:pins-for-slot tc 'address-bus) 16))
-    (is (equal (hw:pins-for-slot tc 'hw::clock) 1))
-    (is (equal (hw:pins-for-slot tc 'write-enable) 1))
-    (is (equal (hw:pins-for-slot tc 'io) 2))
+    (is (equal (hw:pins-for-slot (class-of tc) 'data-bus) 8))
+    (is (equal (hw:pins-for-slot (class-of tc) 'address-bus) 16))
+    (is (equal (hw:pins-for-slot (class-of tc) 'hw::clock) 1))
+    (is (equal (hw:pins-for-slot (class-of tc) 'write-enable) 1))
+    (is (equal (hw:pins-for-slot (class-of tc) 'io) 2))
     (signals (error)
-      (hw:pins-for-slot tc 'other))))
+      (hw:pins-for-slot (class-of tc) 'other))))
 
 
 (test test-pins-from-slot
   "Test we can set the number of pins from the value of another slot."
   (let ((tc (make-instance 'test-component-var :width 8)))
-    (is (equal (hw:pins-for-slot tc 'bus) (slot-value tc 'width)))))
+    (is (equal (hw:pins-for-slot (class-of tc) 'bus) (slot-value tc 'width)))))
