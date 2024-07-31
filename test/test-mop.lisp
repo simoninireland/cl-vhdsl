@@ -21,6 +21,8 @@
 (in-suite cl-vhdsl)
 
 
+;; ---------- Components ----------
+
 (defclass test-component (hw:component hw:clocked)
   ((data-bus
     :initarg :data-bus
