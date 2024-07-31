@@ -20,7 +20,7 @@
 (in-package :common-lisp-user)
 
 (defpackage cl-vhdsl
-  (:use :cl)
+  (:use :cl :alexandria)
   (:export
    ;; utilities
    #:index-non-nil
