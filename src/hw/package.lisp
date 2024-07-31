@@ -20,12 +20,16 @@
 (in-package :common-lisp-user)
 
 (defpackage cl-vhdsl/hw
-  (:use :cl :alexandria :serapeum)
+  (:use :cl :alexandria :serapeum :cl-vhdsl)
   (:local-nicknames (:def :cl-vhdsl/def))
   (:import-from :closer-mop
 		#:standard-class
 		#:class-slots
 		#:compute-slots
+		#:slot-definition-type
+		#:slot-definition-name
+		#:compute-effective-slot-definition
+		#:effective-slot-definition-class
 		#:class-precedence-list
 		#:validate-superclass
 		#:slot-value-using-class
@@ -39,10 +43,12 @@
    #:metacomponent
    #:make-pin-for-role
    #:pin-role-for-slot
+   #:pin-slots-for-roles
    #:pins-for-slot
    #:pin-interface
    #:pin-interface-p
    #:component
+   #:component-name
    #:component-pin
    #:component-enabled-p
    #:component-pin-changed
@@ -90,9 +96,18 @@
    #:ram-size
    #:ram-elements
 
+   ;; micro-instructions
+   #:microinstruction
+   #:run-microinstruction
+   #:defmicroinstruction
+
+   ;; debugging support
+   #:components-seen-by
+
    ;; conditions
    #:conflicting-asserted-values
    #:reading-floating-value
    #:unrecognised-alu-operation
    #:mismatched-wires
+   #:non-component-type
    ))

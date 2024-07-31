@@ -23,7 +23,7 @@
 
 (defun index-non-nil (l)
   "Return the index (0-based) of the first non-nil element of sequnce L."
-  (dolist (i (alexandria:iota (length l)))
+  (dolist (i (iota (length l)))
     (if (not (null (elt l i)))
 	(return i))))
 
@@ -34,10 +34,17 @@
 This will extract the first such sub-sequence, beginning from the index
 extracted by `index-not-nil' and containing all elements up to the
 next nil element of the end of the sequence."
-  (alexandria:when-let ((i (index-non-nil l)))
-    (dolist (j (alexandria:iota (- (length l) (1+ i)) :start 1))
+  (when-let ((i (index-non-nil l)))
+    (dolist (j (iota (- (length l) (1+ i)) :start 1))
       (if (null (elt l (+ i j)))
 	  (return-from non-nil-subseq (subseq l i (+ i j)))))
 
     ;; if we get here, the rest of the list is non-nil
     (subseq l i)))
+
+
+;; ---------- Remove duplicates and nil values from a sequence ----------
+
+(defun uniquify (s)
+  "Remove duplicates and nils from sequence S."
+  (remove-if #'null (remove-duplicates s)))

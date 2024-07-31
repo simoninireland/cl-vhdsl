@@ -24,7 +24,8 @@
   :author "Simon Dobson <simoninireland@gmail.com"
   :version (:read-file-form "version.sexp")
   :license "GPL3"
-  :depends-on ("alexandria" "cl-bitfields" "cl-ppcre" "cl-interpol"
+  :depends-on ("alexandria" "cl-bitfields"
+	       "cl-ppcre" "cl-interpol" "str"
 	       "closer-mop" "slot-extra-options")
   :pathname "src/"
   :serial t
@@ -54,7 +55,9 @@
 			     (:file "alu")
 			     (:file "ram")
 			     (:file "ring-counter")
+			     (:file "microinstruction")
 			     (:file "control")
+			     (:file "debugging")
 			     (:file "conditions"))))
   :in-order-to ((test-op (test-op "cl-vhdsl/test"))))
 
@@ -66,12 +69,14 @@
   :serial t
   :components ((:file "package")
 	       (:file "test-utils")
+	       (:file "test-debugging")
 	       (:file "test-mop")
 	       ;;(:file "test-assembler")
 	       (:file "test-wires")
 	       (:file "test-registers")
 	       (:file "test-datapath")
-	       (:file "test-ring-counters"))
+	       (:file "test-ring-counters")
+	       (:file "test-microinstructions"))
   :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))
 
 
