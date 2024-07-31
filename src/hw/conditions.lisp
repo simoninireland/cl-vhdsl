@@ -95,3 +95,15 @@ the ALU's operation-select bus. It might also be an issue with the operands."))
 
 This is probably a mismatch between the width of a bus and the width
 of the pin interface slot it is being attached to."))
+
+
+(define-condition non-component-type ()
+  ((type
+    :documentation "The type encountered."
+    :initarg :type))
+  (:report (lambda (c str)
+	     (format str "The type ~s is not a component type" (slot-value c 'type))))
+  (:documentation "Condition signalled when a non-component type is encountered.
+
+This typically happens when trying to build a micro-instruction when there
+is a non-component slot."))
