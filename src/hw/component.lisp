@@ -143,6 +143,19 @@ Specialise V to the direction of edge of interest."))
 (defmethod component-pin-triggered ((c component) p v))
 
 
+(defun component-pins (c)
+  "Return all the pins in all the slots of C."
+  (let* ((cl (class-of c))
+	 (pin-slots (pin-interface cl)))
+    (flatten (map 'list #'(lambda (slot)
+			    (let ((pins (slot-value c slot)))
+			      (typecase pins
+				(sequence (coerce pins 'list))
+				(list pins)
+				(t (list pins)))))
+		  pin-slots))))
+
+
 ;; ---------- Mixins for common components ----------
 
 (defclass clocked ()
