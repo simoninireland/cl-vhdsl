@@ -50,6 +50,7 @@
    #:component
    #:component-name
    #:component-pin
+   #:component-pins
    #:component-enabled-p
    #:component-pin-changed
    #:component-pin-triggered
@@ -73,6 +74,7 @@
    #:pins-floating
    #:pins-to-value
    #:pins-from-value
+   #:pins-for-wires
 
    ;; buses
    #:bus
@@ -103,6 +105,7 @@
 
    ;; debugging support
    #:components-seen-by
+   #:all-component-pins-attached
 
    ;; conditions
    #:conflicting-asserted-values
