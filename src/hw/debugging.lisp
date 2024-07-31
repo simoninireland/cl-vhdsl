@@ -56,3 +56,17 @@ may affect C in some way."))
     (remove-if #'(lambda (comp)
 		   (equal comp c))
 	       (uniquify pins))))
+
+
+;; ---------- Pin integrity ----------
+
+(defun all-component-pins-attached (c &key fatal)
+  "Test whether all the pins of C have C as their component.
+
+This ensures that callbacks work properly. Signal an error of
+:fatal is set."
+  (let ((rc (every #'(lambda (p)
+		     (equal (pin-component p) c))
+		   (component-pins c))))
+    (or rc
+	(error "Not all pins of component ~s are attached to it" c))))
