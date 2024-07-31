@@ -22,7 +22,11 @@
 ;; ---------- Components ----------
 
 (defclass component ()
-  ((enable
+  ((name
+    :documentation "The readable name of the component."
+    :initarg :name
+    :reader component-name)
+   (enable
     :documentation "The component-enable pin."
     :initarg :enable
     :pins 1
@@ -39,7 +43,7 @@ Components encapsulate functions and offer a pin-based interface."))
   (let* ((c (call-next-method))
 	 (slot-defs (class-slots (class-of c))))
     (dolist (slot-def slot-defs)
-      (when (slot-in-pin-interface slot-def)
+      (when (slot-in-pin-interface-p slot-def)
 	;; slot is in the pin interface
 	(let* ((slot (slot-definition-name slot-def))
 
@@ -57,11 +61,8 @@ Components encapsulate functions and offer a pin-based interface."))
 			    w)))
 
 	       ;; role the slot fulfills
-	       (role (or (and (slot-exists-and-bound-p slot-def 'role)
-			      (slot-value slot-def 'role))
-
-			 ;; role defaults to :io
-			 (setf (slot-value slot-def 'role) :io)))
+	       ;; (set by `compute-effective-slot-definition' is omitted)
+	       (role (slot-value slot-def 'role))
 
 	       ;; wires the slot's pins should be connected to
 	       (wires (if (slot-exists-and-bound-p c slot)
