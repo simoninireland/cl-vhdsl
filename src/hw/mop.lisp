@@ -59,6 +59,19 @@
     :type symbol)))
 
 
+;; Fill in default :role slot if missing
+
+(defmethod compute-effective-slot-definition ((cl metacomponent) slot slot-defs)
+  (let ((slot-def (call-next-method)))
+    (when (and (slot-in-pin-interface-p slot-def)
+	       (not (slot-exists-and-bound-p slot-def 'role)))
+      ;; fill in default role
+      (setf (slot-value slot-def 'role) :io))
+
+    ;; return the slot definition
+    slot-def))
+
+
 (defgeneric make-pin-for-role (role)
   (:documentation "Create a pin suitable for ROLE.
 
@@ -73,7 +86,7 @@ Methods can specialise to provide appropriate pins for new roles."))
   (make-instance 'pin :state :trigger))
 
 
-(defun slot-in-pin-interface (slot-def)
+(defun slot-in-pin-interface-p (slot-def)
   "Test whether SLOT-DEF defines a slot composed of pins.
 
 This tests for the existence of the :pins slot option in the
@@ -142,7 +155,7 @@ Any pins provided have to be connected to wire."
 If FATAL is set to T an error is raised if SLOT does
 not exist or isn't part of the pin interface."
   (flet ((pin-slot-named (slot-def)
-	   (and (slot-in-pin-interface slot-def)
+	   (and (slot-in-pin-interface-p slot-def)
 		(equal (slot-definition-name slot-def) slot))))
     (if-let ((slot-defs (remove-if-not #'pin-slot-named
 				       (class-slots cl))))
@@ -155,7 +168,7 @@ not exist or isn't part of the pin interface."
 
 (defun pin-interface (cl)
   "Return a list of all the slots of class CL comprising its pin interface."
-  (let ((slot-defs (remove-if-not #'slot-in-pin-interface
+  (let ((slot-defs (remove-if-not #'slot-in-pin-interface-p
 				  (class-slots cl))))
     (mapcar #'slot-definition-name slot-defs)))
 
@@ -185,10 +198,8 @@ SLOT must be in C's pin interface."
     (slot-value slot-def 'role)))
 
 
-;; ---------- The metaclass of micro-instructions ----------
-
-(def-extra-options-metaclass metamicroinstruction ()
-  ((pins
-    :type integer)
-   (role
-    :type symbol)))
+(defun pin-slots-for-roles (cl roles)
+  "Extract all the slots in the pin interface of CL having roles in ROLES."
+  (remove-if-not #'(lambda (slot)
+		     (member (pin-role-for-slot cl slot) roles))
+		 (pin-interface cl)))
