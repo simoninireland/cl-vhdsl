@@ -289,6 +289,7 @@ The least-significant bit of V goes onto the first pin
 in the sequence PS, and so on."
   (let ((nv v))
     (dolist (i (iota (length ps)))
+      (break)
       (setf (pin-state (elt ps i)) (logand nv 1))
       (setf nv (ash nv -1)))))
 
@@ -304,6 +305,23 @@ bit of the value, and so on."
       (setf v (+ (ash v 1)
 		 (pin-state (elt ps (- n i))))))
     v))
+
+
+(defgeneric pins-for-wires (ws &key state component)
+  (:documentation "Create a connector to WS.
+
+The connector is a seuence of pins attached to the wires of WS.
+WS may be a sequence or a bus."))
+
+
+(defmethod pins-for-wires ((b bus) &key (state ':io) component)
+  (pins-for-wires (bus-wires b) :state state :component component))
+
+
+(defmethod pins-for-wires ((ws sequence) &key (state ':io) component)
+  (map 'vector #'(lambda (w)
+		   (make-instance 'pin :wire w :state state :component component))
+       ws))
 
 
 ;; ---------- Buses ----------
