@@ -62,11 +62,12 @@
     (setf (hw:pin-state ram-wr) 0)
     (setf (hw:pin-state ram-en) 1)
 
-    ;; put the addres onto the address bus
+    ;; put the address onto the address bus
     (hw:pins-from-value address-bus-connector #16rFF)
 
     ;; clock the system
     (setf (hw:pin-state clk) 1)
 
     ;; check we loaded the value
-    (is (equal (aref (hw:ram-elements ram) #16rFF) 123))))
+    (is (equal (aref (hw:ram-elements ram) #16rFF) 123))
+    (is (equal (hw:register-value reg) 123))))
