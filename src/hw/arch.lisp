@@ -157,6 +157,7 @@ pin. (This situation is assumed to be unusual.)"
 	 (setf (slot-value w 'state) wire-nv)
 
 	 ;; propagate changes
+	 ;; TBC: should we also propagate floating values?
 	 (when (wire-logic-value-p wire-nv)
 	   ;; for :reading pins, call their components' change notification
 	   (dolist (c (wire-components-with-pins-asserting w :reading))
@@ -192,6 +193,32 @@ pin. (This situation is assumed to be unusual.)"
 
     ;; set the wire's state based on this new pin
     (wire-update-state-and-trigger w)))
+
+
+;; ---------- Buses ----------
+
+(defclass bus ()
+  ((width
+    :documentation "The width of the bus."
+    :initarg :width
+    :initform 8
+    :reader bus-width)
+   (wires
+    :documentation "The bus' wires, as a sequence."
+    :reader bus-wires))
+  (:documentation "A bus consisting of several wires."))
+
+
+(defmethod initialize-instance :after ((b bus) &rest initargs)
+  (declare (ignore initargs))
+
+  ;; create the wires
+  (let* ((width (bus-width b))
+	 (wires (make-array (list width))))
+    (dolist (i (iota width))
+      (setf (elt wires i)
+	    (make-instance 'wire)))
+    (setf (slot-value b 'wires) wires)))
 
 
 ;; ---------- Pins ----------
@@ -289,7 +316,6 @@ The least-significant bit of V goes onto the first pin
 in the sequence PS, and so on."
   (let ((nv v))
     (dolist (i (iota (length ps)))
-      (break)
       (setf (pin-state (elt ps i)) (logand nv 1))
       (setf nv (ash nv -1)))))
 
@@ -311,7 +337,8 @@ bit of the value, and so on."
   (:documentation "Create a connector to WS.
 
 The connector is a seuence of pins attached to the wires of WS.
-WS may be a sequence or a bus."))
+WS may be a sequence or a bus. The pins are initially given state
+STATE (:io by default) and are assocated with COMPONENT."))
 
 
 (defmethod pins-for-wires ((b bus) &key (state ':io) component)
@@ -322,29 +349,3 @@ WS may be a sequence or a bus."))
   (map 'vector #'(lambda (w)
 		   (make-instance 'pin :wire w :state state :component component))
        ws))
-
-
-;; ---------- Buses ----------
-
-(defclass bus ()
-  ((width
-    :documentation "The width of the bus."
-    :initarg :width
-    :initform 8
-    :reader bus-width)
-   (wires
-    :documentation "The bus' wires, as a sequence."
-    :reader bus-wires))
-  (:documentation "A bus consisting of several wires."))
-
-
-(defmethod initialize-instance :after ((b bus) &rest initargs)
-  (declare (ignore initargs))
-
-  ;; create the wires
-  (let* ((width (bus-width b))
-	 (wires (make-array (list width))))
-    (dolist (i (iota width))
-      (setf (elt wires i)
-	    (make-instance 'wire)))
-    (setf (slot-value b 'wires) wires)))
