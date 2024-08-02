@@ -37,6 +37,23 @@
 Components encapsulate functions and offer a pin-based interface."))
 
 
+;; Initialisation of components is split into two parts. We first
+;; override the primary method for `initialize-instance' to create
+;; the pins for all slots in the pin interface for which we know
+;; their width. We then add an :around method that calls
+;; `component-pins-changed' to let the component set up its internal
+;; state tro be consistent with its initial pin values.
+;;
+;; The reason to separate these, and for using the :around method,
+;; is to support sub-class initialisation. The :around method runs
+;; first, and calls the udnerlying `initialize-instance' function.
+;; This will first run the overridden primary method, and then
+;; run any :after :after methods on `initilize-instance' that
+;; sub-classes might define. These :after methods will see an object
+;; whose pins have been initialised, as expected. The :around
+;; method then calls `component-pins-changed' in an environment
+;; where the pins *and* any other state has been initialised.
+
 (defmethod initialize-instance ((cc component) &rest initargs)
   (declare (ignore initargs))
 
@@ -111,6 +128,16 @@ Components encapsulate functions and offer a pin-based interface."))
     c))
 
 
+(defmethod initialize-instance :around ((c component) &rest initargs)
+  (declare (ignore initargs))
+
+  ;; do the normal initialisation routines
+  (call-next-method)
+
+  ;; make sure we're in a state consistent with our initial pins
+  (component-pin-changed c))
+
+
 (defgeneric component-enabled-p (c)
   (:documentation "Test whether the component is enabled."))
 
@@ -144,7 +171,7 @@ Specialise V to the direction of edge of interest."))
 
 
 (defun component-pins (c)
-  "Return all the pins in all the slots of C."
+   "Return all the pins in all the slots of C."
   (let* ((cl (class-of c))
 	 (pin-slots (pin-interface cl)))
     (flatten (map 'list #'(lambda (slot)
