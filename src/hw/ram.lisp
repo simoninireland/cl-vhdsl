@@ -32,7 +32,7 @@
     :documentation "The address bus."
     :initarg :address-bus
     :pins address-width
-    :role :control
+    :role :io
     :reader ram-address-bus)
    (data-bus
     :documentation "The data bus."
@@ -77,17 +77,21 @@ The size of elements is determined by the width of the data bus."
 
 (defmethod component-pin-changed ((mem ram))
   (if (component-enabled-p mem)
-      (if (component-write-enabled-p mem)
-	  ;; set all the data bus pins to :reading
-	  (setf (pins-states (ram-data-bus mem)) :reading)
+      (progn
+	;; read from the buses
+	(setf (pins-states (ram-address-bus mem)) :reading)
+	(setf (pins-states (ram-data-bus mem)) :reading)
 
+	(when (not (component-write-enabled-p mem))
 	  ;; put the value of the memory addressed on the
 	  ;; address bus onto the data bus, as long as the
 	  ;; address bus is itself stable
 	  (when (not (pins-floating (ram-address-bus mem)))
 	    (let ((addr (pins-to-value (ram-address-bus mem))))
 	      (pins-from-value (ram-data-bus mem)
-			       (aref (ram-elements mem) addr)))))
+			       (aref (ram-elements mem) addr))))))
 
-      ;; tri-state the data bus
-      (setf (pins-states (ram-data-bus mem)) :tristate)))
+      ;; tri-state the buses
+      (progn
+	(setf (pins-states (ram-address-bus mem)) :tristate)
+	(setf (pins-states (ram-data-bus mem)) :tristate))))
