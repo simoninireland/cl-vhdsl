@@ -136,7 +136,10 @@ MI-PIN-SLOT-NAMES provides the slots to include."
     (let ((mi-pin-slot-initargs (mapcar #'(lambda (mi-slot-name)
 					    (declare-mi-slot-initarg mi mi-slot-name))
 					mi-pin-slot-names)))
-      `(defmethod initialize-instance :after ((,mi ,cl) &rest ,initargs &key &allow-other-keys)
+      `(defmethod initialize-instance :after ((,mi ,cl)
+					      &rest ,initargs
+					      &key ,@mi-pin-slot-names
+					      &allow-other-keys)
 	 (declare (ignore ,initargs))
 
 	 ,@mi-pin-slot-initargs))))
