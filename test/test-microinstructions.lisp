@@ -62,6 +62,13 @@
     (setf (memory ts) ram)))
 
 
+;; This code is needed to ensure that the classes exist (and
+;; can be examined) even when they're built in the same file.
+;; It can be avoided by instanciating an instance, which does
+;; fianlisation implicitly -- but we'd be likely to generate
+;; a system and then its micro-instructions without necessarily
+;; instanciating first, so maybe `defmicroinstruction' should
+;; implicitly finalise its base class as well?
 (c2mop:ensure-finalized (find-class 'test-system))
 (hw:defmicroinstruction tsm (test-system))
 (c2mop:ensure-finalized (find-class 'tsm))
