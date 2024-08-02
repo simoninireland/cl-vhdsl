@@ -55,7 +55,9 @@
    #:component-pin-changed
    #:component-pin-triggered
    #:clocked
+   #:component-clock
    #:readwrite
+   #:component-write-enable
    #:component-write-enabled-p
    #:component-read-enabled-p
 
