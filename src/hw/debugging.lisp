@@ -63,10 +63,11 @@ may affect C in some way."))
 (defun all-component-pins-attached (c &key fatal)
   "Test whether all the pins of C have C as their component.
 
-This ensures that callbacks work properly. Signal an error of
+This ensures that callbacks work properly. Signals an error if
 :fatal is set."
   (let ((rc (every #'(lambda (p)
 		     (equal (pin-component p) c))
 		   (component-pins c))))
     (or rc
-	(error "Not all pins of component ~s are attached to it" c))))
+	(when fatal
+	  (error "Not all pins of component ~s are attached to it" c)))))
