@@ -38,7 +38,7 @@
     :accessor memory)))
 
 
-(defmethod initialize-instance :after ((ts test-system) &rest initargs)
+(defmethod initialize-instance :after ((ts test-system) &rest initargs &key &allow-other-keys)
   (declare (ignore initargs))
 
   (let* ((clk (make-instance 'hw:pin :state 0))
@@ -62,11 +62,13 @@
     (setf (memory ts) ram)))
 
 
+(c2mop:ensure-finalized (find-class 'test-system))
+(hw:defmicroinstruction tsm (test-system))
+(c2mop:ensure-finalized (find-class 'tsm))
+
+
 (test test-microinstructions
   "Test we can derive the micro-instructions for the test system."
-  (hw:defmicroinstruction tsm (test-system))
-  (c2mop:ensure-finalized (find-class'tsm))
-
   ;; check the micro-instruction slots all exist (there are other slots too)
   (let ((mi-slots (mapcar #'c2mop:slot-definition-name
 			  (c2mop:class-slots (find-class 'tsm)))))
@@ -76,8 +78,6 @@
 
 (test test-mi-load-register
   "Test we can crerate and run a micro-instruction that loads the register from RAM."
-  (hw:defmicroinstruction tsm (test-system))
-
   (let* ((data-bus (make-instance 'hw:bus :width 8))
 	 (data-bus-connector (map 'vector
 				  (lambda (w)
@@ -89,7 +89,8 @@
 				       (make-instance 'hw:pin :wire w))
 				     (hw:bus-wires address-bus)))
 	 (ts (make-instance 'test-system :address-bus address-bus
-					 :data-bus data-bus)))
+					 :data-bus data-bus))
+	 (clk (hw:component-clock ts)))
     ;; create the micro-instuction
     (let ((mi (make-instance 'tsm :reg/enable 1
 				  :reg/write-enable 1
