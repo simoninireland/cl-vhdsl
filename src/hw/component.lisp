@@ -138,6 +138,8 @@ Components encapsulate functions and offer a pin-based interface."))
   (component-pin-changed c))
 
 
+;; ---------- Enablement checks ----------
+
 (defgeneric component-enabled-p (c)
   (:documentation "Test whether the component is enabled."))
 
@@ -145,6 +147,8 @@ Components encapsulate functions and offer a pin-based interface."))
 (defmethod component-enabled-p ((c component))
   (equal (pin-state (slot-value c 'enable)) 1))
 
+
+;; ---------- Pin interface callbacks ----------
 
 (defgeneric component-pin-changed (c)
   (:documentation "A callback called whenever a C's pin change level.
@@ -190,7 +194,8 @@ Specialise V to the direction of edge of interest."))
     :documentation "The component's clock pin."
     :initarg :clock
     :pins 1
-    :role :trigger))
+    :role :trigger
+    :reader component-clock))
   (:metaclass metacomponent)
   (:documentation "A mixin for a component that has a clock line.
 
@@ -203,7 +208,8 @@ transitions, although they can change state at other times too."))
     :documentation "The component's write-enable pin."
     :initarg :write-enable
     :pins 1
-    :role :control))
+    :role :control
+    :reader component-write-enable))
   (:metaclass metacomponent)
   (:documentation "A mixin for a component that has a write-enable line..
 
