@@ -56,6 +56,9 @@ Components encapsulate functions and offer a pin-based interface."))
 ;; other state has been initialised, which means it sees the component
 ;; in a sensible state.
 
+;; This method should be decomposed to let the individual elements be
+;; called/overridden programmatically
+
 (defmethod initialize-instance ((cc component) &rest initargs)
   (declare (ignore initargs))
 
