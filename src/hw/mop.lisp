@@ -59,13 +59,11 @@
     :type symbol)))
 
 
-;; Fill in default :role slot if missing
-
 (defmethod compute-effective-slot-definition ((cl metacomponent) slot slot-defs)
   (let ((slot-def (call-next-method)))
     (when (and (slot-in-pin-interface-p slot-def)
 	       (not (slot-exists-and-bound-p slot-def 'role)))
-      ;; fill in default role
+      ;; fill in default :role if it is missing
       (setf (slot-value slot-def 'role) :io))
 
     ;; return the slot definition
