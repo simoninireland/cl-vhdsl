@@ -330,7 +330,7 @@ return the floating value."
 	 (error (make-instance 'reading-floating-value :pin p)))
 
 	((pin-reading-p p)
-	 (wire-state (pin-wire p)))
+	 (pin-wire-state p))
 
 	;; shouldn't get here, it's a weird state
 	(t

@@ -74,12 +74,13 @@
    #:wire-pins
    #:wire-add-pin
    #:pin
-   #:pin-state
+   #:pin-wire
+   #:pin-component
    #:pin-tristated-p
    #:pin-reading-p
    #:pin-asserted-p
-   #:pin-wire
-   #:pin-component
+   #:pin-floating-p
+   #:pin-state
 
    ;; buses and connectors
    #:bus
