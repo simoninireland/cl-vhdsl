@@ -51,7 +51,8 @@ integrate to deterine the wire's state."))
   "Test whether V is a logic value.
 
 V can take a logic value (0 or 1) or some other value
-indicating a non-asserting state."
+indicating a non-asserting (floating) state. Use
+`wire-floating-p' to check for floating wires."
   (or (equal v 0)
       (equal v 1)))
 
@@ -60,19 +61,22 @@ indicating a non-asserting state."
   "Return the other logic value to V.
 
 0 and 1 exchange values; other (non-logical) values are left unchanged."
-  (cond ((symbolp v)
-	 v)
-	((= v 0)
+  (cond ((= v 0)
 	 1)
 	((= v 1)
 	 0)
+	((symbolp v)
+	 v)
 	(t
 	 (error "Strange value ~a assigned to wire" v))))
 
 
 (defun wire-floating-p (w)
-  "Test whether W is floating."
-  (equal (slot-value w 'state) :floating))
+  "Test whether W is floating.
+
+A pin is floating if it doesn't have a stable logic value
+asserted on it."
+  (eql (wire-state w) :floating))
 
 
 (defun wire-known-pin-p (w p)
@@ -267,17 +271,70 @@ caused the notification."))
   (wire-add-pin wire p))
 
 
-(defmethod pin-state ((p pin))
-  (let ((pin-state (slot-value p 'state)))
-    (if (equal pin-state :reading)
-	(let ((w (pin-wire p)))
-	  (when (wire-floating-p w)
-	    ;; signal to allow rejection of floating logic levels
-	    (error (make-instance 'reading-floating-value :pin p :wire w)))
+(defun pin-wire-state (p)
+  "Return the state of P's wire.
 
-	  ;; if not floating, and we return from the condition, return the value
-	  (wire-state w))
-	(error "Reading from non-reading pin ~a" p))))
+The wire may have a value asserted, or may be floating. Unlike
+`pin-state' it is not an error to call this function on a floating
+or tristated pin."
+  (wire-state (pin-wire p)))
+
+
+(defun pin-tristated-p (p)
+  "Test if P is tristated."
+  (equal (slot-value p 'state) :tristate))
+
+
+(defun pin-reading-p (p)
+  "Test if P is reading."
+  (equal (slot-value p 'state) :reading))
+
+
+(defun pin-asserted-p (p)
+  "Test if P has a value asserted on it."
+  (let ((v (slot-value p 'state)))
+    (or (equal v 0)
+	(equal v 1))))
+
+
+(defun pin-floating-p (p)
+  "Test if P is floating.
+
+A floating pin is either tristated or configured for reading
+at attached to a floating pin."
+  (or (pin-tristated-p p)
+      (and (pin-reading-p p)
+	   (wire-floating-p (pin-wire p)))))
+
+
+(defun pin-state (p)
+  "Return the state of P.
+
+This function can only be used to read the states of pins
+that are reading or asserted. For asserted pins it returns their
+asserted value. For `:reading' pins it returns the state of the underlying
+wire, signalling a `reading-floating-value' condition if the wire is
+floating; and for other pins, notable `:tristate', it signals a
+`reading-non-reading-pin' condition.
+
+The `reading-floating-value' signal can be ignored if the caller is
+happy to receive floating values. returning from the condition will
+return the floating value."
+  (cond ((pin-asserted-p p)
+	 (slot-value p 'state))
+
+	((pin-tristated-p p)
+	 (error (make-instance 'reading-non-reading-pin :pin p)))
+
+	((pin-floating-p p)
+	 (error (make-instance 'reading-floating-value :pin p)))
+
+	((pin-reading-p p)
+	 (wire-state (pin-wire p)))
+
+	;; shouldn't get here, it's a weird state
+	(t
+	 (error (make-instance 'reading-non-reading-pin :pin p)))))
 
 
 (defmethod (setf pin-state) (nv (p pin))
@@ -287,45 +344,75 @@ caused the notification."))
       (setf (wire-state (pin-wire p) p ov) nv))))
 
 
-;; ---------- Manipulating several pins simultaneousosly ----------
+;; ---------- Connectors ----------
 
-(defun pins-floating (ps)
-  "Test whether any of the pins in PS are floating.
+(defclass connector ()
+  ((width
+    :documentation "The width of the connector."
+    :initarg :width
+    :reader connector-width)
+   (pins
+    :documentation "The pins of the connector."
+    :reader connector-pins)
+   (component
+    :documentation "The component this connector's pins are connected to."
+    :initarg :component
+    :initform nil
+    :reader connector-component)
+   (role
+    :documentation "The role of the pins in this connector."
+    :initarg :role
+    :initform :io
+    :reader connector-role))
+  (:documentation "A sequence of pins.
 
-This is used to propagate floating states."
-  (some #'(lambda (p)
-	    (wire-floating-p (pin-wire p)))
-	ps))
+A connector connects a sequence of wires to a component."))
 
 
-(defun pins-states (ps)
-  "Return a sequence of state values for the pins PS."
-  (map 'vector #'pin-state ps))
+(defmethod initialize-instance :after ((conn connector) &rest initargs)
+  (declare (ignore initargs))
+
+  ;; create the pins, without wires
+  (let* ((c (connector-component conn))
+	 (width (connector-width conn))
+	 (role (connector-role conn))
+	 (pins (make-array (list width))))
+    (dolist (i (iota width))
+      (let ((pin (make-instance 'pin)))
+	(configure-pin-for-role pin role)
+	(setf (elt pins i) pin)
+	(setf (pin-component pin) c)))
+    (setf (slot-value conn 'pins) pins)))
 
 
-(defmethod (setf pins-states) (nv ps)
+(defun connector-pins-floating (conn)
+  "Return a list of floating pins in CONN."
+  (remove-if-not #'pin-floating-p (connector-pins conn)))
+
+
+(defun connector-pins-floating-p (conn)
+  "Test whether any of the pins of CONN are floating."
+  (> (length (connector-pins-floating conn)) 0))
+
+
+(defun connector-pin-states (conn)
+  "Return a sequence of state values for the pins of CONN."
+  (map 'vector #'pin-state (connector-pins conn)))
+
+
+(defmethod (setf connector-pin-states) (nv (conn connector))
   (map nil (lambda (p)
 	     (setf (pin-state p) nv))
-       ps))
+       (connector-pins conn)))
 
 
-(defun pins-from-value (ps v)
-  "Move the value of V onto the pins PS.
+(defun connector-pins-value (conn)
+  "Move the values of the pins on CONN into an integer.
 
-The least-significant bit of V goes onto the first pin
-in the sequence PS, and so on."
-  (let ((nv v))
-    (dolist (i (iota (length ps)))
-      (setf (pin-state (elt ps i)) (logand nv 1))
-      (setf nv (ash nv -1)))))
-
-
-(defun pins-to-value (ps)
-  "Move the values of the pins in PS into an integer.
-
-The first pin in the sequence PS is moved to the least-significant
+The first pin in the pins of CONN is moved to the least-significant
 bit of the value, and so on."
-  (let* ((v 0)
+  (let* ((ps (connector-pins conn))
+	 (v 0)
 	 (n (1- (length ps))))
     (dolist (i (iota (length ps)))
       (setf v (+ (ash v 1)
@@ -333,19 +420,9 @@ bit of the value, and so on."
     v))
 
 
-(defgeneric pins-for-wires (ws &key state component)
-  (:documentation "Create a connector to WS.
-
-The connector is a seuence of pins attached to the wires of WS.
-WS may be a sequence or a bus. The pins are initially given state
-STATE (:io by default) and are assocated with COMPONENT."))
-
-
-(defmethod pins-for-wires ((b bus) &key (state ':io) component)
-  (pins-for-wires (bus-wires b) :state state :component component))
-
-
-(defmethod pins-for-wires ((ws sequence) &key (state ':io) component)
-  (map 'vector #'(lambda (w)
-		   (make-instance 'pin :wire w :state state :component component))
-       ws))
+(defmethod (setf connector-pins-value) (v (conn connector))
+  (let ((ps (connector-pins conn))
+	(nv v))
+    (dolist (i (iota (length ps)))
+      (setf (pin-state (elt ps i)) (logand nv 1))
+      (setf nv (ash nv -1)))))

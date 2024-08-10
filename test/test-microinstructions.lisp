@@ -21,7 +21,7 @@
 (in-suite cl-vhdsl)
 
 
-(defclass test-system ()
+(defclass test-system (hw:component hw:clocked)
   ((data-bus
     :initarg :data-bus
     :reader data-bus)
@@ -35,7 +35,8 @@
    (memory
     :type hw:ram
     :initarg :memory
-    :accessor memory)))
+    :accessor memory))
+  (:metaclass hw:metacomponent))
 
 
 (defmethod initialize-instance :after ((ts test-system) &rest initargs &key &allow-other-keys)
@@ -108,7 +109,7 @@
       (setf (aref (hw:ram-elements (memory ts)) #16rFF) 123)
 
       ;; put the address onto the address bus
-      (hw:pins-from-value address-bus-connector #16rFF)
+      (setf (hw:connector-pins-value address-bus-connector) #16rFF)
 
       ;; clock-cycle the system
       (setf (hw:pin-state clk) 0)

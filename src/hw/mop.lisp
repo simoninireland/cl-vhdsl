@@ -61,7 +61,7 @@
 
 (defmethod compute-effective-slot-definition ((cl metacomponent) slot slot-defs)
   (let ((slot-def (call-next-method)))
-    (when (and (slot-in-pin-interface-p slot-def)
+    (when (and (slot-def-in-pin-interface-p slot-def)
 	       (not (slot-exists-and-bound-p slot-def 'role)))
       ;; fill in default :role if it is missing
       (setf (slot-value slot-def 'role) :io))
@@ -70,79 +70,24 @@
     slot-def))
 
 
-(defgeneric make-pin-for-role (role)
-  (:documentation "Create a pin suitable for ROLE.
-
-Methods can specialise to provide appropriate pins for new roles."))
-
-
-(defmethod make-pin-for-role ((role (eql :io)))
-  (make-instance 'pin :state :tristate))
-(defmethod make-pin-for-role ((role (eql :control)))
-  (make-instance 'pin :state :reading))
-(defmethod make-pin-for-role ((role (eql :trigger)))
-  (make-instance 'pin :state :trigger))
-
-
-(defun slot-in-pin-interface-p (slot-def)
-  "Test whether SLOT-DEF defines a slot composed of pins.
-
-This tests for the existence of the :pins slot option in the
-slot definition."
-  (slot-exists-and-bound-p slot-def 'pins))
-
-
-;; When the class is instanciated, look at all the slots in their
-;; pin interface and create to appropriate pins for them. Other
-;; (non-pin) slots are left alone.
-
-(defun normalise-wires (pins-wires-or-bus)
-  "Convert PINS-WIRES-OR-BUS into a sequence of wires.
-
-The normalisation process is:
-
-- for a bus, return its wires
-- for a single wire, return it in a sequence
-- for a single pin, return its wire as a sequence
-- for a sequence, normalise each member pin or wire: you
-  can't include a bus in the sequence
-
-Any pins provided have to be connected to wire."
-  (typecase pins-wires-or-bus
-    (bus
-     (bus-wires pins-wires-or-bus))
-
-    (wire
-     (list pins-wires-or-bus))
-
-    (pin
-     (let ((w (pin-wire pins-wires-or-bus)))
-       (if (null w)
-	   (error "Unconnected pin ~s cannot be used" pins-wires-or-bus)
-
-	   (list (pin-wire pins-wires-or-bus)))))
-
-    (sequence
-     (map 'vector (lambda (pin-or-wire)
-		    (typecase pin-or-wire
-		      (wire
-		       pin-or-wire)
-
-		      (pin
-		       (let ((w (pin-wire pins-wires-or-bus)))
-			 (if (null w)
-			     (error "Unconnected pin ~s cannot be used" pins-wires-or-bus)
-			     (pin-wire pin-or-wire))))
-
-		      (t
-		       (error "Unexpected ~s is not a pin or wire" pin-or-wire))))
-	  pins-wires-or-bus))
-    (t
-     (error "Unexpected ~s is not a pin, wire, bus, or sequence" pins-wires-or-bus))))
-
-
 (defmethod validate-superclass ((cl standard-class) (super metacomponent))
   t)
+
+
+;; ---------- Pin roles ----------
+
+(defgeneric configure-pin-for-role (pin role)
+  (:documentation "Set up PIN suitable for ROLE.
+
+Methods can specialise to configure pins appropriatly for new roles."))
+
+
+(defmethod configure-pin-for-role (pin (role (eql :io)))
+  (setf (pin-state pin) :tristate))
+(defmethod configure-pin-for-role (pin (role (eql :control)))
+  (setf (pin-state pin) :reading))
+(defmethod configure-pin-for-role (pin (role (eql :trigger)))
+ (setf (pin-state pin) :trigger))
 
 
 ;; ---------- Query pin interface ----------
@@ -153,7 +98,7 @@ Any pins provided have to be connected to wire."
 If FATAL is set to T an error is raised if SLOT does
 not exist or isn't part of the pin interface."
   (flet ((pin-slot-named (slot-def)
-	   (and (slot-in-pin-interface-p slot-def)
+	   (and (slot-def-in-pin-interface-p slot-def)
 		(equal (slot-definition-name slot-def) slot))))
     (if-let ((slot-defs (remove-if-not #'pin-slot-named
 				       (class-slots cl))))
@@ -164,9 +109,17 @@ not exist or isn't part of the pin interface."
 		 slot cl)))))
 
 
+(defun slot-def-in-pin-interface-p (slot-def)
+  "Test whether SLOT-DEF defines a slot composed of pins.
+
+This tests for the existence of the :pins slot option in the
+slot definition."
+  (slot-exists-and-bound-p slot-def 'pins))
+
+
 (defun pin-interface (cl)
   "Return a list of all the slots of class CL comprising its pin interface."
-  (let ((slot-defs (remove-if-not #'slot-in-pin-interface-p
+  (let ((slot-defs (remove-if-not #'slot-def-in-pin-interface-p
 				  (class-slots cl))))
     (mapcar #'slot-definition-name slot-defs)))
 
@@ -177,15 +130,6 @@ not exist or isn't part of the pin interface."
 Returns nil if SLOT either isn't a slot in CL's pin
 interface, or isn't a slot of CL at all."
   (not (null (find-pin-slot-def cl slot))))
-
-
-(defun pins-for-slot (cl slot)
-  "Return the number of pins on SLOT of class CL.
-
-SLOT must be in C's pin interface. The default reads the value
-of the :pins attribute of SLOT in C's class definition."
-  (let ((slot-def (find-pin-slot-def cl slot :fatal t)))
-    (slot-value slot-def 'pins)))
 
 
 (defun pin-role-for-slot (cl slot)

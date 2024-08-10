@@ -41,14 +41,27 @@ asserts a value on it, i.e., is not tri-stated."))
     :documentation "The pin being read."
     :initarg :pin))
   (:report (lambda (c str)
-	     (format str "Pin ~a is reading a floating value from ~a"
-		     (slot-value c 'pin)
-		     (slot-value c 'wire))))
+	     (let ((pin (slot-value c 'pin)))
+	       (format str "Pin ~a is reading a floating value from ~a"
+		       pin (pin-wire pin)))))
   (:documentation "Condition signalled when a pin reads a floating value.
 
 This is almost certainly an error, as it suggests that the component
 expects a logic value but isn't getting one, presumably because no
 other component is asserting a value on the wire."))
+
+
+(define-condition reading-non-reading-pin ()
+  ((pin
+    :documentation "The pin being read."
+    :initarg :pin))
+  (:report (lambda (c str)
+	     (format str "Pin ~a is not configured for reading."
+		     (slot-value c 'pin))))
+  (:documentation "Condition signalled when reading a non-reading pin.
+
+This usually happens when a pin is tristated by accident. It is
+almost certainly an error in wiring or configuraton,"))
 
 
 (define-condition unrecognised-alu-operation ()
@@ -107,3 +120,69 @@ of the pin interface slot it is being attached to."))
 
 This typically happens when trying to build a micro-instruction when there
 is a non-component slot."))
+
+
+;; ---------- Slot names ----------
+
+(define-condition unknown-slot-name ()
+  ((slot-name
+    :documentation "The slot name."
+    :initarg :slot-name))
+  (:report (lambda (c str)
+	     (format str "The slot name ~s doesn't exist"
+		     (slot-value c 'slot-name))))
+  (:documentation "Condition signalled when a slot name is missing.
+
+The slot name may be simple, and looked up directly on a
+class, or qualified, which is looked up on a slot on the
+component slot."))
+
+
+;; ---------- Wiring ----------
+
+(define-condition incompatible-pin-widths ()
+  ((coonnector
+    :documentation "The connector."
+    :initarg :connector)
+   (bus
+    :documentation "The bus."
+    :initarg :bus))
+  (:report (lambda (c str)
+	     (format str "Connector width ~a doesn't match bus width ~s"
+		     (connector-width (slot-value c 'connector))
+		     (bus-width (slot-value c 'bus)))))
+  (:documentation "Condition signalled when wiring incompatible connectors and buses.
+
+The widths of buses and connectors need to be the same."))
+
+
+(define-condition incompatible-pin-slot-widths ()
+  ((slots-names
+    :documentation "The slot names whose widths are being determined."
+    :initarg :slot-names)
+   (unknown
+    :documentation "Flag as to whether the width is unknown."
+    :initarg :unknown
+    :initform nil)
+   (first
+    :documentation "The first known width (if any)."
+    :initarg :first)
+   (second
+    :documentation "The second known width (if any)."
+    :initarg :second))
+  (:report (lambda (c str)
+	     (if (slot-value c 'unknown)
+		 ;; no width could be determined
+		 (format str "The widths of slots ~a cdan't be determined"
+			 (slot-value c 'slot-names))
+
+		 ;; two incompatible widths were determined
+		 (format str "The pin slot widths ~a and ~a are incompatible when wiring ~a"
+			 (slot-value c 'first)
+			 (slot-value c 'second)
+			 (slot-value c 'slot-names)))))
+  (:documentation "Condition signalled when two pin slots have incompatible widths.
+
+This happens when two slots are wired together but have different
+widths, or when no wodth can be determined at all. It must be possible
+to find exactly one width for all the pin slots."))

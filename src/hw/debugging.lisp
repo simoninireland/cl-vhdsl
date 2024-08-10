@@ -41,6 +41,10 @@ may affect C in some way."))
   (uniquify (flatten (map 'list #'components-seen-by (bus-wires b)))))
 
 
+(defmethod components-seen-by ((conn connector))
+  (uniquify (flatten (map 'list #'components-seen-by (connector-pins conn)))))
+
+
 (defmethod components-seen-by ((s sequence))
   (uniquify (flatten (map 'list #'components-seen-by s))))
 

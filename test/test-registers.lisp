@@ -26,10 +26,8 @@
 (test test-register-load
   "Test a register loads values off its bus correctly."
   (let* ((data-bus (make-instance 'hw:bus :width 8))
-	 (data-bus-connector (map 'vector
-				  (lambda (w)
-				    (make-instance 'hw:pin :wire w))
-				  (hw:bus-wires data-bus)))
+	 (data-bus-connector (make-instance 'hw:connector
+					    :width 8))
 	 (clk (make-instance 'hw:pin :state 0))
 	 (en (make-instance 'hw:pin :state 0))
 	 (wr (make-instance 'hw:pin :state 0))
@@ -39,8 +37,11 @@
 					  :bus data-bus
 					  :write-enable wr)))
 
+    ;; connect the connector
+    (hw:connector-pins-connect data-bus-connector data-bus)
+
     ;; put a value on the bus
-    (hw:pins-from-value data-bus-connector #2r1101)
+    (setf (hw:connector-pins-value data-bus-connector) #2r1101)
 
     ;; enable the register and set its value as writeable from the bus
     (setf (hw:pin-state en) 1)
@@ -56,10 +57,7 @@
 (test test-register-save
   "Test a register puts values onto its bus correctly."
   (let* ((data-bus (make-instance 'hw:bus :width 8))
-	 (data-bus-connector (map 'vector
-				  (lambda (w)
-				    (make-instance 'hw:pin :wire w :state :reading))
-				  (hw:bus-wires data-bus)))
+	 (data-bus-connector (make-instance 'hw:connector :width 8))
 	 (clk (make-instance 'hw:pin :state 0))
 	 (en (make-instance 'hw:pin :state 0))
 	 (wr (make-instance 'hw:pin :state 0))
@@ -68,6 +66,10 @@
 					  :enable en
 					  :bus data-bus
 					  :write-enable wr)))
+
+    ;; connect the connector
+    (hw:connector-pins-connect data-bus-connector data-bus)
+    (setf (hw:connector-pin-states data-bus-connector) :reading)
 
     ;; put a value into the register
     (setf (hw:register-value reg) #2r10110)
@@ -81,6 +83,6 @@
 
     ;; check we place the value on the bus
     (let ((v (hw:register-value reg))
-	  (rv (hw:pins-to-value data-bus-connector)))
+	  (rv (hw:connector-pins-value data-bus-connector)))
       (is (equal v #2r10110))
       (is (equal v rv)))))

@@ -25,6 +25,7 @@
   (:import-from :closer-mop
 		#:standard-class
 		#:class-slots
+		#:class-direct-slots
 		#:compute-slots
 		#:slot-definition-type
 		#:slot-definition-name
@@ -37,14 +38,15 @@
   (:import-from :slot-extra-options
 		#:def-extra-options-metaclass
 		#:slot-exists-and-bound-p)
+  (:import-from #:cl-ppcre
+		#:scan-to-strings)
 
   (:export
    ;; components
    #:metacomponent
-   #:make-pin-for-role
+   #:configure-pin-for-role
    #:pin-role-for-slot
    #:pin-slots-for-roles
-   #:pins-for-slot
    #:pin-interface
    #:pin-interface-p
    #:component
@@ -61,6 +63,11 @@
    #:component-write-enabled-p
    #:component-read-enabled-p
 
+   ;; well-known pins
+   #:clock
+   #:enable
+   #:readwrite
+
    ;; wires and pins
    #:wire
    #:wire-state
@@ -68,20 +75,27 @@
    #:wire-add-pin
    #:pin
    #:pin-state
+   #:pin-tristated-p
+   #:pin-reading-p
+   #:pin-asserted-p
    #:pin-wire
    #:pin-component
 
-   ;; accessing multiple pins simultaneously
-   #:pins-states
-   #:pins-floating
-   #:pins-to-value
-   #:pins-from-value
-   #:pins-for-wires
-
-   ;; buses
+   ;; buses and connectors
    #:bus
    #:bus-width
    #:bus-wires
+   #:connector
+   #:connector-width
+   #:connector-pins
+   #:connector-component
+   #:connector-pin-states
+   #:connector-pins-floating
+   #:connector-pins-floating-p
+   #:connector-pins-value
+
+   ;; wiring
+   #:connector-pins-connect
 
    ;; registers
    #:register
@@ -112,7 +126,11 @@
    ;; conditions
    #:conflicting-asserted-values
    #:reading-floating-value
+   #:reading-non-reading-pin
    #:unrecognised-alu-operation
    #:mismatched-wires
    #:non-component-type
+   #:unknown-slot-name
+   #:incompartible-pin-widths
+   #:incompartible-pin-slot-widths
    ))

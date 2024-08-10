@@ -64,22 +64,22 @@ of a client outside the register."))
   (if (component-enabled-p r)
       (if (component-write-enabled-p r)
 	  ;; set all data bus pins to :reading
-	  (setf (pins-states (register-data-bus r)) :reading)
+	  (setf (connector-pin-states (register-data-bus r)) :reading)
 
 	  ;; put the value of the register onto the data bus pins
 	  (register-value-to-data-bus r))
 
       ;; tri-state the data bus
-      (setf (pins-states (register-data-bus r)) :tristate)))
+      (setf (connector-pin-states (register-data-bus r)) :tristate)))
 
 
 (defun register-value-to-data-bus (r)
   "Move the value of R to the pins of the data bus."
-  (pins-from-value (register-data-bus r) (register-value r)))
+  (setf (connector-pins-value (register-data-bus r)) (register-value r)))
 
 
 (defun register-value-from-data-bus (r)
   "Make the value on the pins of the data bus the value of R.
 
 This implies that the pins are all :reading."
-  (setf (slot-value r 'value) (pins-to-value (register-data-bus r))))
+  (setf (slot-value r 'value) (connector-pins-value (register-data-bus r))))

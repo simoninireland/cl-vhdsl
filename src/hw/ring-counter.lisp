@@ -62,7 +62,7 @@ width is exceeded and it wraps-around back to 0."))
 
   ;; update the asserted pin
   (let ((mask (ash 1 v)))
-    (pins-from-value (slot-value rc 'counter-bus) mask)))
+    (setf (connector-pins-value (slot-value rc 'counter-bus)) mask)))
 
 
 (defmethod component-pin-triggered ((rc ring-counter) p (v (eql 1)))

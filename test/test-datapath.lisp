@@ -24,9 +24,9 @@
 (test test-read-ram
   "Test we can load a register from RAM."
   (let* ((data-bus (make-instance 'hw:bus :width 8))
-	 (data-bus-connector (hw:pins-for-wires data-bus))
+	 (data-bus-connector (make-instance 'hw:connector :width 8))
 	 (address-bus (make-instance 'hw:bus :width 16))
-	 (address-bus-connector (hw:pins-for-wires address-bus))
+	 (address-bus-connector (make-instance 'hw:connector :width 16))
 	 (clk (make-instance 'hw:pin :state 0))
 	 (reg-en (make-instance 'hw:pin :state 0))
 	 (reg-wr (make-instance 'hw:pin :state 0))
@@ -44,6 +44,10 @@
 				     :clock clk
 				     :enable ram-en
 				     :write-enable ram-wr)))
+    ;; connect the connectors
+    (hw:connector-pins-connect data-bus-connector data-bus)
+    (setf (hw:connector-pin-states data-bus-connector) :reading)
+    (hw:connector-pins-connect address-bus-connector address-bus)
 
     ;; test all the pins are set correctly
     (hw:all-component-pins-attached reg :fatal t)
@@ -61,7 +65,7 @@
     (setf (hw:pin-state ram-en) 1)
 
     ;; put the address onto the address bus
-    (hw:pins-from-value address-bus-connector #16rFF)
+    (setf (hw:connector-pins-value address-bus-connector) #16rFF)
 
     ;; clock the system
     (setf (hw:pin-state clk) 1)

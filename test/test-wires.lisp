@@ -154,11 +154,10 @@
 	 (p2 (make-instance 'hw:pin :wire w)))
     (setf (hw:pin-state p1) 0)
 
-    ;; can only read from a :reading pin
-    (dolist (v '(0 1 :tristate))
-      (setf (hw:pin-state p2) v)
-      (signals (error)
-	(hw:pin-state p2)))))
+    ;; test we can't read a :tristated pin
+    (setf (hw:pin-state p2) :tristate)
+    (signals (hw:reading-non-reading-pin)
+      (hw:pin-state p2))))
 
 
 (test test-pin-read-floating
@@ -167,6 +166,8 @@
 	 (p1 (make-instance 'hw:pin :wire w))
 	 (p2 (make-instance 'hw:pin :wire w)))
     (setf (hw:pin-state p2) :reading)
+
+    ;; test we see the signal
     (signals (hw:reading-floating-value)
       (hw:pin-state p2))))
 
@@ -174,14 +175,16 @@
 (test test-pins-floating
   "Test we can determine when any of a set of pins is floating."
   (let* ((w1 (make-instance 'hw:wire))
-	 (p1 (make-instance 'hw:pin :wire w1))
 	 (w2 (make-instance 'hw:wire))
-	 (p2 (make-instance 'hw:pin :wire w2))
-	 (p3 (make-instance 'hw:pin :wire w2)))
-    (setf (hw:pin-state p1) 1)
-    (is (null (hw:pins-floating (list p1))))
-    (is (hw:pins-floating (list p2 p3)))
-    (is (hw:pins-floating (list p1 p2 p3)))
+	 (conn (make-instance 'hw:connector :width 3))
+	 (ps (hw:connector-pins conn)))
+    (setf (hw:pin-wire (elt ps 0)) w1)
+    (setf (hw:pin-wire (elt ps 1)) w2)
+    (setf (hw:pin-wire (elt ps 2)) w2)
 
-    (setf (hw:pin-state p2) 0)
-    (is (null (hw:pins-floating (list p1 p2 p3))))))
+    (setf (hw:pin-state (elt ps 0)) 1)
+    (is (hw:connector-pins-floating-p conn))
+
+    (setf (hw:pin-state (elt ps 1)) 0)
+    (setf (hw:pin-state (elt ps 2)) :reading)
+    (is (null (hw:connector-pins-floating-p conn)))))

@@ -79,19 +79,19 @@ The size of elements is determined by the width of the data bus."
   (if (component-enabled-p mem)
       (progn
 	;; read from the buses
-	(setf (pins-states (ram-address-bus mem)) :reading)
-	(setf (pins-states (ram-data-bus mem)) :reading)
+	(setf (connector-pin-states (ram-address-bus mem)) :reading)
+	(setf (connector-pin-states (ram-data-bus mem)) :reading)
 
 	(when (not (component-write-enabled-p mem))
 	  ;; put the value of the memory addressed on the
 	  ;; address bus onto the data bus, as long as the
 	  ;; address bus is itself stable
-	  (when (not (pins-floating (ram-address-bus mem)))
-	    (let ((addr (pins-to-value (ram-address-bus mem))))
-	      (pins-from-value (ram-data-bus mem)
-			       (aref (ram-elements mem) addr))))))
+	  (when (not (connector-pins-floating-p (ram-address-bus mem)))
+	    (let ((addr (connector-pins-value (ram-address-bus mem))))
+	      (setf (connector-pins-value (ram-data-bus mem))
+		    (aref (ram-elements mem) addr))))))
 
       ;; tri-state the buses
       (progn
-	(setf (pins-states (ram-address-bus mem)) :tristate)
-	(setf (pins-states (ram-data-bus mem)) :tristate))))
+	(setf (connector-pin-states (ram-address-bus mem)) :tristate)
+	(setf (connector-pin-states (ram-data-bus mem)) :tristate))))

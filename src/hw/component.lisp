@@ -59,75 +59,79 @@ Components encapsulate functions and offer a pin-based interface."))
 ;; This method should be decomposed to let the individual elements be
 ;; called/overridden programmatically
 
+(defun component-width-of-slot (c slot-def)
+  "Return the width of SLOT-DEF on C."
+  (let ((w (slot-value slot-def 'pins)))
+    (if (and (symbolp w)
+	     (not (eql w t))) ;; t = undefined
+	;; width derived from the value of another slot
+	(slot-value c w)
+
+	;; width as given
+	w)))
+
+
 (defmethod initialize-instance ((cc component) &rest initargs)
   (declare (ignore initargs))
 
   (let* ((c (call-next-method))
 	 (slot-defs (class-slots (class-of c))))
     (dolist (slot-def slot-defs)
-      (when (slot-in-pin-interface-p slot-def)
+      (when (slot-def-in-pin-interface-p slot-def)
 	;; slot is in the pin interface
 	(let* ((slot (slot-definition-name slot-def))
 
 	       ;; number of wires in the slot
-	       (width (let ((w (slot-value slot-def 'pins)))
-			(if (and (symbolp w)
-				 (not (eql w t))) ;; t = undefined
-			    ;; width derived from the value of another slot
-			    (let ((nw (slot-value c w)))
-			      ;; update the :pins attribute to the constant value
-			      (setf (slot-value slot-def 'pins) nw)
-			      nw)
-
-			    ;; width as given
-			    w)))
+	       (width (component-width-of-slot c slot-def))
 
 	       ;; role the slot fulfills
-	       ;; (set by `compute-effective-slot-definition' is omitted)
+	       ;; (set by `compute-effective-slot-definition' if omitted)
 	       (role (slot-value slot-def 'role))
 
 	       ;; wires the slot's pins should be connected to
-	       (wires (if (slot-exists-and-bound-p c slot)
-			  (normalise-wires (slot-value c slot)))))
+	       (bus (if (slot-exists-and-bound-p c slot)
+			(slot-value c slot))))
 
-	  ;; if we have wires, make sure we have enough
-	  (if wires
+	  ;; sanity check any wiring
+	  (when bus
+	    ;; we accept single wires and sigle pins
+	    (unless (typep bus 'bus)
+	      (let ((wire-or-pin bus))
+		(etypecase wire-or-pin
+		  (wire
+		   (setq bus (make-instance 'bus :width 1))
+		   (setf (elt (bus-wires bus) 0) wire-or-pin))
+		  (pin
+		   (setq bus (make-instance 'bus :width 1))
+		   (setf (elt (bus-wires bus) 0) (pin-wire wire-or-pin))))))
+
+	    ;; check widths match
+	    (let ((bus-width (bus-width bus)))
 	      (cond ((eql width t)
-		     ;; no width, set it to the number of wires we've been given
-		     (setq width (length wires)))
+		     ;; no width, set it to the number of
+		     ;; wires on the bus we've been given
+		     (setq width bus-width))
 
-		    ((not (equal (length wires) width))
-		     ;; wrong number of wires, signal an error
+		    ;; wrong number of wires, signal an error
+		    ((not (equal bus-width width))
 		     (error (make-instance 'mismatched-wires
 					   :component c
 					   :slot slot
 					   :expected width
-					   :received (length wires))))))
+					   :received bus-width))))))
 
-	  ;; create the pins
+	  ;; create the connector
 	  (setf (slot-value c slot)
-		(cond ((equal width t)
-		       ;; width not yet known, leave unset
-		       nil)
+		(if (not (equal width t))
+		  (let ((conn (make-instance 'connector :width width
+							:component c
+							:role role)))
 
-		      ((= width 1)
-		       ;; slot gets a single pin
-		       (let ((pin (make-pin-for-role role)))
-			 (if wires
-			     (setf (pin-wire pin) (elt wires 0)))
-			 (setf (pin-component pin) c)
-			 pin))
+		    ;; if we've been given a bus, connect it
+		    (when bus
+		      (connector-pins-connect conn bus))
 
-		      (t
-		       ;; slots gets a vector of pins
-		       (map 'vector
-			    #'(lambda (i)
-				(let ((pin (make-pin-for-role role)))
-				  (if wires
-				      (setf (pin-wire pin) (elt wires i)))
-				  (setf (pin-component pin) c)
-				  pin))
-			    (iota width))))))))
+		    conn))))))
 
     ;; return the instance
     c))
@@ -150,7 +154,7 @@ Components encapsulate functions and offer a pin-based interface."))
 
 
 (defmethod component-enabled-p ((c component))
-  (equal (pin-state (slot-value c 'enable)) 1))
+  (equal (pin-state (elt (connector-pins (slot-value c 'enable)) 0)) 1))
 
 
 ;; ---------- Pin interface callbacks ----------
@@ -180,15 +184,14 @@ Specialise V to the direction of edge of interest."))
 
 
 (defun component-pins (c)
-   "Return all the pins in all the slots of C."
+   "Return all the pins in all the slots of C.
+
+This traverses all the connectors on all the slots and
+extracts the pins."
   (let* ((cl (class-of c))
 	 (pin-slots (pin-interface cl)))
     (flatten (map 'list #'(lambda (slot)
-			    (let ((pins (slot-value c slot)))
-			      (typecase pins
-				(sequence (coerce pins 'list))
-				(list pins)
-				(t (list pins)))))
+			    (coerce (connector-pins (slot-value c slot)) 'list))
 		  pin-slots))))
 
 
@@ -232,7 +235,7 @@ More complicated components might need several such control lines."))
 
 Write-enabled means that the write enable pin is high, and that the
 component is writeable from the data bus at the next rising clock edge."
-  (equal (pin-state (slot-value c 'write-enable)) 1))
+  (equal (pin-state (elt (connector-pins (slot-value c 'write-enable)) 0)) 1))
 
 
 (defun component-read-enabled-p (c)
@@ -240,4 +243,4 @@ component is writeable from the data bus at the next rising clock edge."
 
 Read-enabled means that the write enable pin is low, and the value of
 the component is available to be read from the data bus."
-  (equal (pin-state (slot-value c 'write-enable)) 0))
+  (not (component-write-enabled-p c)))

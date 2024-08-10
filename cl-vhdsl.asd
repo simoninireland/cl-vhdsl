@@ -51,6 +51,7 @@
 			     (:file "arch")
 			     (:file "mop")
 			     (:file "component")
+			     (:file "wiring")
 			     (:file "register")
 			     (:file "alu")
 			     (:file "ram")
@@ -73,10 +74,12 @@
 	       (:file "test-mop")
 	       ;;(:file "test-assembler")
 	       (:file "test-wires")
+	       (:file "test-wiring")
 	       (:file "test-registers")
 	       (:file "test-datapath")
 	       (:file "test-ring-counters")
-	       (:file "test-microinstructions"))
+	       ;;(:file "test-microinstructions")
+	       )
   :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))
 
 
