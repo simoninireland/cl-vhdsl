@@ -42,7 +42,7 @@ Components encapsulate functions and offer a pin-based interface."))
 ;; pins for all slots in the pin interface for which we know their
 ;; width. We then add an :around method that calls
 ;; `component-pins-changed' to let the component set up its internal
-;; state tro be consistent with its initial pin values.
+;; state to be consistent with its initial pin values.
 ;;
 ;; The reason to separate these, and for using the :around method, is
 ;; to support sub-class initialisation. The new primary method runs
