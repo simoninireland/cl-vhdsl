@@ -132,6 +132,6 @@
    #:mismatched-wires
    #:non-component-type
    #:unknown-slot-name
-   #:incompartible-pin-widths
-   #:incompartible-pin-slot-widths
+   #:incompatible-pin-widths
+   #:incompatible-pin-slot-widths
    ))
