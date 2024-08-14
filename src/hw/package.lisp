@@ -97,6 +97,7 @@
 
    ;; wiring
    #:connector-pins-connect
+   #:connector-slots-connect
 
    ;; registers
    #:register
@@ -131,7 +132,7 @@
    #:unrecognised-alu-operation
    #:mismatched-wires
    #:non-component-type
-   #:unknown-slot-name
+   #:non-pin-interface-slot
    #:incompatible-pin-widths
    #:incompatible-pin-slot-widths
    ))

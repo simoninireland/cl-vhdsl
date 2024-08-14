@@ -114,11 +114,11 @@ Components encapsulate functions and offer a pin-based interface."))
 
 		    ;; wrong number of wires, signal an error
 		    ((not (equal bus-width width))
-		     (error (make-instance 'mismatched-wires
-					   :component c
-					   :slot slot
-					   :expected width
-					   :received bus-width))))))
+		     (error 'mismatched-wires
+			    :component c
+			    :slot slot
+			    :expected width
+			    :received bus-width)))))
 
 	  ;; create the connector
 	  (setf (slot-value c slot)

@@ -324,17 +324,17 @@ return the floating value."
 	 (slot-value p 'state))
 
 	((pin-tristated-p p)
-	 (error (make-instance 'reading-non-reading-pin :pin p)))
+	 (error 'reading-non-reading-pin :pin p))
 
 	((pin-floating-p p)
-	 (error (make-instance 'reading-floating-value :pin p)))
+	 (error 'reading-floating-value :pin p))
 
 	((pin-reading-p p)
 	 (pin-wire-state p))
 
 	;; shouldn't get here, it's a weird state
 	(t
-	 (error (make-instance 'reading-non-reading-pin :pin p)))))
+	 (error 'reading-non-reading-pin :pin p))))
 
 
 (defmethod (setf pin-state) (nv (p pin))
