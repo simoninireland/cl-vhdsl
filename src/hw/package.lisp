@@ -1,4 +1,11 @@
- terms of the GNU General Public License as published by
+;; Package for fully-siftware-emulated hardware
+;;
+;; Copyright (C) 2024 Simon Dobson
+;;
+;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
+;;
+;; cl-vhdsl is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 ;;
