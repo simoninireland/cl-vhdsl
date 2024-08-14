@@ -107,10 +107,10 @@ represents the results of computing over the A- and B-sides."))
 		  ;; decrement (a-side only)
 		  (#2r111 (1- (pins-to-value (alu-a-bus a))))
 
-		  (t (error (make-instance 'unrecognised-alu-operation
-					   :opcode op
-					   :a (pins-to-value (alu-a-bus a))
-					   :b (pins-to-value (alu-b-bus a))))))))
+		  (t (error 'unrecognised-alu-operation
+			    :opcode op
+			    :a (pins-to-value (alu-a-bus a))
+			    :b (pins-to-value (alu-b-bus a)))))))
 
 	(setf (pins-states (alu-c-bus a)) v))
 
