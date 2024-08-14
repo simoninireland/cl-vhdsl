@@ -1,6 +1,6 @@
 ;; Tests of wiring components
 ;;
-;; Copyright (C) 2023 Simon Dobson
+;; Copyright (C) 2024 Simon Dobson
 ;;
 ;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
 ;;
@@ -43,13 +43,13 @@
   (:metaclass hw:metacomponent))
 
 
-(c2mop:ensure-finalized (find-class 'test-slotted))
-(c2mop:ensure-finalized (find-class 'test-subcomponents))
+;;(c2mop:ensure-finalized (find-class 'test-slotted))
+;;(c2mop:ensure-finalized (find-class 'test-subcomponents))
 
 
-;; ---------- Wiring ----------
+;; ---------- Wiring connectors and buses ----------
 
-(test test-wire-slot
+(test test-wire-slots-same-component
   "Test we can wire two pin interface slots on the same class together."
   (let ((tc (make-instance 'test-slotted))
 	(b (make-instance 'hw:bus :width 8)))
@@ -65,7 +65,7 @@
     (is (null (hw:components-seen-by tc)))))
 
 
-(test test-wire-slots
+(test test-wire-slots-different-components
   "Test we can wire two slots on different components together."
   (let ((tc1 (make-instance 'test-slotted ))
 	(tc2 (make-instance 'test-slotted))
@@ -84,10 +84,23 @@
     (is (equal (hw:components-seen-by tc2) (list tc1)))))
 
 
-(test test-slot-incomptible-widths
+(test test-wire-incomptible-widths
   "Test we can't connect slots with unequal widths."
   (let ((tc (make-instance 'test-slotted))
 	(b (make-instance 'hw:bus :width 8)))
     (hw:connector-pins-connect (slot-value tc 'one) b)
     (signals (hw:incompatible-pin-widths)
       (hw:connector-pins-connect (slot-value tc 'three) b))))
+
+
+;; ---------- Wiring slots ----------
+
+(test test-wire-slots
+  "Test we can wire two compatible slots."
+  (let ((tc (make-instance 'test-slotted)))
+    (hw:connector-slots-connect (list tc 'one) (list tc 'two))
+
+    ;; component doesn't see itself
+    (is (null (hw:components-seen-by tc))))
+
+  )

@@ -20,58 +20,44 @@
 (in-package :cl-vhdsl/hw)
 
 
-(defun direct-pin-slot-def (c slot-name)
-  "Return the definition og SLOT-NAME on C."
-  (let ((slot-defs (class-slots (class-of c))))
-    (find slot-name slot-defs :key #'slot-definition-name)))
+;; ---------- Slot access ----------
+
+(defun ensure-subcomponent (c slot)
+  "Return the sub-component in SLOT of C.
+
+SLOT is checked to make sure it is a component."
+  (let ((c1 (slot-value c slot)))
+    (if (typep c1 'component)
+	c1
+	(error 'non-component-type :type (class-of c1)))))
 
 
-(defun qualified-pin-slot-def (c q-slot-name slot-name)
-  "Return the definition of SLOT-NAME on the component in Q-SLOT-NAME in C."
-  (let ((c (slot-value c q-slot-name)))
-    (if (typep c 'component)
-	(direct-pin-slot-def (class-of c) slot-name)
+(defun ensure-pin-slot (c slot)
+  "Return the connector of SLOT on C.
 
-	;; only makes sense to look for pin slots on components
-	(error (make-instance 'non-component-type :type (class-of c))))))
-
-
-(defun pin-slot-def (c slot-name)
-  "Retrieve the definition of SLOT-NAME on C.
-
-SLOT-NAME should be either a symbol or a list of two symbols."
-  (if (consp slot-name)
-      (qualified-pin-slot-def c (car slot-name) (cadr slot-name))
-      (direct-pin-slot-def c slot-name)))
+SLOT is checked to ensure it's in the pin interface of C."
+  (if (pin-interface-p (class-of c) slot)
+      (slot-value c slot)
+      (error 'non-pin-interface-slot :component c :slot slot)))
 
 
-;; ---------- Slot widths ----------
+(defun component-slot-connector (c s)
+  "Return the connector for S on C.
 
-(defun pins-width-compatible (pins1 pins2)
-  "Check that PINS1 and PINS2 have compatible widths."
-  (cond ((and (typep pins1 'pin)
-	      (typep pins2 'pin))
-	 (let ((w (make-instance 'wire)))
-	   (setf (pin-wire pins1) w)
-	   (setf (pin-wire pins2) w)))
+S should be a one- or two-element list."
 
-	((and (vectorp pins1)
-	      (vectorp pins2)
-	      (equal (length pins1) (length pins2)))
-	 (let* ((w (length pins1))
-		(b (make-instance 'bus :width w))
-		(ws (bus-wires b)))
-	   (dolist (i (iota w))
-	     (setf (pin-wire (elt pins1 i)) (elt ws i))
-	     (setf (pin-wire (elt pins2 i)) (elt ws i)))))
+  ;; extract the right slot, either drectly or on the sub-component
+  (when (> (length s) 1)
+    (setq c (ensure-subcomponent c (car s)))
+    (setq s (cdr s)))
 
-	(t
-	 (error (make-instance 'incompatible-pin-slot-widths)))))
+  ;; return the connector
+  (ensure-pin-slot c (car s)))
 
 
 ;; ---------- Wiring interface ----------
 
-(defun connector-pins-connect (conn bus)
+(defun connector-pins-connect (conn &optional bus)
   "Connect the pins of CONN to the wires of BUS."
 
   ;; widths have to match
@@ -84,3 +70,26 @@ SLOT-NAME should be either a symbol or a list of two symbols."
 	(ws (bus-wires bus)))
     (dolist (i (iota (connector-width conn)))
       (setf (pin-wire (elt ps i)) (elt ws i)))))
+
+
+(defun connector-slots-connect (cs1 cs2)
+  "Connect CS1 to CS2.
+
+Both CS1 and CS2 should be lists starting with a component
+and followed by one of two symbols. A list of the form
+`(tc slot)' identifies a slot named `slot' on component `tc'.`slot'
+must be in the pin interface of `tc'. A list of the form
+`(tc slot subslot)' identifies a slot `subslot' of a component held in
+the slot `slot' of component `tc'. Again, `subslot' must be a slot in
+the pin interface of that component. The pin slots identified must
+have compatible widths."
+  (let* ((conn1 (component-slot-connector (car cs1) (cdr cs1)))
+	 (conn2 (component-slot-connector (car cs2) (cdr cs2)))
+	 (w1 (connector-width conn1))
+	 (w2 (connector-width conn2)))
+    (if (= w1 w2)
+	(let ((b (make-instance 'bus :width w1)))
+	  (connector-pins-connect conn1 b)
+	  (connector-pins-connect conn2 b))
+
+	(error 'incompatible-pin-widths))))
