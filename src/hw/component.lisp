@@ -25,7 +25,7 @@
   ((name
     :documentation "The readable name of the component."
     :initarg :name
-    :reader component-name)
+    :reader name)
    (enable
     :documentation "The component-enable pin."
     :initarg :enable
@@ -94,19 +94,19 @@ Components encapsulate functions and offer a pin-based interface."))
 
 	  ;; sanity check any wiring
 	  (when bus
-	    ;; we accept single wires and sigle pins
+	    ;; we accept single wires and single pins
 	    (unless (typep bus 'bus)
 	      (let ((wire-or-pin bus))
 		(etypecase wire-or-pin
 		  (wire
 		   (setq bus (make-instance 'bus :width 1))
-		   (setf (elt (bus-wires bus) 0) wire-or-pin))
+		   (setf (elt (wires bus) 0) wire-or-pin))
 		  (pin
 		   (setq bus (make-instance 'bus :width 1))
-		   (setf (elt (bus-wires bus) 0) (pin-wire wire-or-pin))))))
+		   (setf (elt (wires bus) 0) (wire wire-or-pin))))))
 
 	    ;; check widths match
-	    (let ((bus-width (bus-width bus)))
+	    (let ((bus-width (width bus)))
 	      (cond ((eql width t)
 		     ;; no width, set it to the number of
 		     ;; wires on the bus we've been given
@@ -123,15 +123,15 @@ Components encapsulate functions and offer a pin-based interface."))
 	  ;; create the connector
 	  (setf (slot-value c slot)
 		(if (not (equal width t))
-		  (let ((conn (make-instance 'connector :width width
-							:component c
-							:role role)))
+		    (let ((conn (make-instance 'connector :width width
+							  :component c
+							  :role role)))
 
-		    ;; if we've been given a bus, connect it
-		    (when bus
-		      (connector-pins-connect conn bus))
+		      ;; if we've been given a bus, connect it
+		      (when bus
+			(connect-pins conn bus))
 
-		    conn))))))
+		      conn))))))
 
     ;; return the instance
     c))
@@ -144,55 +144,35 @@ Components encapsulate functions and offer a pin-based interface."))
   (call-next-method)
 
   ;; make sure we're in a state consistent with our initial pins
-  (component-pin-changed c))
+  (pin-changed c))
 
 
 ;; ---------- Enablement checks ----------
 
-(defgeneric component-enabled-p (c)
-  (:documentation "Test whether the component is enabled."))
+(defmethod enabled-p ((c component))
+  (equal (state (elt (pins (slot-value c 'enable)) 0)) 1))
 
 
-(defmethod component-enabled-p ((c component))
-  (equal (pin-state (elt (connector-pins (slot-value c 'enable)) 0)) 1))
+;; ---------- Pin interface ----------
+
+;; default callbacks are empty
+(defmethod pin-changed ((c component)))
+(defmethod pin-triggered ((c component) p v))
 
 
-;; ---------- Pin interface callbacks ----------
-
-(defgeneric component-pin-changed (c)
-  (:documentation "A callback called whenever a C's pin change level.
-
-This only applies to pins that are :reading and whose state is changed
-by some other component. The default does nothing: a combinatorial
-component would define its pin logic here to re-compute it when
-its inputs changed."))
-
-
-(defmethod component-pin-changed ((c component)))
-
-
-(defgeneric component-pin-triggered (c p v)
-  (:documentation "A callback called whenever a trigger pin on W changes value.
-
-P is the pin triggered and V its new value. This method is only called
-on :trigger pins. The default does nothing: a sequential component
-would override or advise this method to perform its triggering action.
-Specialise V to the direction of edge of interest."))
-
-
-(defmethod component-pin-triggered ((c component) p v))
-
-
-(defun component-pins (c)
-   "Return all the pins in all the slots of C.
-
-This traverses all the connectors on all the slots and
-extracts the pins."
+(defmethod pins (c)
   (let* ((cl (class-of c))
 	 (pin-slots (pin-interface cl)))
     (flatten (map 'list #'(lambda (slot)
-			    (coerce (connector-pins (slot-value c slot)) 'list))
+			    (coerce (pins (slot-value c slot)) 'list))
 		  pin-slots))))
+
+
+(defmethod fully-wired-p ((c component))
+  (let ((pin-slots (pin-interface (class-of c))))
+    (every #'(lambda (slot)
+	       (fully-wired-p (slot-value c slot)))
+	   pin-slots)))
 
 
 ;; ---------- Mixins for common components ----------
@@ -203,7 +183,7 @@ extracts the pins."
     :initarg :clock
     :pins 1
     :role :trigger
-    :reader component-clock))
+    :reader clock))
   (:metaclass metacomponent)
   (:documentation "A mixin for a component that has a clock line.
 
@@ -217,7 +197,7 @@ transitions, although they can change state at other times too."))
     :initarg :write-enable
     :pins 1
     :role :control
-    :reader component-write-enable))
+    :reader write-enable))
   (:metaclass metacomponent)
   (:documentation "A mixin for a component that has a write-enable line..
 
@@ -230,17 +210,72 @@ This only works for components with a single decision on read or write.
 More complicated components might need several such control lines."))
 
 
-(defun component-write-enabled-p (c)
-  "Test if C is write-enabled.
-
-Write-enabled means that the write enable pin is high, and that the
-component is writeable from the data bus at the next rising clock edge."
-  (equal (pin-state (elt (connector-pins (slot-value c 'write-enable)) 0)) 1))
+(defmethod write-enabled-p ((c readwrite))
+  (equal (state (elt (pins (slot-value c 'write-enable)) 0)) 1))
 
 
-(defun component-read-enabled-p (c)
-  "Test if C is read-enabled.
+(defmethod read-enabled-p ((c readwrite))
+  (not (write-enabled-p c)))
 
-Read-enabled means that the write enable pin is low, and the value of
-the component is available to be read from the data bus."
-  (not (component-write-enabled-p c)))
+
+;; ---------- Integral wiring diagrams ----------
+
+(defun wiring-diagram-p (arg)
+  "Test is ARG is a wiring diagram.
+
+Wiring diagrams are class arguments that start with
+`:wiring'."
+  (equal (car arg) :wiring))
+
+
+(defun ensure-wiring-diagram-valid (wiring)
+  "Test that "
+  (declare (ignore wiring)))
+
+(defun generate-wiring-method (name wiring)
+  "Generate a wiring method from the given WIRING diagram."
+  (with-gensyms (c)
+    (flet ((generate-connect (wires)
+	     (destructuring-bind (from to)
+		 wires
+	       `(connect-slots ,c ',(ensure-list from)
+			       ,c ',(ensure-list to)))))
+
+      (let ((wirings (mapcar #'generate-connect (cdr wiring))))
+	`(defmethod component-wire ((,c ,name))
+	   ,@wirings)))))
+
+
+(defmacro defcomponent (name superclasses slots &rest args)
+  "Define a new component."
+
+  ;; components default to sub-classes of `component'
+  (when (null superclasses)
+    (setq superclasses (list 'component)))
+
+  ;; if we have a wiring diagram, generate the wiring method
+  (let ((wiring (find-if #'wiring-diagram-p args))
+	wiring-method)
+    (when wiring
+      (setq args (remove-if #'wiring-diagram-p
+			    args))
+      (setq wiring-method (generate-wiring-method name wiring)))
+
+    `(progn
+       ;; class definition
+       (defclass ,name (,@superclasses)
+	 ,slots
+	 (:metaclass metacomponent)
+	 ,@args)
+
+       ;; wiring method definition (if any)
+       ,wiring-method
+       )))
+
+
+(defgeneric component-wire (c)
+  (:documentation "Internally wire C according to its wiring diagram.
+
+Methods for this function are synthesised for component classes, and
+called automatically when the class is instanciated to enact any
+wiring diagram."))

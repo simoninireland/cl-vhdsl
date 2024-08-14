@@ -26,7 +26,7 @@
     :documentation "The width of the ALU."
     :initarg :width
     :initform 8
-    :reader alu-width)
+    :reader width)
    (a-bus
     :documentation "The ALU's A-side data bus."
     :initarg :a-bus

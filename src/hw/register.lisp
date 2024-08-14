@@ -52,34 +52,34 @@ available on the bus. Write-enable should be see from the perspective
 of a client outside the register."))
 
 
-(defmethod component-pin-triggered ((r register) p (v (eql 1)))
+(defmethod pin-triggered ((r register) p (v (eql 1)))
   (declare (ignore p))            ;; we only have one trigger pin
 
-  (when (and (component-enabled-p r)
-	     (component-write-enabled-p r))
+  (when (and (enabled-p r)
+	     (write-enabled-p r))
     (register-value-from-data-bus r)))
 
 
-(defmethod component-pin-changed ((r register))
-  (if (component-enabled-p r)
-      (if (component-write-enabled-p r)
+(defmethod pin-changed ((r register))
+  (if (enabled-p r)
+      (if (write-enabled-p r)
 	  ;; set all data bus pins to :reading
-	  (setf (connector-pin-states (register-data-bus r)) :reading)
+	  (setf (pin-states (register-data-bus r)) :reading)
 
 	  ;; put the value of the register onto the data bus pins
 	  (register-value-to-data-bus r))
 
       ;; tri-state the data bus
-      (setf (connector-pin-states (register-data-bus r)) :tristate)))
+      (setf (pin-states (register-data-bus r)) :tristate)))
 
 
 (defun register-value-to-data-bus (r)
   "Move the value of R to the pins of the data bus."
-  (setf (connector-pins-value (register-data-bus r)) (register-value r)))
+  (setf (pins-value (register-data-bus r)) (register-value r)))
 
 
 (defun register-value-from-data-bus (r)
   "Make the value on the pins of the data bus the value of R.
 
 This implies that the pins are all :reading."
-  (setf (slot-value r 'value) (connector-pins-value (register-data-bus r))))
+  (setf (slot-value r 'value) (pins-value (register-data-bus r))))

@@ -79,15 +79,28 @@
 (defgeneric configure-pin-for-role (pin role)
   (:documentation "Set up PIN suitable for ROLE.
 
-Methods can specialise to configure pins appropriatly for new roles."))
+Methods can specialise this function to configure pins appropriatly for
+new roles.
+
+The standard roles are:
+   - `:io' for I/O pins that can be read from and written to
+   - `:control' for control pins permanently in `:reading' mode
+   - `:status' for pins reporting component status
+   - `:trigger' for pins that respond to a leading ot trailing edge,
+     typically clock pins"))
 
 
 (defmethod configure-pin-for-role (pin (role (eql :io)))
-  (setf (pin-state pin) :tristate))
+  (setf (state pin) :tristate))
+
 (defmethod configure-pin-for-role (pin (role (eql :control)))
-  (setf (pin-state pin) :reading))
+  (setf (state pin) :reading))
+
+(defmethod configure-pin-for-role (pin (role (eql :status)))
+  (setf (state pin) 0))
+
 (defmethod configure-pin-for-role (pin (role (eql :trigger)))
- (setf (pin-state pin) :trigger))
+  (setf (state pin) :trigger))
 
 
 ;; ---------- Query pin interface ----------

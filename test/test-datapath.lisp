@@ -27,48 +27,50 @@
 	 (data-bus-connector (make-instance 'hw:connector :width 8))
 	 (address-bus (make-instance 'hw:bus :width 16))
 	 (address-bus-connector (make-instance 'hw:connector :width 16))
-	 (clk (make-instance 'hw:pin :state 0))
-	 (reg-en (make-instance 'hw:pin :state 0))
-	 (reg-wr (make-instance 'hw:pin :state 0))
-	 (ram-en (make-instance 'hw:pin :state 0))
-	 (ram-wr (make-instance 'hw:pin :state 0))
+	 (clk (make-instance 'hw:pin :state 0
+				     :wire (make-instance 'hw:wire)))
+	 (reg-en (make-instance 'hw:pin :state 0
+					:wire (make-instance 'hw:wire)))
+	 (reg-wr (make-instance 'hw:pin :state 0
+					:wire (make-instance 'hw:wire)))
+	 (ram-en (make-instance 'hw:pin :state 0
+					:wire (make-instance 'hw:wire)))
+	 (ram-wr (make-instance 'hw:pin :state 0
+					:wire (make-instance 'hw:wire)))
 	 (reg (make-instance 'hw:register :width 8
-					  :clock clk
-					  :enable reg-en
+					  :clock (hw:wire clk)
+					  :enable (hw:wire reg-en)
 					  :bus data-bus
-					  :write-enable reg-wr))
+					  :write-enable (hw:wire reg-wr)))
 	 (ram (make-instance 'hw:ram :address-bus-width 16
 				     :data-bus-width 8
 				     :address-bus address-bus
 				     :data-bus data-bus
-				     :clock clk
-				     :enable ram-en
-				     :write-enable ram-wr)))
+				     :clock (hw:wire clk)
+				     :enable (hw:wire ram-en)
+				     :write-enable (hw:wire ram-wr))))
     ;; connect the connectors
-    (hw:connector-pins-connect data-bus-connector data-bus)
-    (setf (hw:connector-pin-states data-bus-connector) :reading)
-    (hw:connector-pins-connect address-bus-connector address-bus)
-
-    ;; test all the pins are set correctly
-    (hw:all-component-pins-attached reg :fatal t)
-    (hw:all-component-pins-attached ram :fatal t)
+    (hw:connect-pins data-bus-connector data-bus)
+    (setf (hw:pin-states data-bus-connector) :reading)
+    (hw:connect-pins address-bus-connector address-bus)
+    (hw:ensure-fully-wired reg ram)
 
     ;; put some values into RAM
     (setf (aref (hw:ram-elements ram) #16rFF) 123)
 
     ;; set up the register to be written to
-    (setf (hw:pin-state reg-en) 1)
-    (setf (hw:pin-state reg-wr) 1)
+    (setf (hw:state reg-en) 1)
+    (setf (hw:state reg-wr) 1)
 
     ;; set up the RAM to be read from
-    (setf (hw:pin-state ram-wr) 0)
-    (setf (hw:pin-state ram-en) 1)
+    (setf (hw:state ram-wr) 0)
+    (setf (hw:state ram-en) 1)
 
     ;; put the address onto the address bus
-    (setf (hw:connector-pins-value address-bus-connector) #16rFF)
+    (setf (hw:pins-value address-bus-connector) #16rFF)
 
     ;; clock the system
-    (setf (hw:pin-state clk) 1)
+    (setf (hw:state clk) 1)
 
     ;; check we loaded the value
     (is (equal (aref (hw:ram-elements ram) #16rFF) 123))

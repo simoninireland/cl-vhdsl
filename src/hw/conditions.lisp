@@ -37,18 +37,14 @@ asserts a value on it, i.e., is not tri-stated."))
 
 
 (define-condition reading-floating-value ()
-  ((wire
-    :documentation "The wire with the floating value."
-    :initarg :wire
-    :reader reading-floating-value-wire)
-   (pin
+  ((pin
     :documentation "The pin being read."
     :initarg :pin
     :reader reading-floating-value-pin))
   (:report (lambda (c str)
 	     (let ((p (reading-floating-value-pin c)))
 	       (format str "Pin ~a is reading a floating value from ~a"
-		       p (pin-wire p)))))
+		       p (wire p)))))
   (:documentation "Condition signalled when a pin reads a floating value.
 
 This is almost certainly an error, as it suggests that the component
@@ -174,8 +170,8 @@ the ALU's operation-select bus. It might also be an issue with the operands."))
     :reader incompatible-pin-widths-bus))
   (:report (lambda (c str)
 	     (format str "Connector width ~a doesn't match bus width ~s"
-		     (connector-width (incompatible-pin-widths-connector c))
-		     (bus-width (incompatible-pin-widths-bus c)))))
+		     (width (incompatible-pin-widths-connector c))
+		     (width (incompatible-pin-widths-bus c)))))
   (:documentation "Condition signalled when wiring incompatible connectors and buses.
 
 The widths of buses and connectors need to be the same."))

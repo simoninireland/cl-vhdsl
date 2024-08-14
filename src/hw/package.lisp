@@ -1,11 +1,4 @@
-;; Package definition for the hardware simulation package
-;;
-;; Copyright (C) 2024 Simon Dobson
-;;
-;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
-;;
-;; cl-vhdsl is free software: you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
+ terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 ;;
@@ -42,89 +35,65 @@
 		#:scan-to-strings)
 
   (:export
-   ;; components
+   ;; ---------- Top-level interface ----------
+
+   ;; elements
+   #:wire
+   #:bus
+   #:pin
+   #:connector
    #:metacomponent
-   #:configure-pin-for-role
-   #:pin-role-for-slot
-   #:pin-slots-for-roles
-   #:pin-interface
-   #:pin-interface-p
    #:component
-   #:component-name
-   #:component-pin
-   #:component-pins
-   #:component-enabled-p
-   #:component-pin-changed
-   #:component-pin-triggered
+
+   ;; common generic operations over elements
+   #:name
+   #:pins
+   #:wires
+   #:components
+   #:width
+   #:state
+   #:fully-wired-p
+   #:floating-p
+
+   ;; standard components and mixins
    #:clocked
-   #:component-clock
    #:readwrite
-   #:component-write-enable
-   #:component-write-enabled-p
-   #:component-read-enabled-p
+   #:register
+   #:register-value
+   #:alu
+   #:ram
+   #:ram-size
+   #:ram-elements
+   #:ring-counter
 
    ;; well-known pins
    #:clock
    #:enable
    #:readwrite
 
-   ;; wires and pins
-   #:wire
-   #:wire-state
-   #:wire-pins
-   #:wire-add-pin
-   #:pin
-   #:pin-wire
-   #:pin-component
-   #:pin-tristated-p
-   #:pin-reading-p
-   #:pin-asserted-p
-   #:pin-floating-p
-   #:pin-state
+   ;; operations
+   #:ensure-pin-state
+   #:ensure-fully-wired
+   #:pin-interface
+   #:pin-interface-p
+   #:pin-states
+   #:pins-value
+   #:configure-pin-for-role
+   #:enabled-p
+   #:write-enabled-p
+   #:read-enabled-p
+   #:connect-slots
+   #:connect-pins
 
-   ;; buses and connectors
-   #:bus
-   #:bus-width
-   #:bus-wires
-   #:connector
-   #:connector-width
-   #:connector-pins
-   #:connector-component
-   #:connector-pin-states
-   #:connector-pins-floating
-   #:connector-pins-floating-p
-   #:connector-pins-value
+   ;; behavioural callbacks
+   #:pin-changed
+   #:pin-triggered
 
-   ;; wiring
-   #:connector-pins-connect
-   #:connector-slots-connect
-   #:fully-wired-p
+   ;; macros
+   #:defcomponent
 
-   ;; registers
-   #:register
-   #:register-width
-   #:register-value
-
-   ;; ring counters
-   #:ring-counter
-   #:ring-counter-reset
-
-   ;; arithmetic logic
-   #:alu
-
-   ;; RAM
-   #:ram
-   #:ram-size
-   #:ram-elements
-
-   ;; micro-instructions
-   #:microinstruction
-   #:run-microinstruction
-   #:defmicroinstruction
-
-   ;; debugging support
+   ;; debugging
    #:components-seen-by
-   #:all-component-pins-attached
 
    ;; conditions
    #:conflicting-asserted-values
@@ -137,4 +106,26 @@
    #:incompatible-pin-widths
    #:incompatible-pin-slot-widths
    #:not-fully-wired
+
+   ;; ---------- Inner interface ----------
+
+   ;; components
+   #:configure-pin-for-role
+   #:pin-role-for-slot
+   #:pin-slots-for-roles
+
+   ;; wires and pins
+   #:wire-state
+   #:wire-pin-assertions
+   #:wire-add-pin
+   #:pin-tristated-p
+   #:pin-reading-p
+   #:pin-asserted-p
+   #:pin-floating-p
+   #:pin-state
+
+   ;; micro-instructions
+   #:microinstruction
+   #:run-microinstruction
+   #:defmicroinstruction
    ))

@@ -24,7 +24,7 @@
   ((width
     :documentation "The width of the ring counter."
     :initarg :width
-    :reader ring-counter-width)
+    :reader width)
    (count
     :documentation "The current count."
     :initform 0
@@ -56,16 +56,16 @@ width is exceeded and it wraps-around back to 0."))
 
 (defmethod (setf ring-counter-count) (v (rc ring-counter))
   ;; wrap the count if needed
-  (if (>= v (ring-counter-width rc))
+  (if (>= v (width rc))
       (setq v 0)
       (setf (slot-value rc 'count) v))
 
   ;; update the asserted pin
   (let ((mask (ash 1 v)))
-    (setf (connector-pins-value (slot-value rc 'counter-bus)) mask)))
+    (setf (pins-value (slot-value rc 'counter-bus)) mask)))
 
 
-(defmethod component-pin-triggered ((rc ring-counter) p (v (eql 1)))
+(defmethod pin-triggered ((rc ring-counter) p (v (eql 1)))
   (declare (ignore p))
 
   ;; increment the count

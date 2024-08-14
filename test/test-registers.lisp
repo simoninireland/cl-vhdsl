@@ -28,27 +28,31 @@
   (let* ((data-bus (make-instance 'hw:bus :width 8))
 	 (data-bus-connector (make-instance 'hw:connector
 					    :width 8))
-	 (clk (make-instance 'hw:pin :state 0))
-	 (en (make-instance 'hw:pin :state 0))
-	 (wr (make-instance 'hw:pin :state 0))
+	 (clk (make-instance 'hw:pin :state 0
+				     :wire (make-instance 'hw:wire)))
+	 (en (make-instance 'hw:pin :state 0
+				    :wire (make-instance 'hw:wire)))
+	 (wr (make-instance 'hw:pin :state 0
+				    :wire (make-instance 'hw:wire)))
 	 (reg (make-instance 'hw:register :width 8
-					  :clock clk
-					  :enable en
+					  :clock (hw:wire clk)
+					  :enable (hw:wire en)
 					  :bus data-bus
-					  :write-enable wr)))
+					  :write-enable (hw:wire wr))))
 
     ;; connect the connector
-    (hw:connector-pins-connect data-bus-connector data-bus)
+    (hw:connect-pins data-bus-connector data-bus)
+    (hw:ensure-fully-wired reg)
 
     ;; put a value on the bus
-    (setf (hw:connector-pins-value data-bus-connector) #2r1101)
+    (setf (hw:pins-value data-bus-connector) #2r1101)
 
     ;; enable the register and set its value as writeable from the bus
-    (setf (hw:pin-state en) 1)
-    (setf (hw:pin-state wr) 1)
+    (setf (hw:state en) 1)
+    (setf (hw:state wr) 1)
 
     ;; clock the register
-    (setf (hw:pin-state clk) 1)
+    (setf (hw:state clk) 1)
 
     ;; check we loaded the value
     (is (equal (hw:register-value reg) #2r1101))))
@@ -58,31 +62,34 @@
   "Test a register puts values onto its bus correctly."
   (let* ((data-bus (make-instance 'hw:bus :width 8))
 	 (data-bus-connector (make-instance 'hw:connector :width 8))
-	 (clk (make-instance 'hw:pin :state 0))
-	 (en (make-instance 'hw:pin :state 0))
-	 (wr (make-instance 'hw:pin :state 0))
+	 (clk (make-instance 'hw:pin :state 0
+				     :wire (make-instance 'hw:wire)))
+	 (en (make-instance 'hw:pin :state 0
+				    :wire (make-instance 'hw:wire)))
+	 (wr (make-instance 'hw:pin :state 0
+				    :wire (make-instance 'hw:wire)))
 	 (reg (make-instance 'hw:register :width 8
-					  :clock clk
-					  :enable en
+					  :clock (hw:wire clk)
+					  :enable (hw:wire en)
 					  :bus data-bus
-					  :write-enable wr)))
+					  :write-enable (hw:wire wr))))
 
     ;; connect the connector
-    (hw:connector-pins-connect data-bus-connector data-bus)
-    (setf (hw:connector-pin-states data-bus-connector) :reading)
+    (hw:connect-pins data-bus-connector data-bus)
+    (setf (hw:pin-states data-bus-connector) :reading)
 
     ;; put a value into the register
     (setf (hw:register-value reg) #2r10110)
 
     ;; enable the register and set its value as readable from the bus
-    (setf (hw:pin-state en) 1)
-    (setf (hw:pin-state wr) 0)
+    (setf (hw:state en) 1)
+    (setf (hw:state wr) 0)
 
     ;; clock the register
-    (setf (hw:pin-state clk) 1)
+    (setf (hw:state clk) 1)
 
     ;; check we place the value on the bus
     (let ((v (hw:register-value reg))
-	  (rv (hw:connector-pins-value data-bus-connector)))
+	  (rv (hw:pins-value data-bus-connector)))
       (is (equal v #2r10110))
       (is (equal v rv)))))

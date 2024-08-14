@@ -109,12 +109,12 @@
       (setf (aref (hw:ram-elements (memory ts)) #16rFF) 123)
 
       ;; put the address onto the address bus
-      (setf (hw:connector-pins-value address-bus-connector) #16rFF)
+      (setf (hw:connect-pins address-bus-connector) #16rFF)
 
       ;; clock-cycle the system
-      (setf (hw:pin-state clk) 0)
+      (setf (hw:state clk) 0)
       (hw:run-microinstruction mi)
-      (setf (hw:pin-state clk) 1)
+      (setf (hw:state clk) 1)
 
       ;; check we loaded the value
       (is (equal (aref (hw:ram-elements (memory ts)) #16rFF) 123))

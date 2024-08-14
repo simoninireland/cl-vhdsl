@@ -44,7 +44,9 @@ SLOT is checked to ensure it's in the pin interface of C."
 (defun component-slot-connector (c s)
   "Return the connector for S on C.
 
-S should be a one- or two-element list."
+S should be a one- or two-element list identifying either a
+pin-slot of C or a pin-slot of a sub-component of C held
+in one of its slots."
 
   ;; extract the right slot, either drectly or on the sub-component
   (when (> (length s) 1)
@@ -57,42 +59,19 @@ S should be a one- or two-element list."
 
 ;; ---------- Wiring state tests ----------
 
-(defgeneric fully-wired-p (c)
-  (:documentation "Test whether C is fully wired.
-
-Calling this function checks that all the necessary wiring has been
-carried out. Unconnected wires are typically (but not necessarily)
-errors."))
-
-
-(defmethod fully-wired-p ((p pin))
-  (not (null (pin-wire p))))
-
-
-(defmethod fully-wired-p ((conn connector))
-  (let ((pins (connector-pins conn))
-	(w (connector-width conn)))
-    (dolist (i (iota w))
-      (fully-wired-p (elt pins i)))))
-
-
-(defmethod fully-wired-p ((c component))
-  (let ((pin-slots (pin-interface (class-of c))))
-    (dolist (slot pin-slots)
-      (fully-wired-p (slot-value c slot)))))
-
-
 (defun ensure-fully-wired (&rest args)
   "Ensure that all elements of ARGS are fully wired.
 
 The elements of ARGS will typically be components, but can also
 be pins, connectors, or anything accepted by `fully-wired-p'.
+
 If the elements are not fully wired, a `not-fully-wired' error
-is signalled containing all the elements that fail the test."
+is signalled containing all the pins that fail the test."
   (let (not-wired)
     (dolist (c args)
-      (when (not (fully-wired-p c))
-	(setq not-wired (append (list c) not-wired))))
+      (dolist (p (coerce (pins c) 'list))
+	(when (not (fully-wired-p p))
+	  (setq not-wired (append (list p) not-wired)))))
 
     (when (not (null not-wired))
       (error 'not-fully-wired :elements not-wired))))
@@ -100,38 +79,28 @@ is signalled containing all the elements that fail the test."
 
 ;; ---------- Wiring interface ----------
 
-(defun connector-pins-connect (conn &optional bus)
-  "Connect the pins of CONN to the wires of BUS."
+(defun connect-pins (conn b)
 
   ;; widths have to match
-  (if (not (equal (connector-width conn) (bus-width bus)))
+  (if (not (equal (width conn) (width b)))
       (error 'incompatible-pin-widths :connector conn
-				      :bus bus))
+				      :bus b))
 
   ;; wire-up the pins
-  (let ((ps (connector-pins conn))
-	(ws (bus-wires bus)))
-    (dolist (i (iota (connector-width conn)))
-      (setf (pin-wire (elt ps i)) (elt ws i)))))
+  (let ((ps (pins conn))
+	(ws (wires b)))
+    (dolist (i (iota (width conn)))
+      (setf (wire (elt ps i)) (elt ws i)))))
 
 
-(defun connector-slots-connect (c1 s1 c2 s2)
-  "Connect S1 on C1 to S2 C1.
-
-Both S1 and S2 should be lists of one or two symbols. A list of the
-form `(slot)' identifies a slot named `slot' on the corresponding
-component: `slot' must be in the pin interface. A list of the form
-`(slot subslot)' identifies a slot `subslot' of a component held in
-the slot `slot' of corresponding component: again, `subslot' must be a
-slot in the pin interface of that component. The pin slots identified
-must have compatible widths."
+(defun connect-slots (c1 s1 c2 s2)
   (let* ((conn1 (component-slot-connector c1 s1))
 	 (conn2 (component-slot-connector c2 s2))
-	 (w1 (connector-width conn1))
-	 (w2 (connector-width conn2)))
+	 (w1 (width conn1))
+	 (w2 (width conn2)))
     (if (= w1 w2)
 	(let ((b (make-instance 'bus :width w1)))
-	  (connector-pins-connect conn1 b)
-	  (connector-pins-connect conn2 b))
+	  (connect-pins conn1 b)
+	  (connect-pins conn2 b))
 
 	(error 'incompatible-pin-widths))))

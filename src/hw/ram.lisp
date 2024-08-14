@@ -65,33 +65,33 @@ The size of elements is determined by the width of the data bus."
   (floor (expt 2 (slot-value mem 'address-width))))
 
 
-(defmethod component-pin-triggered ((mem ram) p (v (eql 1)))
+(defmethod pin-triggered ((mem ram) p (v (eql 1)))
   (declare (ignore p)) ;; we only have one trigger pin
 
-  (when (and (component-enabled-p mem)
-	     (component-write-enabled-p mem))
+  (when (and (enabled-p mem)
+	     (write-enabled-p mem))
     (let ((v (pins-to-value (ram-data-bus mem)))
 	  (addr (pins-to-value (ram-address-bus mem))))
       (setf (aref (ram-elements mem) addr) v))))
 
 
-(defmethod component-pin-changed ((mem ram))
-  (if (component-enabled-p mem)
+(defmethod pin-changed ((mem ram))
+  (if (enabled-p mem)
       (progn
 	;; read from the buses
-	(setf (connector-pin-states (ram-address-bus mem)) :reading)
-	(setf (connector-pin-states (ram-data-bus mem)) :reading)
+	(setf (pin-states (ram-address-bus mem)) :reading)
+	(setf (pin-states (ram-data-bus mem)) :reading)
 
-	(when (not (component-write-enabled-p mem))
+	(when (not (write-enabled-p mem))
 	  ;; put the value of the memory addressed on the
 	  ;; address bus onto the data bus, as long as the
 	  ;; address bus is itself stable
-	  (when (not (connector-pins-floating-p (ram-address-bus mem)))
-	    (let ((addr (connector-pins-value (ram-address-bus mem))))
-	      (setf (connector-pins-value (ram-data-bus mem))
+	  (when (not (floating-p (ram-address-bus mem)))
+	    (let ((addr (pins-value (ram-address-bus mem))))
+	      (setf (pins-value (ram-data-bus mem))
 		    (aref (ram-elements mem) addr))))))
 
       ;; tri-state the buses
       (progn
-	(setf (connector-pin-states (ram-address-bus mem)) :tristate)
-	(setf (connector-pin-states (ram-data-bus mem)) :tristate))))
+	(setf (pin-states (ram-address-bus mem)) :tristate)
+	(setf (pin-states (ram-data-bus mem)) :tristate))))

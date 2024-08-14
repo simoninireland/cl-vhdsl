@@ -30,19 +30,19 @@ may affect C in some way."))
 
 
 (defmethod components-seen-by ((w wire))
-  (uniquify (map 'list #'pin-component (wire-pins w))))
+  (uniquify (map 'list #'component (pins w))))
 
 
 (defmethod components-seen-by ((p pin))
-  (components-seen-by (pin-wire p)))
+  (components-seen-by (wire p)))
 
 
 (defmethod components-seen-by ((b bus))
-  (uniquify (flatten (map 'list #'components-seen-by (bus-wires b)))))
+  (uniquify (flatten (map 'list #'components-seen-by (wires b)))))
 
 
 (defmethod components-seen-by ((conn connector))
-  (uniquify (flatten (map 'list #'components-seen-by (connector-pins conn)))))
+  (uniquify (flatten (map 'list #'components-seen-by (pins conn)))))
 
 
 (defmethod components-seen-by ((s sequence))
@@ -60,18 +60,3 @@ may affect C in some way."))
     (remove-if #'(lambda (comp)
 		   (equal comp c))
 	       (uniquify pins))))
-
-
-;; ---------- Pin integrity ----------
-
-(defun all-component-pins-attached (c &key fatal)
-  "Test whether all the pins of C have C as their component.
-
-This ensures that callbacks work properly. Signals an error if
-:fatal is set."
-  (let ((rc (every #'(lambda (p)
-		     (equal (pin-component p) c))
-		   (component-pins c))))
-    (or rc
-	(when fatal
-	  (error "Not all pins of component ~s are attached to it" c)))))

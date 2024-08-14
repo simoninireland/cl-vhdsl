@@ -24,16 +24,16 @@
 (test test-new-wire
   "Test a new wire is initially floating."
   (let ((w (make-instance 'hw:wire)))
-    (is (equal (hw:wire-state w) :floating))))
+    (is (equal (hw:state w) :floating))))
 
 
 (test test-assert-pin-floating
   "Test asserting a pin to an initial floating value."
   (let* ((w (make-instance 'hw:wire))
 	 (p (make-instance 'hw:pin :wire w)))
-    (is (eql (hw:pin-wire p) w))
+    (is (eql (hw:wire p) w))
     (is (equal (slot-value p 'hw::state) :tristate))
-    (is (equal (hw:wire-state w) :floating))
+    (is (equal (hw:state w) :floating))
     (is (hw::wire-pin-asserting-p w p :tristate))))
 
 
@@ -42,56 +42,56 @@
   (let* ((w (make-instance 'hw:wire))
 	 (p (make-instance 'hw:pin :wire w)))
     (signals (error)
-      (setf (hw:pin-wire p) p))))
+      (setf (hw:wire p) p))))
 
 
 (test test-assert-pin
   "Test asserting a pin to a logic value."
   (let* ((w (make-instance 'hw:wire))
 	 (p (make-instance 'hw:pin :wire w)))
-    (setf (hw:pin-state p) 0)
+    (setf (hw:state p) 0)
     (is (equal (slot-value p 'hw::state) 0))
-    (is (equal (hw:wire-state w) 0))))
+    (is (equal (hw:state w) 0))))
 
 
 (test test-assert-pin-same
   "Test asserting a pin to the same value again."
   (let* ((w (make-instance 'hw:wire))
 	 (p (make-instance 'hw:pin :wire w)))
-    (setf (hw:pin-state p) 0)
-    (setf (hw:pin-state p) 0)
+    (setf (hw:state p) 0)
+    (setf (hw:state p) 0)
     (is (equal (slot-value p 'hw::state) 0))
-    (is (equal (hw:wire-state w) 0))))
+    (is (equal (hw:state w) 0))))
 
 
 (test test-assert-pin-different
   "Test asserting a pin to a different value."
   (let* ((w (make-instance 'hw:wire))
 	 (p (make-instance 'hw:pin :wire w)))
-    (setf (hw:pin-state p) 0)
-    (setf (hw:pin-state p) 1)
+    (setf (hw:state p) 0)
+    (setf (hw:state p) 1)
     (is (equal (slot-value p 'hw::state) 1))
-    (is (equal (hw:wire-state w) 1))))
+    (is (equal (hw:state w) 1))))
 
 
 (test test-assert-pin-tristate
   "Test tri-stating the pin."
   (let* ((w (make-instance 'hw:wire))
 	 (p (make-instance 'hw:pin :wire w)))
-    (setf (hw:pin-state p) 0)
-    (setf (hw:pin-state p) :tristate)
+    (setf (hw:state p) 0)
+    (setf (hw:state p) :tristate)
     (is (equal (slot-value p 'hw::state) :tristate))
-    (is (equal (hw:wire-state w) :floating))))
+    (is (equal (hw:state w) :floating))))
 
 
 (test test-assert-pin-reading
   "Test setting the pin to reading."
   (let* ((w (make-instance 'hw:wire))
 	 (p (make-instance 'hw:pin :wire w)))
-    (setf (hw:pin-state p) 0)
-    (setf (hw:pin-state p) :reading)
+    (setf (hw:state p) 0)
+    (setf (hw:state p) :reading)
     (is (equal (slot-value p 'hw::state) :reading))
-    (is (equal (hw:wire-state w) :floating))))
+    (is (equal (hw:state w) :floating))))
 
 
 (test test-assert-pins-same
@@ -99,11 +99,11 @@
   (let* ((w (make-instance 'hw:wire))
 	 (p1 (make-instance 'hw:pin :wire w))
 	 (p2 (make-instance 'hw:pin :wire w)))
-    (setf (hw:pin-state p1) 0)
-    (setf (hw:pin-state p2) 0)
+    (setf (hw:state p1) 0)
+    (setf (hw:state p2) 0)
     (is (equal (slot-value p1 'hw::state) 0))
     (is (equal (slot-value p2 'hw::state) 0))
-    (is (equal (hw:wire-state w) 0))))
+    (is (equal (hw:state w) 0))))
 
 
 (test test-assert-pins-different
@@ -112,10 +112,10 @@
 	 (p1 (make-instance 'hw:pin :wire w))
 	 (p2 (make-instance 'hw:pin :wire w))
 	 (p3 (make-instance 'hw:pin :wire w :state :reading)))
-    (setf (hw:pin-state p1) 0)
-    (setf (hw:pin-state p2) 1)   ; this send the wire floating
+    (setf (hw:state p1) 0)
+    (setf (hw:state p2) 1)   ; this send the wire floating
     (signals (hw:reading-floating-value)
-      (hw:pin-state p3))))
+      (hw:state p3))))
 
 
 (test test-assert-pins-tristated
@@ -140,11 +140,11 @@
   (let* ((w (make-instance 'hw:wire))
 	 (p1 (make-instance 'hw:pin :wire w))
 	 (p2 (make-instance 'hw:pin :wire w)))
-    (setf (hw:pin-state p1) 0)
-    (setf (hw:pin-state p2) :reading)
+    (setf (hw:state p1) 0)
+    (setf (hw:state p2) :reading)
 
     ;; state of the pin is the state of the wire
-    (is (equal (hw:pin-state p2) 0))))
+    (is (equal (hw:state p2) 0))))
 
 
 (test test-pin-not-read
@@ -152,12 +152,12 @@
   (let* ((w (make-instance 'hw:wire))
 	 (p1 (make-instance 'hw:pin :wire w))
 	 (p2 (make-instance 'hw:pin :wire w)))
-    (setf (hw:pin-state p1) 0)
+    (setf (hw:state p1) 0)
 
     ;; test we can't read a :tristated pin
-    (setf (hw:pin-state p2) :tristate)
+    (setf (hw:state p2) :tristate)
     (signals (hw:reading-non-reading-pin)
-      (hw:pin-state p2))))
+      (hw:state p2))))
 
 
 (test test-pin-read-floating
@@ -165,11 +165,11 @@
   (let* ((w (make-instance 'hw:wire))
 	 (p1 (make-instance 'hw:pin :wire w))
 	 (p2 (make-instance 'hw:pin :wire w)))
-    (setf (hw:pin-state p2) :reading)
+    (setf (hw:state p2) :reading)
 
     ;; test we see the signal
     (signals (hw:reading-floating-value)
-      (hw:pin-state p2))))
+      (hw:state p2))))
 
 
 (test test-pins-floating
@@ -177,14 +177,14 @@
   (let* ((w1 (make-instance 'hw:wire))
 	 (w2 (make-instance 'hw:wire))
 	 (conn (make-instance 'hw:connector :width 3))
-	 (ps (hw:connector-pins conn)))
-    (setf (hw:pin-wire (elt ps 0)) w1)
-    (setf (hw:pin-wire (elt ps 1)) w2)
-    (setf (hw:pin-wire (elt ps 2)) w2)
+	 (ps (hw:pins conn)))
+    (setf (hw:wire (elt ps 0)) w1)
+    (setf (hw:wire (elt ps 1)) w2)
+    (setf (hw:wire (elt ps 2)) w2)
 
-    (setf (hw:pin-state (elt ps 0)) 1)
-    (is (hw:connector-pins-floating-p conn))
+    (setf (hw:state (elt ps 0)) 1)
+    (is (hw:floating-p conn))
 
-    (setf (hw:pin-state (elt ps 1)) 0)
-    (setf (hw:pin-state (elt ps 2)) :reading)
-    (is (null (hw:connector-pins-floating-p conn)))))
+    (setf (hw:state (elt ps 1)) 0)
+    (setf (hw:state (elt ps 2)) :reading)
+    (is (null (hw:floating-p conn)))))

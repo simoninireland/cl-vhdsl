@@ -52,7 +52,7 @@
 (test test-seen-bus
   "Test we can see the components attached to a bus."
   (let* ((b (make-instance 'hw:bus :width 4))
-	 (p (make-instance 'hw:pin :wire (aref (hw:bus-wires b) 0)))
+	 (p (make-instance 'hw:pin :wire (aref (hw:wires b) 0)))
 	 (tw1 (make-instance 'test-of-bus :bus b))
 	 (tw2 (make-instance 'test-of-bus :bus b)))
 

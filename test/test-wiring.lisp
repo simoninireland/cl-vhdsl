@@ -46,18 +46,14 @@
   (:metaclass hw:metacomponent))
 
 
-;;(c2mop:ensure-finalized (find-class 'test-slotted))
-;;(c2mop:ensure-finalized (find-class 'test-subcomponents))
-
-
 ;; ---------- Wiring connectors and buses ----------
 
 (test test-wire-slots-same-component
   "Test we can wire two pin interface slots on the same class together."
   (let ((tc (make-instance 'test-slotted))
 	(b (make-instance 'hw:bus :width 8)))
-    (hw:connector-pins-connect (slot-value tc 'one) b)
-    (hw:connector-pins-connect (slot-value tc 'two) b)
+    (hw:connect-pins (slot-value tc 'one) b)
+    (hw:connect-pins (slot-value tc 'two) b)
 
     ;; bus can see the component
     (let ((cs (hw:components-seen-by b)))
@@ -73,8 +69,8 @@
   (let ((tc1 (make-instance 'test-slotted ))
 	(tc2 (make-instance 'test-slotted))
 	(b (make-instance 'hw:bus :width 8)))
-    (hw:connector-pins-connect (slot-value tc1 'one) b)
-    (hw:connector-pins-connect (slot-value tc2 'two) b)
+    (hw:connect-pins (slot-value tc1 'one) b)
+    (hw:connect-pins (slot-value tc2 'two) b)
 
     ;; bus can see both component
     (let ((cs (hw:components-seen-by b)))
@@ -91,9 +87,9 @@
   "Test we can't connect slots with unequal widths."
   (let ((tc (make-instance 'test-slotted))
 	(b (make-instance 'hw:bus :width 8)))
-    (hw:connector-pins-connect (slot-value tc 'one) b)
+    (hw:connect-pins (slot-value tc 'one) b)
     (signals (hw:incompatible-pin-widths)
-      (hw:connector-pins-connect (slot-value tc 'three) b))))
+      (hw:connect-pins (slot-value tc 'three) b))))
 
 
 ;; ---------- Wiring slots ----------
@@ -101,8 +97,8 @@
 (test test-wire-slots
   "Test we can wire two compatible slots."
   (let ((tc (make-instance 'test-slotted)))
-    (hw:connector-slots-connect tc (list 'one)
-				tc (list 'two))
+    (hw:connect-slots tc (list 'one)
+		      tc (list 'two))
 
     ;; component doesn't see itself
     (is (null (hw:components-seen-by tc)))))
@@ -112,24 +108,24 @@
   "Test we can wire-up slots on sub-components."
   (let* ((tc1 (make-instance 'test-slotted ))
 	 (tc2 (make-instance 'test-subcomponents :sub tc1)))
-    (hw:connector-slots-connect tc1 (list 'one)
-				tc2 (list 'c 'two))))
+    (hw:connect-slots tc1 (list 'one)
+		      tc2 (list 'c 'two))))
 
 
 (test test-wire-slots-super-sub
   "Test we can wire-up slots between component and sub-somponent."
   (let* ((tc1 (make-instance 'test-slotted ))
 	 (tc2 (make-instance 'test-subcomponents :sub tc1)))
-    (hw:connector-slots-connect tc2 (list 'four)
-				tc2 (list 'c 'two))))
+    (hw:connect-slots tc2 (list 'four)
+		      tc2 (list 'c 'two))))
 
 
 (test test-wire-slots-widths
   "Test we can't wire slots with incompatible widths."
   (let ((tc (make-instance 'test-slotted)))
     (signals (hw:incompatible-pin-widths)
-      (hw:connector-slots-connect tc (list 'one)
-				  tc (list 'three)))))
+      (hw:connect-slots tc (list 'one)
+			tc (list 'three)))))
 
 
 (test test-wire-slots-widths-sub
@@ -137,101 +133,115 @@
   (let* ((tc1 (make-instance 'test-slotted ))
 	 (tc2 (make-instance 'test-subcomponents :sub tc1)))
     (signals (hw:incompatible-pin-widths)
-      (hw:connector-slots-connect tc1 (list 'one)
-				  tc2 (list 'c 'three)))))
+      (hw:connect-slots tc1 (list 'one)
+			tc2 (list 'c 'three)))))
 
 
 (test test-wire-slots-missing
   "Test we can't wire missing slots."
   (let ((tc (make-instance 'test-subcomponents)))
     (signals (hw:non-pin-interface-slot)
-      (hw:connector-slots-connect tc (list 'four)
-				  tc (list 'one)))))
+      (hw:connect-slots tc (list 'four)
+			tc (list 'one)))))
 
 
 (test test-wire-slots-other
   "Test we can't wire slots to non-pin-slots."
   (let ((tc (make-instance 'test-subcomponents)))
     (signals (hw:non-pin-interface-slot)
-      (hw:connector-slots-connect tc (list 'four)
-				  tc (list 'other)))))
+      (hw:connect-slots tc (list 'four)
+			tc (list 'other)))))
 
 
-;; ---------- Integral wiring diagrams ----------
+;; ---------- Fully wired ----------
 
-(defun wiring-diagram-p (arg)
-  "Test is ARG is a wiring diagram.
-
-Wiring diagrams are class arguments that start with
-`:wiring'."
-  (equal (car arg) :wiring))
-
-
-(defun ensure-wiring-diagram-valid (wiring)
-  "Test that "
-  )
-
-(defun generate-wiring-method (name wiring)
-  "Generate a wiring method from the given WIRING diagram."
-  (with-gensyms (c)
-    (flet ((generate-connect (wires)
-	     (destructuring-bind (from to)
-		 wires
-	       `(hw:connector-slots-connect ,c ',(ensure-list from)
-					    ,c ',(ensure-list to)))))
-
-      (let ((wirings (mapcar #'generate-connect (cdr wiring))))
-	`(defmethod component-wire ((,c ,name))
-	   ,@wirings)))))
+(test test-fully-wired-pin
+  "Test we can detect a fully-wired pin."
+  (let* ((w (make-instance 'hw:wire))
+	 (p (make-instance 'hw:pin :wire w)))
+    (hw:ensure-fully-wired p)))
 
 
-(defmacro defcomponent (name superclasses slots &rest args)
-  "Define a new component."
-
-  ;; components default to sub-classes of `component'
-  (when (null superclasses)
-    (setq superclasses (list 'hw:component)))
-
-  ;; if we have a wiring diagram, generate the wiring method
-  (let ((wiring (find-if #'wiring-diagram-p args))
-	wiring-method)
-    (when wiring
-      (setq args (remove-if #'wiring-diagram-p
-			    args))
-      (setq wiring-method (generate-wiring-method name wiring)))
-
-    `(progn
-       ;; class definition
-       (defclass ,name (,@superclasses)
-	 ,slots
-	 (:metaclass hw:metacomponent)
-	 ,@args)
-
-       ;; wiring method definition (if any)
-       ,wiring-method
-       )))
+(test test-non-fully-wired-pin
+  "Test we can detect an unwired pin."
+  (let* ((p (make-instance 'hw:pin)))
+    (signals (hw:not-fully-wired)
+      (hw:ensure-fully-wired p))))
 
 
-(defgeneric component-wire (c)
-  (:documentation "Internally wire C according to its wiring diagram."))
+(test test-fully-wired-connector
+  "Test we can detect a fully-wired connector."
+  (let* ((b (make-instance 'hw:bus :width 4))
+	 (conn (make-instance 'hw:connector :width 4)))
+    (hw:connect-pins conn b)
+    (hw:ensure-fully-wired conn)))
 
 
-(defcomponent test-wired ()
-  ((four
-    :pins 8)
-   (c1
-    :initarg :c
-    :type test-slotted
-    :initarg :sub1)
-   (c2
-    :initarg :c
-    :type test-slotted
-    :initarg :sub2))
-  (:wiring (four (c1 one))
-	   ((c2 two) (c1 two))))
+(test test-non-fully-wired-connector
+  "Test we can detect an unwired connector."
+  (let* ( (conn (make-instance 'hw:connector :width 4)))
+    (signals (hw:not-fully-wired)
+      (hw:ensure-fully-wired conn))))
 
-(let ((c (make-instance 'test-wired :sub1 (make-instance 'test-slotted)
-				    :sub2 (make-instance 'test-slotted))))
-  (component-wire c)
-  (hw:fully-wired-p c)
-  )
+
+(test test-fully-wired-component
+  "Test we can detet a fully-wired component."
+  (let* ((db (make-instance 'hw:bus :width 8))
+	 (ab (make-instance 'hw:bus :width 16))
+	 (en (make-instance 'hw:pin :wire (make-instance 'hw:wire)))
+	 (tc (make-instance 'test-slotted
+			    :enable (hw:wire en))))
+    (hw:connect-pins (slot-value tc 'three) ab)
+    (hw:connect-pins (slot-value tc 'one) db)
+    (hw:connect-pins (slot-value tc 'two) db)
+
+    (hw:ensure-fully-wired tc)))
+
+
+(test test-non-fully-wired-component
+  "Test we can detet an unwired component."
+  (let* ((db (make-instance 'hw:bus :width 8))
+	 (ab (make-instance 'hw:bus :width 16))
+	 (tc (make-instance 'test-slotted)))
+    (hw:connect-pins (slot-value tc 'three) ab)
+    (hw:connect-pins (slot-value tc 'one) db)
+    (hw:connect-pins (slot-value tc 'two) db)
+
+    (signals (hw:not-fully-wired)
+      (hw:ensure-fully-wired tc))))
+
+
+(test test-fully-wired-subcomponent
+  "Test we can detet a fully-wired component with sub-components."
+  (let* ((db (make-instance 'hw:bus :width 8))
+	 (ab (make-instance 'hw:bus :width 16))
+	 (en (make-instance 'hw:pin :wire (make-instance 'hw:wire)))
+	 (tc1 (make-instance 'test-slotted
+			     :enable (hw:wire en)))
+	 (tc2 (make-instance 'test-subcomponents
+			     :enable (hw:wire en)
+			     :c tc1)))
+    (hw:connect-pins (slot-value tc1 'three) ab)
+    (hw:connect-pins (slot-value tc1 'one) db)
+    (hw:connect-pins (slot-value tc1 'two) db)
+    (hw:connect-pins (slot-value tc2 'four) db)
+
+    (hw:ensure-fully-wired tc2)))
+
+
+(test test-non-fully-wired-subcomponent
+  "Test we can detet an unwired sub-component."
+  (let* ((db (make-instance 'hw:bus :width 8))
+	 (ab (make-instance 'hw:bus :width 16))
+	 (en (make-instance 'hw:pin :wire (make-instance 'hw:wire)))
+	 (tc1 (make-instance 'test-slotted
+			     :enable (hw:wire en)))
+	 (tc2 (make-instance 'test-subcomponents
+			     :c tc1)))
+    (hw:connect-pins (slot-value tc1 'three) ab)
+    (hw:connect-pins (slot-value tc1 'one) db)
+    (hw:connect-pins (slot-value tc1 'two) db)
+    (hw:connect-pins (slot-value tc2 'four) db)
+
+    (signals (hw:not-fully-wired)
+      (hw:ensure-fully-wired tc2))))

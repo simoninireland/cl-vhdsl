@@ -55,25 +55,25 @@
   (let ((tc (make-instance 'test-component)))
     (with-slots (data-bus address-bus hw::clock write-enable io other) tc
       ;; 8-bit data bus, tristated
-      (is (equal (hw:connector-width data-bus) 8))
+      (is (equal (hw:width data-bus) 8))
       (dolist (i (iota 8))
-	(is (equal (slot-value (elt (hw:connector-pins data-bus) i) 'hw::state) :tristate)))
+	(is (equal (slot-value (elt (hw:pins data-bus) i) 'hw::state) :tristate)))
 
       ;; 16-bit address bus, tristated
-      (is (equal (hw:connector-width address-bus) 16))
+      (is (equal (hw:width address-bus) 16))
       (dolist (i (iota 16))
-	(is (equal (slot-value (elt (hw:connector-pins address-bus) i) 'hw::state) :tristate)))
+	(is (equal (slot-value (elt (hw:pins address-bus) i) 'hw::state) :tristate)))
 
       ;; clock pin, triggering
-      (equal (slot-value (elt (hw:connector-pins hw::clock) 0) 'hw::state) :trigger)
+      (equal (slot-value (elt (hw:pins hw::clock) 0) 'hw::state) :trigger)
 
       ;; write-enable pin, reading
-      (equal (slot-value (elt (hw:connector-pins write-enable) 0) 'hw::state) :reading)
+      (equal (slot-value (elt (hw:pins write-enable) 0) 'hw::state) :reading)
 
       ;; 2 io lines, tristated
-      (is (equal (hw:connector-width io) 2))
+      (is (equal (hw:width io) 2))
       (dolist (i (iota 2))
-	(is (equal (slot-value (elt (hw:connector-pins io) i) 'hw::state) :tristate)))
+	(is (equal (slot-value (elt (hw:pins io) i) 'hw::state) :tristate)))
 
       ;; other left alone
       (equal other 32))))
@@ -101,14 +101,14 @@
 (test test-pins-slot
   "Test we can extract the pins from slots."
   (let ((tc (make-instance 'test-component)))
-    (is (equal (hw:connector-width (slot-value tc 'data-bus)) 8))
-    (is (equal (hw:connector-width (slot-value tc 'address-bus)) 16))
-    (is (equal (hw:connector-width (slot-value tc 'hw:clock)) 1))
-    (is (equal (hw:connector-width (slot-value tc 'write-enable)) 1))
-    (is (equal (hw:connector-width (slot-value tc 'io)) 2))))
+    (is (equal (hw:width (slot-value tc 'data-bus)) 8))
+    (is (equal (hw:width (slot-value tc 'address-bus)) 16))
+    (is (equal (hw:width (slot-value tc 'hw:clock)) 1))
+    (is (equal (hw:width (slot-value tc 'write-enable)) 1))
+    (is (equal (hw:width (slot-value tc 'io)) 2))))
 
 
 (test test-pins-from-slot
   "Test we can set the number of pins from the value of another slot."
   (let ((tc (make-instance 'test-component-var :width 8)))
-    (is (equal (hw:connector-width (slot-value tc 'bus)) (slot-value tc 'width)))))
+    (is (equal (hw:width (slot-value tc 'bus)) (slot-value tc 'width)))))
