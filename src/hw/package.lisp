@@ -98,6 +98,7 @@
    ;; wiring
    #:connector-pins-connect
    #:connector-slots-connect
+   #:fully-wired-p
 
    ;; registers
    #:register
@@ -135,4 +136,5 @@
    #:non-pin-interface-slot
    #:incompatible-pin-widths
    #:incompatible-pin-slot-widths
+   #:not-fully-wired
    ))

@@ -215,3 +215,17 @@ The widths of buses and connectors need to be the same."))
 This happens when two slots are wired together but have different
 widths, or when no wodth can be determined at all. It must be possible
 to find exactly one width for all the pin slots."))
+
+
+(define-condition not-fully-wired ()
+  ((elements
+    :documentation "The elements that remain fully or partially unwired."
+    :initarg :elements
+    :reader not-fully-wired-elements))
+  (:report (lambda (c str)
+	     (format str "Some elements remain unwired: ~s"
+		     (not-fully-wired-elements c))))
+  (:documentation "Condition signalled when some elements remain unwired.
+
+Unwired elements may not be an error -- but usually are. Fix by
+connecting the unwired elements to wires."))

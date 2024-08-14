@@ -55,6 +55,49 @@ S should be a one- or two-element list."
   (ensure-pin-slot c (car s)))
 
 
+;; ---------- Wiring state tests ----------
+
+(defgeneric fully-wired-p (c)
+  (:documentation "Test whether C is fully wired.
+
+Calling this function checks that all the necessary wiring has been
+carried out. Unconnected wires are typically (but not necessarily)
+errors."))
+
+
+(defmethod fully-wired-p ((p pin))
+  (not (null (pin-wire p))))
+
+
+(defmethod fully-wired-p ((conn connector))
+  (let ((pins (connector-pins conn))
+	(w (connector-width conn)))
+    (dolist (i (iota w))
+      (fully-wired-p (elt pins i)))))
+
+
+(defmethod fully-wired-p ((c component))
+  (let ((pin-slots (pin-interface (class-of c))))
+    (dolist (slot pin-slots)
+      (fully-wired-p (slot-value c slot)))))
+
+
+(defun ensure-fully-wired (&rest args)
+  "Ensure that all elements of ARGS are fully wired.
+
+The elements of ARGS will typically be components, but can also
+be pins, connectors, or anything accepted by `fully-wired-p'.
+If the elements are not fully wired, a `not-fully-wired' error
+is signalled containing all the elements that fail the test."
+  (let (not-wired)
+    (dolist (c args)
+      (when (not (fully-wired-p c))
+	(setq not-wired (append (list c) not-wired))))
+
+    (when (not (null not-wired))
+      (error 'not-fully-wired :elements not-wired))))
+
+
 ;; ---------- Wiring interface ----------
 
 (defun connector-pins-connect (conn &optional bus)
@@ -72,19 +115,18 @@ S should be a one- or two-element list."
       (setf (pin-wire (elt ps i)) (elt ws i)))))
 
 
-(defun connector-slots-connect (cs1 cs2)
-  "Connect CS1 to CS2.
+(defun connector-slots-connect (c1 s1 c2 s2)
+  "Connect S1 on C1 to S2 C1.
 
-Both CS1 and CS2 should be lists starting with a component
-and followed by one of two symbols. A list of the form
-`(tc slot)' identifies a slot named `slot' on component `tc'.`slot'
-must be in the pin interface of `tc'. A list of the form
-`(tc slot subslot)' identifies a slot `subslot' of a component held in
-the slot `slot' of component `tc'. Again, `subslot' must be a slot in
-the pin interface of that component. The pin slots identified must
-have compatible widths."
-  (let* ((conn1 (component-slot-connector (car cs1) (cdr cs1)))
-	 (conn2 (component-slot-connector (car cs2) (cdr cs2)))
+Both S1 and S2 should be lists of one or two symbols. A list of the
+form `(slot)' identifies a slot named `slot' on the corresponding
+component: `slot' must be in the pin interface. A list of the form
+`(slot subslot)' identifies a slot `subslot' of a component held in
+the slot `slot' of corresponding component: again, `subslot' must be a
+slot in the pin interface of that component. The pin slots identified
+must have compatible widths."
+  (let* ((conn1 (component-slot-connector c1 s1))
+	 (conn2 (component-slot-connector c2 s2))
 	 (w1 (connector-width conn1))
 	 (w2 (connector-width conn2)))
     (if (= w1 w2)
