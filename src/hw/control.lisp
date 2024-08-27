@@ -20,43 +20,13 @@
 (in-package :cl-vhdsl/hw)
 
 
-;; ---------- Nano-instructions ----------
-
-(defclass nanoinstruction ()
-  ((component
-    :documentation "The component this nano-instruction controls."
-    :initarg :component
-    :reader nanoinstruction-component))
-  (:documentation "A control word for a component."))
-
-
-(defun pin-interface-for-roles (c roles)
-  "Return all the slots in the pin interface of C with one of the given ROLES."
-  (remove-if-not #'(lambda (slot)
-		     (not (member (pin-role-for-slot c slot) roles)))
-		 (pin-interface c)))
-
-
-(defmethod initialize-instance :after ((ins nanoinstruction) &rest initargs)
-  (declare (ignore initargs))
-
-  (let ((control-slots (pin-interface-with-roles (nanoinstruction-component ins)
-						 '(:control))))
-
-
-
-    )
-
-  )
-
-
-
-
-;; ---------- Micro-instructions ----------
-
-
 ;; ---------- Control units ----------
 
+;; The controller is a source of micro-instructions, in the sense that
+;; it generates a stream of them to control its components. Where
+;; those instructions come from is somewhat irrelevent: we chuld be
+;; able to abstract over explicit decoding, microcoded instructions,
+;; and other forms within the same framework.
 
 (defclass control (component clocked)
   ()
