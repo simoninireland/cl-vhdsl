@@ -132,5 +132,5 @@
   :pathname "systems/sap-1/test/"
   :serial t
   :components ((:file "package")
-	       (:file "test-emu"))
+	       (:file "test-explicit"))
   :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))

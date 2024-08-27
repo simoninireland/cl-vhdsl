@@ -24,6 +24,9 @@
   (:local-nicknames (:emu :cl-vhdsl/emu))
 
   (:export
+   ;; reference implkementation
+   #:run-reference
+
    ;; core and architecture
    #:*SAP-1-architecture*
    #:*SAP-1-core*

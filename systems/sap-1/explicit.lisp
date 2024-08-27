@@ -32,14 +32,14 @@ address 0, and returns the contents of the OUT register."
 	  (A 0)
 	  (OUT 0))
 
-      (labels ((lda (w)
-		 (setf A w))
+      (labels ((lda (addr)
+		 (setf A (aref mem addr)))
 
-	       (add (w)
-		 (setf A (+ A w)))
+	       (add (addr)
+		 (setf A (+ A (aref mem addr))))
 
-	       (sub (w)
-		 (setf A (- A w)))
+	       (sub (addr)
+		 (setf A (- A (aref mem addr))))
 
 	       (out ()
 		 (setf OUT A))
@@ -56,7 +56,7 @@ address 0, and returns the contents of the OUT register."
 		   ;; increment the program counter
 		   (incf PC)
 
-		   ;;decde the instruction
+		   ;;decode the instruction
 		   (eswitch (INS)
 		     (#2r0000 (lda W))
 		     (#2r0001 (add W))

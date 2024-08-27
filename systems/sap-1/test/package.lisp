@@ -23,7 +23,7 @@
   (:use :cl :cl-ppcre :cl-vhdsl :cl-vhdsl/SAP-1)
   (:local-nicknames (:def :cl-vhdsl/def)
 		    (:emu :cl-vhdsl/emu))
-  (:import-from :fiveam #:is #:test :def-suite))
+  (:import-from :fiveam #:is #:test #:def-suite))
 
 (in-package :cl-vhdsl/SAP-1/test)
 
