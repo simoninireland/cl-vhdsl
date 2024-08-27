@@ -177,6 +177,26 @@ the ALU's operation-select bus. It might also be an issue with the operands."))
 The widths of buses and connectors need to be the same."))
 
 
+(define-condition invalid-wiring-diagram-slot ()
+  ((slot-name
+    :documentation "The slot name."
+    :initarg :slot
+    :reader wiring-diagram-slot)
+   (component
+    :documentation "The component."
+    :initarg :component
+    :reader wiring-diagram-component))
+  (:report (lambda (c str)
+	     (format str "No slot ~s in wiring diagram for ~s"
+		     (witing-diagram-slot c)
+		      (wiring-diagram-component c))))
+  (:documentation "Condition signalled when an invalid slot appears in a wiring diagram.
+
+This is certainly an error, typically caused by mis-typing a slot
+name or using a slot that's not known to be present given the defined
+type of a sub-component."))
+
+
 (define-condition incompatible-pin-slot-widths ()
   ((slots-names
     :documentation "The slot names whose widths are being determined."

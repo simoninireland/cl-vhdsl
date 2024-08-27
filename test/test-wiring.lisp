@@ -46,6 +46,42 @@
   (:metaclass hw:metacomponent))
 
 
+;; ---------- Sub-components ----------
+
+(test test-subcomponents
+  "Test we can identify sub-component and non-sub-component slots."
+  (let ((tc (make-instance 'test-subcomponents)))
+    (is (hw:subcomponent-p (class-of tc) 'c))
+
+    ;; test against non-component slots (including pin slots)
+    (is (not (hw:subcomponent-p (class-of tc) 'other)))
+    (is (not (hw:subcomponent-p (class-of tc) 'four)))))
+
+
+(test test-subcomponent-interface
+  "Test we can extract the sub-component interface."
+  (let ((tc (make-instance 'test-subcomponents)))
+    (is (equal (hw:subcomponent-interface (class-of tc))
+	       (list 'c)))))
+
+
+(test test-empty-subcomponent-interface
+  "Test we can extract an empty sub-component interface."
+  (let ((tc (make-instance 'test-slotted)))
+    (is (null (hw:subcomponent-interface (class-of tc))))))
+
+
+(test test-subcomponents-of-object
+  "Test we can extract the sub-components of an object."
+  (let* ((tc1 (make-instance 'test-slotted))
+	 (tc2 (make-instance 'test-subcomponents :c tc1)))
+    (is (equal (hw:components tc2)
+	       (list tc1)))
+
+    ;; test against the sub-component as well
+    (is (null (hw:components tc1)))))
+
+
 ;; ---------- Wiring connectors and buses ----------
 
 (test test-wire-slots-same-component
@@ -245,3 +281,20 @@
 
     (signals (hw:not-fully-wired)
       (hw:ensure-fully-wired tc2))))
+
+
+;; ---------- Self-wiring components ----------
+
+(hw:defcomponent test-selfwired ()
+  ((tc1
+    :type test-slotted
+    :initarg :one)
+   (tc2
+    :type test-slotted
+    :initarg :two)
+   (three
+    :pins 16))
+  ;; (:wiring ((tc1 one) (tc2 one))
+  ;;	   ((tc1 two) (tc2 two))
+  ;;	   (three (tc1 three) (tc2 three))))
+  )

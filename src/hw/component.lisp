@@ -143,6 +143,9 @@ Components encapsulate functions and offer a pin-based interface."))
   ;; do the normal initialisation routines
   (call-next-method)
 
+  ;; wire-up the component internally
+  (connect-component c)
+
   ;; make sure we're in a state consistent with our initial pins
   (pin-changed c))
 
@@ -173,6 +176,36 @@ Components encapsulate functions and offer a pin-based interface."))
     (every #'(lambda (slot)
 	       (fully-wired-p (slot-value c slot)))
 	   pin-slots)))
+
+
+;; ---------- Sub-components ----------
+
+(defun subcomponent-p (cl slot)
+  "Test whether SLOT holds a sub-component on class CL.
+
+The component type of SLOT is returned if it is a component,
+otherwise `NIL'."
+  (if-let ((slot-def (find slot (class-slots cl) :key #'slot-definition-name)))
+    (let ((slot-type (slot-definition-type slot-def) ))
+      (when (subtypep slot-type 'component)
+	slot-type))))
+
+
+(defun subcomponent-interface (cl)
+  "Return the slots holding sub-components on class CL."
+  (let ((slot-names (mapcar #'slot-definition-name (class-slots cl))))
+    (remove-if-not #'(lambda (slot)
+			  (subcomponent-p cl slot))
+		      slot-names)))
+
+
+;; sd: Should the definition of `components' when called on a component
+;; include the component itself? -- or just its sub-components, as at present?
+
+(defmethod components ((c component))
+  (mapcar #'(lambda (slot)
+	      (slot-value c slot))
+	  (subcomponent-interface (class-of c))))
 
 
 ;; ---------- Mixins for common components ----------
@@ -220,20 +253,82 @@ More complicated components might need several such control lines."))
 
 ;; ---------- Integral wiring diagrams ----------
 
+(defgeneric connect-component (c)
+  (:documentation "Internally wire C according to its wiring diagram.
+
+Methods on this function enact any wiring diagrams. They are
+synthesised for `component' classes and called automatically when the
+class is instanciated."))
+
+
+;; No universally shared wiring -- although naybe there should be, to
+;; a clock?
+(defmethod connect-component ((c component)))
+
+
+;; These parse functions should probably signal errors to
+;; highlight where the problem is
+
+(defun parse-wire-description-endpoint (cl endpoint)
+  "Parse ENDPOINT against class CL.
+
+Return `T' if the endpoint is valid, meaning that it is a symbol
+naming a pin slot on CL or a pair of symbols naming a sub-component
+slot on CL and a pin slot on that sub-component."
+  (cond ((symbolp endpoint)
+	 (pin-interface-p cl endpoint))
+
+	((consp endpoint)
+	 (let* ((cslot (car endpoint))
+		(slot (if (consp (cdr endpoint))
+			  (cadr endpoint)  ;; for lists
+			  (cdr endpoint))) ;; for pairs
+		(slot-type (subcomponent-p cl cslot)))
+	   (and slot-type
+		(parse-wire-description-endpoint slot-type slot))))
+
+	(t
+	 nil)))
+
+
+(defun parse-wire-description (cl wiredesc)
+  "Parse WIREDESC against class CL and check validity.
+
+Return `T' if the wire description is valid, mmeaning all its
+endpoints are valid."
+  (every #'(lambda (endpoint)
+	     (parse-wire-description-endpoint cl endpoint))
+	 wiredesc))
+
+
+(defun parse-wiring-diagram (cl diagram)
+  "Parse the wiring DIAGRAM for class CL.
+
+Parsing is possibly the wrong word, since we just return the wire
+lists. But these are checked to ensure that they're all consistent
+with the definition of CL."
+  (if (wiring-diagram-p diagram)
+      (let ((wires (cdr diagram)))
+	(if (every #'(lambda (wiredesc)
+			(parse-wire-description cl wiredesc))
+		    diagram)
+	    wires))
+
+      (error "Not a wiring diagram")))
+
+
+;; This should perhaps be the top-level method, including the class?
+
 (defun wiring-diagram-p (arg)
-  "Test is ARG is a wiring diagram.
+  "Test ARG is a wiring diagram.
 
 Wiring diagrams are class arguments that start with
 `:wiring'."
   (equal (car arg) :wiring))
 
 
-(defun ensure-wiring-diagram-valid (wiring)
-  "Test that "
-  (declare (ignore wiring)))
-
 (defun generate-wiring-method (name wiring)
-  "Generate a wiring method from the given WIRING diagram."
+  "Generate a wiring method from the given WIRING diagram on class NAME."
   (with-gensyms (c)
     (flet ((generate-connect (wires)
 	     (destructuring-bind (from to)
@@ -242,12 +337,28 @@ Wiring diagrams are class arguments that start with
 			       ,c ',(ensure-list to)))))
 
       (let ((wirings (mapcar #'generate-connect (cdr wiring))))
-	`(defmethod component-wire ((,c ,name))
+	`(defmethod connect-component ((,c ,name))
 	   ,@wirings)))))
 
 
+;; Should add sanity checks on superclasses, make sure there's no
+;; incompatible metaclass specified.
+
 (defmacro defcomponent (name superclasses slots &rest args)
-  "Define a new component."
+  "Define a new component NAME.
+
+This follows the same pattern as `defclass', with a possibly
+empty list of SUPERCLASSES followed by a list of SLOTS and
+further ARGS. The differences are:
+
+- NAME is always a sub-class of `component', which is added
+  if no SUPERCLASSES are specified
+- NAME is given the `metacomponent' metaclass
+- NAME can have a `:wiring' option providing a wiring diagram
+  describing how any sub-components should be wired-up when
+  an object is instanciated
+- The wiring diagram is used to synthesise a method on the
+ `connect-component' generic function. "
 
   ;; components default to sub-classes of `component'
   (when (null superclasses)
@@ -271,11 +382,3 @@ Wiring diagrams are class arguments that start with
        ;; wiring method definition (if any)
        ,wiring-method
        )))
-
-
-(defgeneric component-wire (c)
-  (:documentation "Internally wire C according to its wiring diagram.
-
-Methods for this function are synthesised for component classes, and
-called automatically when the class is instanciated to enact any
-wiring diagram."))

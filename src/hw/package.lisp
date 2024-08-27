@@ -1,4 +1,4 @@
-;; Package for fully-siftware-emulated hardware
+;; Package for fully-software-emulated hardware
 ;;
 ;; Copyright (C) 2024 Simon Dobson
 ;;
@@ -89,6 +89,8 @@
    #:enabled-p
    #:write-enabled-p
    #:read-enabled-p
+   #:subcomponent-p
+   #:subcomponent-interface
    #:connect-slots
    #:connect-pins
 
@@ -98,6 +100,7 @@
 
    ;; macros
    #:defcomponent
+   #:connect-component
 
    ;; debugging
    #:components-seen-by
@@ -110,6 +113,7 @@
    #:mismatched-wires
    #:non-component-type
    #:non-pin-interface-slot
+   #:invalid-wiring-diagram-slot
    #:incompatible-pin-widths
    #:incompatible-pin-slot-widths
    #:not-fully-wired
