@@ -84,7 +84,7 @@
 
 (defun expression-p (form)
   "Test that FORM is a valid expression form."
-  (funcall (any-of-p let-p operator-p if-p setf-p)
+  (funcall (any-of-p constant-p let-p operator-p if-p setf-p)
 	   form))
 
 
