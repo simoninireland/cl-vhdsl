@@ -20,7 +20,8 @@
 (defpackage cl-vhdsl/test
   (:use :cl :alexandria :serapeum :fiveam
 	:cl-vhdsl)
-  (:local-nicknames (:def :cl-vhdsl/def)
+  (:local-nicknames (:ast :clast)
+		    (:def :cl-vhdsl/def)
 		    (:emu :cl-vhdsl/emu)
 		    (:hw :cl-vhdsl/hw)
 		    (:rtl :cl-vhdsl/rtl))
