@@ -22,7 +22,11 @@
 (defpackage cl-vhdsl
   (:use :cl :alexandria)
   (:export
-   ;; utilities
+   ;; list utilities
    #:index-non-nil
    #:non-nil-subseq
-   #:uniquify))
+   #:uniquify
+
+   ;; predicate combinators
+   #:any-of-p
+   #:all-of-p))

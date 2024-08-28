@@ -48,3 +48,45 @@ next nil element of the end of the sequence."
 (defun uniquify (s)
   "Remove duplicates and nils from sequence S."
   (remove-if #'null (remove-duplicates s)))
+
+
+;; ---------- Predicate combinators ----------
+
+(defun generate-predicate-clause (p c)
+  "Geerate the predicate clause P testing variable C."
+  (cond ((symbolp p)
+	 `(,p ,c))
+	((consp p)
+	 (equal (symbol-name (car p)) "lambda")
+	 `(funcall ,p ,c))
+	(t
+	 (error "Can't parser disjunct ~a" p))))
+
+
+(defun generate-predicate-clauses (preds c)
+  "Generate clauses for PREDS testing variable C."
+  (mapcar #'(lambda (p)
+	      (generate-predicate-clause p c))
+	  preds))
+
+
+(defmacro any-of-p (&rest preds)
+  "Generate an inline lambda predicate matching any of PREDS.
+
+Each element of PREDS can be a symbol representing a function (predicate)
+or an inline function (lambda-expression)."
+  (with-gensyms (c)
+    (let ((pred-clauses (generate-predicate-clauses preds c)))
+      `#'(lambda (,c)
+	   (or ,@pred-clauses)))))
+
+
+(defmacro all-of-p (&rest preds)
+  "Generate an inline lambda predicate matching all of PREDS.
+
+Each element of PREDS can be a symbol representing a function (predicate)
+or an inline function (lambda-expression)."
+  (with-gensyms (c)
+    (let ((pred-clauses (generate-predicate-clauses preds c)))
+      `#'(lambda (,c)
+	   (and ,@pred-clauses)))))

@@ -22,7 +22,8 @@
 	:cl-vhdsl)
   (:local-nicknames (:def :cl-vhdsl/def)
 		    (:emu :cl-vhdsl/emu)
-		    (:hw :cl-vhdsl/hw))
+		    (:hw :cl-vhdsl/hw)
+		    (:rtl :cl-vhdsl/rtl))
   (:import-from :fiveam #:is #:test))
 
 (in-package :cl-vhdsl/test)
