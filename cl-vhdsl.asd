@@ -59,7 +59,11 @@
 			     (:file "microinstruction")
 			     (:file "control")
 			     (:file "debugging")
-			     (:file "conditions"))))
+			     (:file "conditions")))
+	       (:module "rtl"
+			:components ((:file "package")
+				     (:file "syntax")
+				     (:file "parser"))))
   :in-order-to ((test-op (test-op "cl-vhdsl/test"))))
 
 
