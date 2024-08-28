@@ -95,6 +95,9 @@
   (rtl:validate '(let ((val (+ A (ash B 8))))
 		   (setf A val))
 		'(A B))
+  (rtl:validate '(let ((val (+ A (ash B 8))))
+		   (setf A val))
+		'(A B C D))    ;; make sure the subsetp is the right way round....
 
   ;; unhandled free variable
   (signals rtl:unknown-variable
