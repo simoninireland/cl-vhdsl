@@ -63,7 +63,8 @@
 	       (:module "rtl"
 			:components ((:file "package")
 				     (:file "syntax")
-				     (:file "parser"))))
+				     (:file "parser")
+				     (:file "conditions"))))
   :in-order-to ((test-op (test-op "cl-vhdsl/test"))))
 
 
@@ -83,6 +84,7 @@
 	       (:file "test-datapath")
 	       (:file "test-ring-counters")
 	       ;;(:file "test-microinstructions")
+	       (:file "test-rtl")
 	       )
   :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))
 

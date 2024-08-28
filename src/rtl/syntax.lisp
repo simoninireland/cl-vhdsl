@@ -19,9 +19,13 @@
 
 (in-package :cl-vhdsl/rtl)
 
+;; Throughout this file "form" means "abstract syntax tree as returned by
+;; ast:parse from parsing a Lisp s-expression".
+
+
 ;; ---------- Operators ----------
 
-(defvar *arithmetic-operators* '(+ - * / % ash)
+(defvar *arithmetic-operators* '(+ - * / mod ash)
   "Arithmetic operators.")
 
 
@@ -29,8 +33,10 @@
   "Bitwise arithmetic operators.")
 
 
-(defvar *logical-operators* '(and or not = /=)
+(defvar *logical-operators* '(not = /=)
   "Logical operators.")
+;; ...plus and and or, which are implemented as macros expanding to
+;; let or if forms
 
 
 (defun operator-p (form)
@@ -42,24 +48,57 @@
 	     (member op *logical-operators*)))))
 
 
+;; ---------- Constants ----------
+
+(defun constant-p (form)
+  "Test whether FORM evaluates to a constant that can be compiled away."
+  (typep form 'ast::constant-form))
+
+
 ;; ---------- Assignments and local variables ----------
 
 (defun let-p (form)
-  "Test that FORM is  valid let block."
-  (and (typep form 'ast::let-form)
+  "Test that FORM is a valid let block."
+  (and (or (typep form 'ast::let-form)
+	   (typep form 'ast::let*-form))
        (let ((body (slot-value form 'ast::iprogn-forms)))
 	 (every #'expression-p body))))
+
+
+;; ---------- Conditionals ----------
+
+(defun if-p (form)
+  "Test that FORM is a conditional."
+  (or (typep form 'ast::if-form)
+      (typep form 'ast::cond-form)))
+
+
+;; ---------- Assignments ----------
+
+(defun setf-p (form)
+  "Test that FORM is a setf."
+  (typep form 'ast::setf-form))
 
 
 ;; ---------- Expressions ----------
 
 (defun expression-p (form)
   "Test that FORM is a valid expression form."
-  (funcall (one-of-p let-p operator-p) form))
+  (funcall (any-of-p let-p operator-p if-p setf-p)
+	   form))
 
 
 ;; ---------- Fragments ----------
 
 (defun fragment-p (form)
   "Test that FORM is a valid RTLisp fragment."
-  (funcall (one-of-p expression-p) form))
+
+  ;; only expressions at the moment
+  (funcall (any-of-p expression-p) form))
+
+
+(defun closed-fragment-p (form vars)
+  "Test that FORM is a fragment with any free variables mentioned in VARS.
+
+VARS being empty implies that FORM is a closed-form fragment."
+  (subsetp (ast:free-variables form) vars))

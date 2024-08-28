@@ -20,7 +20,22 @@
 (in-package :cl-vhdsl/rtl)
 
 
-(defun validate (form)
-  "Validate that FORM is a valid RTLisp fragment."
+(defun validate (form &optional vars)
+  "Validate that FORM is a valid fragment in an environment containing VARS.
+
+FORM must be a valid synthesisable Lisp fragment. Any variables
+appearing free in FORM must be mentioned in VARS. If VARS ar
+omitted then FORM must be a closed form.
+
+Failure to validate signals either `not-synthesisable' or
+`unknown-variable' as appropriate."
   (let ((f (ast:parse form)))
-    (fragment-p f)))
+
+    ;; syntax
+    (unless (fragment-p f)
+      (error 'not-synthesisable :fragment f))
+
+    ;; closure
+    (unless (closed-fragment-p f vars)
+      (let ((vars (set-difference (ast:free-variables f) vars)))
+	(error 'unknown-variable :variables vars)))))

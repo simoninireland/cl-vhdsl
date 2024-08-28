@@ -25,5 +25,10 @@
 		    (:ast :clast))
 
   (:export
+   ;; validation
    #:validate
+
+   ;; conditions
+   #:not-synthesisable
+   #:unknown-variable
    ))
