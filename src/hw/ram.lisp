@@ -19,7 +19,7 @@
 
 (in-package :cl-vhdsl/hw)
 
-(defclass ram (component clocked readwrite)
+(defclass ram (component enabled clocked readwrite)
   ((address-width
     :documentation "The width of the address bus, in bits."
     :initarg :address-bus-width

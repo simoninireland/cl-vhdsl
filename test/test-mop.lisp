@@ -23,7 +23,7 @@
 
 ;; ---------- Components ----------
 
-(defclass test-component (hw:component hw:clocked)
+(defclass test-component (hw:component hw:enabled hw:clocked)
   ((data-bus
     :initarg :data-bus
     :pins 8
@@ -42,7 +42,7 @@
   (:metaclass hw:metacomponent))
 
 
-(defclass test-component-var (hw:component)
+(defclass test-component-var (hw:component hw:enabled)
   ((width
     :initarg :width)
    (bus
@@ -84,7 +84,7 @@
   (let* ((tc (make-instance 'test-component))
 	 (slots (hw:pin-interface (class-of tc))))
     (is (equal (length slots) 6))
-    (dolist (s '(data-bus address-bus hw::clock hw::enable write-enable io))
+    (dolist (s '(data-bus address-bus hw:enable hw::clock hw::enable write-enable io))
       (is (member s slots)))))
 
 

@@ -22,7 +22,7 @@
 
 ;; ---------- Accessing qualified slots ----------
 
-(defclass test-slotted (hw:component)
+(defclass test-slotted (hw:component hw:enabled)
   ((one
     :pins 8)
    (two
@@ -34,7 +34,7 @@
   (:metaclass hw:metacomponent))
 
 
-(defclass test-subcomponents (hw:component)
+(defclass test-subcomponents (hw:component hw:enabled)
   ((four
     :pins 8)
    (c
@@ -221,7 +221,7 @@
 
 
 (test test-fully-wired-component
-  "Test we can detet a fully-wired component."
+  "Test we can detect a fully-wired component."
   (let* ((db (make-instance 'hw:bus :width 8))
 	 (ab (make-instance 'hw:bus :width 16))
 	 (en (make-instance 'hw:pin :wire (make-instance 'hw:wire)))
@@ -235,7 +235,7 @@
 
 
 (test test-non-fully-wired-component
-  "Test we can detet an unwired component."
+  "Test we can detect an unwired component."
   (let* ((db (make-instance 'hw:bus :width 8))
 	 (ab (make-instance 'hw:bus :width 16))
 	 (tc (make-instance 'test-slotted)))
@@ -248,7 +248,7 @@
 
 
 (test test-fully-wired-subcomponent
-  "Test we can detet a fully-wired component with sub-components."
+  "Test we can detect a fully-wired component with sub-components."
   (let* ((db (make-instance 'hw:bus :width 8))
 	 (ab (make-instance 'hw:bus :width 16))
 	 (en (make-instance 'hw:pin :wire (make-instance 'hw:wire)))
@@ -266,7 +266,7 @@
 
 
 (test test-non-fully-wired-subcomponent
-  "Test we can detet an unwired sub-component."
+  "Test we can detect an unwired sub-component."
   (let* ((db (make-instance 'hw:bus :width 8))
 	 (ab (make-instance 'hw:bus :width 16))
 	 (en (make-instance 'hw:pin :wire (make-instance 'hw:wire)))

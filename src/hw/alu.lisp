@@ -21,7 +21,7 @@
 
 ;; ---------- ALU ----------
 
-(defclass alu (component)
+(defclass alu (component enabled)
   ((width
     :documentation "The width of the ALU."
     :initarg :width

@@ -21,7 +21,7 @@
 
 ;; ---------- Registers ----------
 
-(defclass register (component clocked readwrite)
+(defclass register (component enabled clocked readwrite)
   ((width
     :documentation "The width of the register."
     :initarg :width

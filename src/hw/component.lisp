@@ -25,12 +25,7 @@
   ((name
     :documentation "The readable name of the component."
     :initarg :name
-    :reader name)
-   (enable
-    :documentation "The component-enable pin."
-    :initarg :enable
-    :pins 1
-    :role :control))
+    :reader name))
   (:metaclass metacomponent)
   (:documentation "A component in an architecture.
 
@@ -150,12 +145,6 @@ Components encapsulate functions and offer a pin-based interface."))
   (pin-changed c))
 
 
-;; ---------- Enablement checks ----------
-
-(defmethod enabled-p ((c component))
-  (equal (state (elt (pins (slot-value c 'enable)) 0)) 1))
-
-
 ;; ---------- Pin interface ----------
 
 ;; default callbacks are empty
@@ -209,6 +198,24 @@ otherwise `NIL'."
 
 
 ;; ---------- Mixins for common components ----------
+
+(defclass enabled ()
+  ((enable
+    :documentation "The component-enable pin."
+    :initarg :enable
+    :pins 1
+    :role :control))
+  (:metaclass metacomponent)
+  (:documentation "A mixin for a component that can be enabled.
+
+Enable-able components only respond to changes in their pin interface
+when they are enabled."))
+
+;; Should provide methods that reject calls to dsabled components.
+
+(defmethod enabled-p ((c enabled))
+  (equal (state (elt (pins (slot-value c 'enable)) 0)) 1))
+
 
 (defclass clocked ()
   ((clock

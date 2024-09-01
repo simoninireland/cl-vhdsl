@@ -63,6 +63,7 @@
    #:floating-p
 
    ;; standard components and mixins
+   #:enabled
    #:clocked
    #:readwrite
    #:register

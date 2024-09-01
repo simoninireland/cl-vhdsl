@@ -20,7 +20,7 @@
 (in-package :cl-vhdsl/hw)
 
 
-(defclass ring-counter (component clocked)
+(defclass ring-counter (enabled component clocked)
   ((width
     :documentation "The width of the ring counter."
     :initarg :width
