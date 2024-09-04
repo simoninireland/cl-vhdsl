@@ -155,7 +155,7 @@ The standard roles are:
    - `:io' for I/O pins that can be read from and written to
    - `:control' for control pins permanently in `:reading' mode
    - `:status' for pins reporting component status
-   - `:trigger' for pins that respond to a leading ot trailing edge,
+   - `:trigger' for pins that respond to a leading or trailing edge,
      typically clock pins"))
 
 
