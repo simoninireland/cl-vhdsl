@@ -97,8 +97,8 @@ When present, `:if' methods are run first to test whether the other
 methods in the method stack are run. In other words they behave a
 little like `:around' methods, with the difference that `:if' methods
 always run first wherever they appear in the effective method stack.
-All `:if' methods must return non-nil for the \"functional\" parts
-of the method to be executed.
+All `:if' methods must return non-nil for the \"functional\" parts of
+the method to be executed.
 
 Schematically the method ordering is:
 
@@ -108,8 +108,11 @@ Schematically the method ordering is:
 	(primaries)
 	(afters)))
 
-The order of execution for `:if' methods is undefined, so they should
-not have or rely on side-effects."
+The order of execution for `:if' methods is undefined. However, they
+can have side-effects as long as these can happen in any order. One
+use case is for a guard to prevent a call to the target method but
+redirect the call to another, which is fine as long as there's no
+other guard that might inhibit it."
 
   (let* ((before-form (call-methods befores))
 	 (after-form (call-methods afters))
@@ -121,18 +124,22 @@ not have or rely on side-effects."
 			       ,primary-form)
 			   ,@after-form)
 
+			;; optimisation for no :before or :after methods and
+			;; only one primary method
 			`(call-method ,(car primaries))))
 	 (around-form (if arounds
 			  `(call-method ,(car arounds)
 					(,@(cdr arounds)
 					 (make-method ,core-form)))
 
+			  ;; optimisation for no :around methods
 			  core-form)))
 
     (if ifs
 	`(if (and ,@(call-methods ifs))
 	     ,around-form)
 
+	;; optimisation for no :if methods
 	around-form)))
 
 
