@@ -147,6 +147,63 @@ Components encapsulate functions and offer a pin-based interface."))
 
 ;; ---------- Pin interface ----------
 
+(defun find-pin-slot-def (cl slot &key fatal)
+  "Return the slot definition for SLOT in CL.
+
+If FATAL is set to T an error is raised if SLOT does
+not exist or isn't part of the pin interface."
+  (flet ((pin-slot-named (slot-def)
+	   (and (slot-def-in-pin-interface-p slot-def)
+		(equal (slot-definition-name slot-def) slot))))
+    (if-let ((slot-defs (remove-if-not #'pin-slot-named
+				       (class-slots cl))))
+      (car slot-defs)
+
+      (if fatal
+	  (error "No slot named ~s in pin interface of ~s"
+		 slot cl)))))
+
+
+(defun slot-def-in-pin-interface-p (slot-def)
+  "Test whether SLOT-DEF defines a slot composed of pins.
+
+This tests for the existence of the :pins slot option in the
+slot definition."
+  (slot-exists-and-bound-p slot-def 'pins))
+
+
+(defun pin-interface (cl)
+  "Return a list of all the slots of class CL comprising its pin interface."
+  (let ((slot-defs (remove-if-not #'slot-def-in-pin-interface-p
+				  (class-slots cl))))
+    (mapcar #'slot-definition-name slot-defs)))
+
+
+(defun pin-interface-p (cl slot)
+  "Test whether SLOT is in the pin interface of class CL.
+
+Returns nil if SLOT either isn't a slot in CL's pin
+interface, or isn't a slot of CL at all."
+  (not (null (find-pin-slot-def cl slot))))
+
+
+(defun pin-role-for-slot (cl slot)
+  "Return the role assigned to the pins of SLOT in class CL.
+
+SLOT must be in C's pin interface."
+  (let ((slot-def (find-pin-slot-def cl slot :fatal t)))
+    (slot-value slot-def 'role)))
+
+
+(defun pin-slots-for-roles (cl roles)
+  "Extract all the slots in the pin interface of CL having roles in ROLES."
+  (remove-if-not #'(lambda (slot)
+		     (member (pin-role-for-slot cl slot) roles))
+		 (pin-interface cl)))
+
+
+;; ---------- Behavioural interface ----------
+
 (defgeneric on-pin-changed (c)
   (:method-combination guarded)
   (:documentation "Callback called when the calues asserted on pins of component C change.
@@ -254,7 +311,7 @@ when they are enabled. The states of their pins are left unchanged."))
   (let ((en (enabled-p c))
 	(pre (enabled c)))
 
-    ;; re-direct the callback is the enabled status has changed
+    ;; re-direct the callback if the enabled status has changed
     (cond ((and en (not pre))
 	   ;; component has become enabled
 	   (on-enable c))
