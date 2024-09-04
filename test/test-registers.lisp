@@ -53,6 +53,7 @@
 
     ;; clock the register
     (setf (hw:state clk) 1)
+    (setf (hw:state clk) 0)
 
     ;; check we loaded the value
     (is (equal (hw:register-value reg) #2r1101))))

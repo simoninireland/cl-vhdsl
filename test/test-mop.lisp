@@ -112,3 +112,186 @@
   "Test we can set the number of pins from the value of another slot."
   (let ((tc (make-instance 'test-component-var :width 8)))
     (is (equal (hw:width (slot-value tc 'bus)) (slot-value tc 'width)))))
+
+
+;; ----------  :if method combination ----------
+
+(test test-guard-single-unguarded
+  "Test an guarded method without a guard behaves as standard."
+  (defgeneric test-unguarded (v)
+    (:method-combination hw:guarded))
+
+  (defmethod test-unguarded ((v integer))
+    (+ v 12))
+
+  (is (equal (test-unguarded 1) 13))
+  (is (equal (test-unguarded 12) 24)))
+
+
+(test test-guard-single-primary
+  "Test we can guard a single primary method."
+  (defgeneric test-single-primary (v)
+    (:method-combination hw:guarded))
+
+  (defmethod test-single-primary ((v integer))
+    (+ v 12))
+
+  (defmethod test-single-primary :if ((v integer))
+    (> v 10))
+
+  (is (null (test-single-primary 1)))
+  (is (equal (test-single-primary 12) 24)))
+
+
+(test test-guard-nested-primary
+  "Test we can guard a nested primary method."
+  (defgeneric test-nested-primary (v)
+    (:method-combination hw:guarded))
+
+  (defmethod test-nested-primary ((v integer))
+    (call-next-method (+ v 12)))
+
+  (defmethod test-nested-primary ((v number))
+    (* v 1.5))
+
+  (defmethod test-nested-primary :if ((v integer))
+    (> v 10))
+
+  (is (null (test-nested-primary 1)))
+  (is (equal (test-nested-primary 12.0) 18.0))
+  (is (equal (test-nested-primary 12) 36.0)))
+
+
+(test test-guard-around
+  "Test we can guard a method with :around methods."
+  (defgeneric test-around (v)
+    (:method-combination hw:guarded))
+
+  (defmethod test-around ((v integer))
+    (+ v 12))
+
+  (defmethod test-around :around ((v integer))
+    (call-next-method (* v 10)))
+
+  (defmethod test-around :if ((v integer))
+    (> v 10))
+
+  (is (null (test-around 1)))
+  (is (equal (test-around 12) 132)))
+
+
+(test test-guard-before-after
+  "Test we can guard :before and :after methods"
+  (defparameter test-before-after-b 0)
+  (defparameter test-before-after-a 0)
+
+  (defgeneric test-before-after (v)
+    (:method-combination hw:guarded))
+
+  (defmethod test-before-after ((v integer))
+    (+ v 12))
+
+  (defmethod test-before-after :before ((v integer))
+    (setq test-before-after-b v))
+
+  (defmethod test-before-after :after ((v integer))
+    (setq test-before-after-a v))
+
+  (defmethod test-before-after :if ((v integer))
+    (> v 10))
+
+  (is (null (test-before-after 1)))
+  (is (= test-before-after-b 0))
+  (is (= test-before-after-a 0))
+
+  (is (equal (test-before-after 12) 24))
+  (is (= test-before-after-b 12))
+  (is (= test-before-after-a 12)))
+
+
+(test test-guard-before-after-around
+  "Test we can compose :around with :before and :after"
+  (defparameter test-before-after-around-b 0)
+  (defparameter test-before-after-around-a 0)
+
+  (defgeneric test-before-after-around (v)
+    (:method-combination hw:guarded))
+
+  (defmethod test-before-after-around ((v integer))
+    (+ v 12))
+
+  (defmethod test-before-after-around :before ((v integer))
+    (setq test-before-after-around-b v))
+
+  (defmethod test-before-after-around :after ((v integer))
+    (setq test-before-after-around-a v))
+
+  (defmethod test-before-after-around :around ((v integer))
+    (call-next-method (* v 10)))
+
+  (defmethod test-before-after-around :if ((v integer))
+    (> v 10))
+
+  (is (null (test-before-after-around 1)))
+  (is (= test-before-after-around-b 0))
+  (is (= test-before-after-around-a 0))
+
+  (is (equal (test-before-after-around 12) 132))
+  (is (= test-before-after-around-b 120))
+  (is (= test-before-after-around-a 120)))
+
+
+(test test-guarded-several
+  "Test we can have several guards on the same method."
+  (defgeneric test-several (v)
+    (:method-combination hw:guarded))
+
+  (defmethod test-several ((v integer))
+    (+ v 12))
+
+  ;; methods need to be specialised against different types,
+  ;; so this adds two guards that will be selected by an integer
+  ;; value
+  (defmethod test-several :if ((v integer))
+    (> v 10))
+  (defmethod test-several :if ((v number))
+    (< v 100))
+
+  (is (null (test-several 1)))
+  (is (null (test-several 101)))
+  (is (equal (test-several 12) 24)))
+
+
+(test test-guarded-hier
+  "Test we can acquire :if guards from up and down an inheritance hierarchy."
+  (defclass test-hier-c ()
+    ((value
+      :initform 9
+      :initarg :value)))
+  (defclass test-hier-c-1 (test-hier-c) ())
+  (defclass test-hier-c-2 (test-hier-c-1) ())
+
+  (defgeneric test-hier (v)
+    (:method-combination hw:guarded))
+
+  (defmethod test-hier ((v test-hier-c))
+    (slot-value v 'value))
+
+  (defmethod test-hier ((v test-hier-c-1))
+    (+ (call-next-method) 26))
+
+  (defmethod test-hier ((v test-hier-c-2))
+    (+ (call-next-method) 1000))
+
+  (defmethod test-hier :if ((v test-hier-c-2))
+    (< (slot-value v 'value) 100))
+
+  (defmethod test-hier :if ((v test-hier-c))
+    (= (slot-value v 'value) 9))
+
+  (is (equal (test-hier (make-instance 'test-hier-c)) 9))
+  (is (equal (test-hier (make-instance 'test-hier-c-1)) 35))
+  (is (equal (test-hier (make-instance 'test-hier-c-2)) 1035))
+
+  (is (null (test-hier (make-instance 'test-hier-c-2 :value 200))))
+  (is (null (test-hier (make-instance 'test-hier-c-2 :value 25)))))

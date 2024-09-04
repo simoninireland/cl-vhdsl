@@ -43,7 +43,7 @@
 ;; - :control for control pins that are set to :reading
 ;; - :trigger for control trigger pins set to :trigger
 ;;
-;; Further roles can be defined by specialising `make-pin-for-role'
+;; Further roles can be defined by specialising `configure-pin-for-role'
 ;;
 ;; If there are any @initform or :initargs for pin interface slots,
 ;; they should contain the wire or wires that the slot's pins should
@@ -58,6 +58,8 @@
    (role
     :type symbol)))
 
+;; There's more work to do here in deciding how slots can be
+;; re-defined or combined.
 
 (defmethod compute-effective-slot-definition ((cl metacomponent) slot slot-defs)
   (let ((slot-def (call-next-method)))
@@ -72,6 +74,66 @@
 
 (defmethod validate-superclass ((cl standard-class) (super metacomponent))
   t)
+
+
+;; ---------- Enabler helper ----------
+
+(defun call-methods (methods)
+  "Return `call-method' forms for all METHODS."
+  (mapcar #'(lambda (m)
+	      `(call-method ,m))
+	  methods))
+
+
+(define-method-combination guarded (&optional (order :most-specific-first))
+  ((arounds (:around))
+   (ifs (:if))
+   (befores (:before))
+   (primaries () :order order :required t)
+   (afters (:after)))
+    "A method combination that adds `:if' methods to guard a generic function.
+
+When present, `:if' methods are run first to test whether the other
+methods in the method stack are run. In other words they behave a
+little like `:around' methods, with the difference that `:if' methods
+always run first wherever they appear in the effective method stack.
+All `:if' methods must return non-nil for the \"functional\" parts
+of the method to be executed.
+
+Schematically the method ordering is:
+
+   (if (and ifs)
+     (arounds
+	(befores)
+	(primaries)
+	(afters)))
+
+The order of execution for `:if' methods is undefined, so they should
+not have or rely on side-effects."
+
+  (let* ((before-form (call-methods befores))
+	 (after-form (call-methods afters))
+	 (primary-form `(call-method ,(car primaries) ,(cdr primaries)))
+	 (core-form (if (or befores afters (cdr primaries))
+			`(prog1
+			     (progn
+			       ,@before-form
+			       ,primary-form)
+			   ,@after-form)
+
+			`(call-method ,(car primaries))))
+	 (around-form (if arounds
+			  `(call-method ,(car arounds)
+					(,@(cdr arounds)
+					 (make-method ,core-form)))
+
+			  core-form)))
+
+    (if ifs
+	`(if (and ,@(call-methods ifs))
+	     ,around-form)
+
+	around-form)))
 
 
 ;; ---------- Pin roles ----------

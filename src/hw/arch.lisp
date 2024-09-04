@@ -212,11 +212,11 @@ pin. (This situation is assumed to be unusual.)"
 	 (when (logic-value-p wire-nv)
 	   ;; for :reading pins, call their components' change notification
 	   (dolist (c (wire-components-with-pins-asserting w :reading))
-	     (pin-changed c))
+	     (on-pin-changed c))
 
 	   ;; for :trigger pins, call the pin's change notification
 	   (dolist (p (wire-pins-asserting w :trigger))
-	     (pin-triggered (component p) p wire-nv))))))
+	     (on-pin-triggered (component p) p wire-nv))))))
 
 
 (defmethod wire-add-pin ((w wire) p)

@@ -49,8 +49,11 @@
    #:bus
    #:pin
    #:connector
-   #:metacomponent
    #:component
+
+   ;; MOP
+   #:metacomponent
+   #:guarded
 
    ;; common generic operations over elements
    #:name
@@ -96,8 +99,10 @@
    #:connect-pins
 
    ;; behavioural callbacks
-   #:pin-changed
-   #:pin-triggered
+   #:on-pin-changed
+   #:on-pin-triggered
+   #:on-enabled
+   #:on-disabled
 
    ;; macros
    #:defcomponent

@@ -52,25 +52,30 @@ available on the bus. Write-enable should be see from the perspective
 of a client outside the register."))
 
 
-(defmethod pin-triggered ((r register) p (v (eql 1)))
+(defmethod on-pin-triggered ((r register) p (v (eql 1)))
   (declare (ignore p))            ;; we only have one trigger pin
 
-  (when (and (enabled-p r)
-	     (write-enabled-p r))
+  (when (write-enabled-p r)
     (register-value-from-data-bus r)))
 
 
-(defmethod pin-changed ((r register))
-  (if (enabled-p r)
-      (if (write-enabled-p r)
-	  ;; set all data bus pins to :reading
-	  (setf (pin-states (register-data-bus r)) :reading)
+(defmethod on-pin-changed ((r register))
+  (if (write-enabled-p r)
+      ;; set all data bus pins to :reading
+      (setf (pin-states (register-data-bus r)) :reading)
 
-	  ;; put the value of the register onto the data bus pins
-	  (register-value-to-data-bus r))
+      ;; put the value of the register onto the data bus pins
+      (register-value-to-data-bus r)))
 
-      ;; tri-state the data bus
-      (setf (pin-states (register-data-bus r)) :tristate)))
+
+(defmethod on-enable ((r register))
+  ;; set the data bus pins to reading
+  (setf (pin-states (register-data-bus r)) :reading))
+
+
+(defmethod on-disable ((r register))
+  ;; tri-state the data bus
+  (setf (pin-states (register-data-bus r)) :tristate))
 
 
 (defun register-value-to-data-bus (r)

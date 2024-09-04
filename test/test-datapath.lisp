@@ -71,6 +71,7 @@
 
     ;; clock the system
     (setf (hw:state clk) 1)
+    (setf (hw:state clk) 0)
 
     ;; check we loaded the value
     (is (equal (aref (hw:ram-elements ram) #16rFF) 123))

@@ -65,7 +65,7 @@ width is exceeded and it wraps-around back to 0."))
     (setf (pins-value (slot-value rc 'counter-bus)) mask)))
 
 
-(defmethod pin-triggered ((rc ring-counter) p (v (eql 1)))
+(defmethod on-pin-triggered ((rc ring-counter) p (v (eql 1)))
   (declare (ignore p))
 
   ;; increment the count

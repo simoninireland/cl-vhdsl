@@ -142,14 +142,40 @@ Components encapsulate functions and offer a pin-based interface."))
   (connect-component c)
 
   ;; make sure we're in a state consistent with our initial pins
-  (pin-changed c))
+  (on-pin-changed c))
 
 
 ;; ---------- Pin interface ----------
 
-;; default callbacks are empty
-(defmethod pin-changed ((c component)))
-(defmethod pin-triggered ((c component) p v))
+(defgeneric on-pin-changed (c)
+  (:method-combination guarded)
+  (:documentation "Callback called when the calues asserted on pins of component C change.
+
+This happens for changes on `:reading' and `:control' pins only.
+Changes to tristated pins are ignored; changes to `:trigger' pins
+cause a `pin-triggered' callback.
+
+The methods on this function are guarded, meaning that methods may
+implement the `:if' qualifier to prevent execution of the method if
+the guard evaluates to false.")
+
+  ;; default callback is empty
+  (:method ((c component))))
+
+
+(defgeneric on-pin-triggered (c p v)
+  (:method-combination guarded)
+  (:documentation "Callback called when trigger pin P on component C transitions to V.
+
+This method can be specialised using `eql' to only be fired on (for example)
+rising transitions.
+
+The methods on this function are guarded, meaning that methods may
+implement the `:if' qualifier to prevent execution of the method if
+the guard evaluates to false.")
+
+  ;; default callback is empty
+  (:method ((c component) p v)))
 
 
 (defmethod pins (c)
@@ -199,24 +225,73 @@ otherwise `NIL'."
 
 ;; ---------- Mixins for common components ----------
 
+;; Enable-able components
 (defclass enabled ()
   ((enable
     :documentation "The component-enable pin."
     :initarg :enable
     :pins 1
-    :role :control))
+    :role :control)
+   (enabled
+    :documentation "Flag recording the component's enablement."
+    :initform nil
+    :accessor enabled))
   (:metaclass metacomponent)
   (:documentation "A mixin for a component that can be enabled.
 
 Enable-able components only respond to changes in their pin interface
-when they are enabled."))
-
-;; Should provide methods that reject calls to dsabled components.
+when they are enabled. The states of their pins are left unchanged."))
 
 (defmethod enabled-p ((c enabled))
-  (equal (state (elt (pins (slot-value c 'enable)) 0)) 1))
+  (let ((en (elt (pins (slot-value c 'enable)) 0)))
+    (and (fully-wired-p en)
+	 (not (floating-p en))
+	 (equal (state en) 1))))
 
 
+;; Guards to prevent callbacks on disabled components
+(defmethod on-pin-changed :if ((c enabled))
+  (let ((en (enabled-p c))
+	(pre (enabled c)))
+
+    ;; re-direct the callback is the enabled status has changed
+    (cond ((and en (not pre))
+	   ;; component has become enabled
+	   (on-enable c))
+
+	  ((and (not en) pre)
+	   ;; component has become disabled
+	   (on-disable c)))
+    (setf (enabled c) en)
+
+    ;; return whether we're now enabled
+    en))
+
+
+(defmethod on-pin-triggered :if ((c enabled) p v)
+  (enabled-p c))
+
+
+;; Callbacks for enablement and disablement
+
+;; TODO: Should we tristate :io and :reading pins, or indeed all pins except
+;; enable, when the component is disabled?
+
+(defgeneric on-enable (c)
+  (:documentation "Callback called when a component is enabled.")
+
+  ;; default callback is empty
+  (:method ((c enabled))))
+
+
+(defgeneric on-disable (c)
+  (:documentation "Callback called when a component is disabled.")
+
+  ;; defalt callback is empty
+  (:method ((c enabled))))
+
+
+;; Clocked components
 (defclass clocked ()
   ((clock
     :documentation "The component's clock pin."
@@ -231,6 +306,7 @@ Clocked components do most of their active work when the clock
 transitions, although they can change state at other times too."))
 
 
+;; Read/write components
 (defclass readwrite ()
   ((write-enable
     :documentation "The component's write-enable pin."
