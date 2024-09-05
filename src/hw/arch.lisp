@@ -26,7 +26,7 @@
 
 
 (defgeneric pins (e)
-  (:documentation "Return all the pins on element E."))
+  (:documentation "Return a list of all the pins on element E."))
 
 
 (defgeneric state (e)
@@ -47,18 +47,26 @@ If E is a component itself, this will include all sub-components. "))
   (:documentation "Return the width in bits of element E."))
 
 
+(defgeneric floating-p (e)
+  (:documentation "Test whether element E has any floating values.
+
+Floating values are usually (although not necessarily) an error."))
+
+
 (defgeneric fully-wired-p (e)
   (:documentation "Test whether element E is fully wired.
 
 Dangling wires are usually (although not necessarily) an error.
 Use `ensure-fully-wired' to test a set of elements at once and
-signal an error if there are dangling wires."))
+signal an error if there are dangling wires.
 
+Additional methods added to this function must use the \"and\"
+qualifier, and are treated as a conjunction,")
+  (:method-combination and)
 
-(defgeneric floating-p (e)
-  (:documentation "Test whether element E has any floating values.
-
-Floating values are usually (although not necessarily) an error."))
+  ;; the default checks that all pins are wired
+  (:method and (e)
+    (null (remove-if #'pin-wired-p (pins e)))))
 
 
 ;; ---------- Wires ----------
@@ -219,7 +227,8 @@ pin. (This situation is assumed to be unusual.)"
 	     (on-pin-triggered (component p) p wire-nv))))))
 
 
-(defmethod wire-add-pin ((w wire) p)
+(defun wire-add-pin (w p)
+  "Add pin P to wire W."
   (let ((v (slot-value p 'state)))
     ;; check we don't already know this pin
     (when (wire-known-pin-p w p)
@@ -321,7 +330,7 @@ caused the notification."))
   (declare (ignore initargs))
 
   ;; connect to the underlying wire if there is one
-  (when (fully-wired-p p)
+  (when (pin-wired-p p)
     (wire-add-pin (wire p) p)))
 
 
@@ -343,7 +352,8 @@ caused the notification."))
   (equal (slot-value p 'state) :tristate))
 
 
-(defmethod fully-wired-p ((p pin))
+(defun pin-wired-p (p)
+  "Test whether P is attached to a wire or not."
   (not (null (wire p))))
 
 
@@ -391,7 +401,7 @@ caused the notification."))
       (ensure-pin-state p nv)
 
       (setf (slot-value p 'state) nv)
-      (when (fully-wired-p p)
+      (when (pin-wired-p p)
 	  (setf (wire-state (wire p) p ov) nv)))))
 
 
@@ -404,7 +414,7 @@ caused the notification."))
     :reader width)
    (pins
     :documentation "The pins of the connector."
-    :reader pins)
+    :reader pins-sequence)
    (component
     :documentation "The component this connector's pins are connected to."
     :initarg :component
@@ -440,10 +450,6 @@ A connector connects a sequence of wires to a component."))
   (list (component c)))
 
 
-(defmethod fully-wired-p ((conn connector))
-  (every #'fully-wired-p (pins conn)))
-
-
 (defun connector-pins-floating (conn)
   "Return a list of floating pins in CONN."
   (remove-if-not #'floating-p (coerce (pins conn) 'list)))
@@ -451,6 +457,10 @@ A connector connects a sequence of wires to a component."))
 
 (defmethod floating-p ((conn connector))
   (> (length (connector-pins-floating conn)) 0))
+
+
+(defmethod pins ((conn connector))
+  (coerce (pins-sequence conn) 'list))
 
 
 (defun pin-states (conn)

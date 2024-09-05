@@ -233,15 +233,43 @@ widths, or when no wodth can be determined at all. It must be possible
 to find exactly one width for all the pin slots."))
 
 
+(define-condition invalid-endpoint ()
+  ((component
+    :documentation "The component with the invalid endpoint."
+    :initarg :component
+    :reader invalid-endpoint-component)
+   (endpoint
+    :documentation "The endpoint."
+    :initarg :endpoint
+    :reader invalid-endpoint))
+  (:report (lambda (c str)
+	     (format str "Invalid endpoint ~a on ~a"
+		     (invalid-endpoint c)
+		     (invalid-endpoint-component c))))
+  (:documentation "Condition signalled when an invalid endpoint appears in a wiring diagram.
+
+
+Each endpoint must either be a symbol on the component that identofies
+a pin slot, or a pair of symbols identifying a slot containing a sub-component
+and a pin slot on that component."))
+
+
 (define-condition not-fully-wired ()
   ((elements
     :documentation "The elements that remain fully or partially unwired."
     :initarg :elements
-    :reader not-fully-wired-elements))
+    :reader not-fully-wired-elements)
+   (pins
+    :documentation "The unwired pins."
+    :initarg :pins
+    :reader not-fully-wired-pins))
   (:report (lambda (c str)
-	     (format str "Some elements remain unwired: ~s"
-		     (not-fully-wired-elements c))))
+	     (format str "Some elements remain unwired: ~a (pins ~a)"
+		     (not-fully-wired-elements c)
+		     (not-fully-wired-pins c))))
   (:documentation "Condition signalled when some elements remain unwired.
 
 Unwired elements may not be an error -- but usually are. Fix by
-connecting the unwired elements to wires."))
+connecting the unwired elements to wires. The condition includes both
+the elements and the pins that remain unwired, which may simplify
+finding the problem for complicated wiring diagrams."))

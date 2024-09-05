@@ -285,7 +285,7 @@
 
 ;; ---------- Self-wiring components ----------
 
-(hw:defcomponent test-selfwired ()
+(defclass test-selfwired (hw:component hw:enabled)
   ((tc1
     :type test-slotted
     :initarg :one)
@@ -294,7 +294,39 @@
     :initarg :two)
    (three
     :pins 16))
-  ;; (:wiring ((tc1 one) (tc2 one))
-  ;;	   ((tc1 two) (tc2 two))
-  ;;	   (three (tc1 three) (tc2 three))))
-  )
+  (:wiring ((tc1 one) (tc2 one))
+	   ((tc1 two) (tc2 two))
+	   (three (tc1 three) (tc2 three))
+	   ((tc1 hw:enable) (tc2 hw:enable) hw:enable))
+  (:metaclass hw:metacomponent))
+
+
+(test test-self-wired-none
+     "Test we don't always have to have a wiring diagram."
+  (let ((c (make-instance 'test-slotted)))
+    (is (null (hw:wiring-diagram (class-of c))))))
+
+
+(test test-self-wired-simple
+  "Test simple self-wiring."
+  (let ((c (make-instance 'test-selfwired
+			  :one (make-instance 'test-slotted)
+			  :two (make-instance 'test-slotted))))
+
+    ;; pin interface
+    (is (null (set-difference (hw:pin-interface (class-of c))
+			      '(three hw:enable))))
+
+    ;; wiring diagram
+    (let* ((cl (class-of c))
+	   (wires (hw::ensure-wiring-diagram cl (hw:wiring-diagram cl))))
+      (is (not (null wires)))
+      (is (equal (length wires) 4)))))
+
+
+(test test-self-wired-correctly
+  "Test that the self-wiring happens correctly and fully."
+  (let ((c (make-instance 'test-selfwired
+			  :one (make-instance 'test-slotted)
+			  :two (make-instance 'test-slotted))))
+    (hw:ensure-fully-wired c)))

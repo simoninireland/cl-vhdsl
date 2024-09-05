@@ -41,7 +41,7 @@ SLOT is checked to ensure it's in the pin interface of C."
       (error 'non-pin-interface-slot :component c :slot slot)))
 
 
-(defun component-slot-connector (c s)
+(defun slot-connector (c s)
   "Return the connector for S on C.
 
 S should be a one- or two-element list identifying either a
@@ -57,6 +57,17 @@ in one of its slots."
   (ensure-pin-slot c (car s)))
 
 
+(defun ensure-compatible-widths (conn b)
+  "Ensure connector CONN can be connected to bus B.
+
+At the moment this means their widths mst be equal: it might be
+acceptable to relax this as long as the us is \"wide enough\"
+for the connector"
+  (if (not (equal (width conn) (width b)))
+      (error 'incompatible-pin-widths :connector conn
+				      :bus b)))
+
+
 ;; ---------- Wiring state tests ----------
 
 (defun ensure-fully-wired (&rest args)
@@ -65,26 +76,29 @@ in one of its slots."
 The elements of ARGS will typically be components, but can also
 be pins, connectors, or anything accepted by `fully-wired-p'.
 
+Components are only fully wired if their sub-compnents (if any) are.
+
 If the elements are not fully wired, a `not-fully-wired' error
 is signalled containing all the pins that fail the test."
-  (let (not-wired)
-    (dolist (c args)
-      (dolist (p (coerce (pins c) 'list))
-	(when (not (fully-wired-p p))
-	  (setq not-wired (append (list p) not-wired)))))
-
-    (when (not (null not-wired))
-      (error 'not-fully-wired :elements not-wired))))
+  (flet ((all-components (c)
+	   "Include a component and its subcomponents."
+	   (if (typep c 'component)
+	       (cons c (components c))
+	       c)))
+    (let ((not-fully-wired (remove-if #'fully-wired-p (mapappend #'all-components args))))
+      (unless (null not-fully-wired)
+	(let ((unwired-pins (remove-if #'pin-wired-p
+				       (mapappend #'pins not-fully-wired))))
+	  (error 'not-fully-wired :elements not-fully-wired
+				  :pins unwired-pins))))))
 
 
 ;; ---------- Wiring interface ----------
 
 (defun connect-pins (conn b)
-
+  "Connect the pins of connector CONN to the wires of bus B."
   ;; widths have to match
-  (if (not (equal (width conn) (width b)))
-      (error 'incompatible-pin-widths :connector conn
-				      :bus b))
+  (ensure-compatible-widths conn b)
 
   ;; wire-up the pins
   (let ((ps (pins conn))
@@ -94,13 +108,11 @@ is signalled containing all the pins that fail the test."
 
 
 (defun connect-slots (c1 s1 c2 s2)
-  (let* ((conn1 (component-slot-connector c1 s1))
-	 (conn2 (component-slot-connector c2 s2))
+  "Connect slot S1 on component C1 to slot S2 on component C2."
+  (let* ((conn1 (slot-connector c1 s1))
+	 (conn2 (slot-connector c2 s2))
 	 (w1 (width conn1))
 	 (w2 (width conn2)))
-    (if (= w1 w2)
-	(let ((b (make-instance 'bus :width w1)))
-	  (connect-pins conn1 b)
-	  (connect-pins conn2 b))
-
-	(error 'incompatible-pin-widths))))
+    (let ((b (make-instance 'bus :width w1)))
+      (connect-pins conn1 b)
+      (connect-pins conn2 b))))

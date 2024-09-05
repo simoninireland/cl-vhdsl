@@ -26,6 +26,7 @@
 		#:standard-class
 		#:class-slots
 		#:class-direct-slots
+		#:ensure-class-using-class
 		#:compute-slots
 		#:slot-definition-type
 		#:slot-definition-name
@@ -90,11 +91,13 @@
    #:pin-states
    #:pins-value
    #:configure-pin-for-role
+   #:slot-connector
    #:enabled-p
    #:write-enabled-p
    #:read-enabled-p
    #:subcomponent-p
    #:subcomponent-interface
+   #:wiring-diagram
    #:connect-slots
    #:connect-pins
 
@@ -104,7 +107,7 @@
    #:on-enabled
    #:on-disabled
 
-   ;; macros
+   ;; macro interface
    #:defcomponent
    #:connect-component
 
@@ -122,6 +125,7 @@
    #:invalid-wiring-diagram-slot
    #:incompatible-pin-widths
    #:incompatible-pin-slot-widths
+   #:invalid-endpoint
    #:not-fully-wired
 
    ;; ---------- Inner interface ----------
@@ -139,6 +143,7 @@
    #:pin-reading-p
    #:pin-asserted-p
    #:pin-floating-p
+   #:pin-wired-p
    #:pin-state
 
    ;; micro-instructions

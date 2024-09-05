@@ -21,44 +21,53 @@
 
 ;; ---------- The metaclass of components ----------
 
-;; The metaclass introduces two new slot arguments, :pin and
-;; :role, to mark slots as part of the pin interface. These
-;; markers are then picked up when an object of the class is
-;; instanciated.
-;;
-;; :pins defined the number of pins in the slot. It should be one of:
-;;
-;; - an integer
-;; - a symbol identifying another slot on the same object that
-;;   contains the width
-;; - T, to denote a slot with undetermined width
-;;
-;; If the width is set to the value of a nother slot, this value
-;; is treated as a constant and assigned to :pins for later queries.
-;;
-;; :role defines the intended use of the pins in the slot, and
-;; should be one of:
-;;
-;; - :io for I/O pins
-;; - :control for control pins that are set to :reading
-;; - :trigger for control trigger pins set to :trigger
-;;
-;; Further roles can be defined by specialising `configure-pin-for-role'
-;;
-;; If there are any @initform or :initargs for pin interface slots,
-;; they should contain the wire or wires that the slot's pins should
-;; be connected to.
-;;
-;; If wires are provided and the :pins value is set to T, the number
-;; of wires will be taken as the width of the slot.
-
-(def-extra-options-metaclass metacomponent ()
+;; Create a hidden base metaclass wose "slots" become options
+;; available for slots in the final class
+(def-extra-options-metaclass premetacomponent ()
   ((pins
     :type integer)
    (role
     :type symbol)))
 
-;; There's more work to do here in deciding how slots can be
+
+(defclass metacomponent (premetacomponent)
+  ((wiring
+    :documentation "The wiring diagram."
+    :initarg :wiring
+    :initform nil
+    :reader wiring-diagram))
+  (:documentation "The metaclass of components.
+
+The metaclass introduces two new slot arguments, `:pins' and
+`:role', to mark slots as part of the pin interface. These
+markers are then picked up when an object of the class is
+instanciated.
+
+`:pins' defines the number of pins in the slot. It should be one of:
+
+- an integer
+- a symbol identifying another slot on the same object that
+  contains the width
+- T, to denote a slot with undetermined width
+
+If the width is set to the value of a nother slot, this value
+is treated as a constant and assigned to :pins for later queries.
+
+`:role' defines the intended use of the pins in the slot, and can'tbe
+any role supported by `configure-pin-for-role'
+
+If there are any `:initform' or :`initargs' for pin interface slots,
+they should contain the wire or wires that the slot's pins should
+be connected to.
+
+If wires are provided and the `:pins' value is set to T, the number
+of wires will be taken as the width of the slot.
+
+Classes with this metaclass can also include a slot `:wiring' that
+specifies a wiring diagram for instances of the class."))
+
+
+;; TODO There's more work to do here in deciding how slots can be
 ;; re-defined or combined.
 
 (defmethod compute-effective-slot-definition ((cl metacomponent) slot slot-defs)

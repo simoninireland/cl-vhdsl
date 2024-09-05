@@ -32,27 +32,19 @@
 Components encapsulate functions and offer a pin-based interface."))
 
 
-;; Initialisation of components is split into two parts. We first
-;; override the primary method for `initialize-instance' to create the
-;; pins for all slots in the pin interface for which we know their
-;; width. We then add an :around method that calls
-;; `component-pins-changed' to let the component set up its internal
-;; state to be consistent with its initial pin values.
+;; We add an :after method for `initialize-instance' to create the pins
+;; for all slots in the pin interface for which we know their width.
+;; We then wire-up these components and slots by calling
+;; `connect-component' and finally call `component-pins-changed' to
+;; let the component set up its internal state to be consistent with
+;; its initial pin values.
 ;;
-;; The reason to separate these, and for using the :around method, is
-;; to support sub-class initialisation. The new primary method runs
-;; first and calls the underlying `initialize-instance' method to
-;; create and populate other slots. This will run any :before methods,
-;; then run the overridden primary method, and then run any :after
-;; methods on `initilize-instance' that sub-classes might define.
-;; These :after methods will see an object whose pins have been
-;; initialised, as expected. The :around method then calls
-;; `component-pins-changed' in an environment where the pins *and* any
-;; other state has been initialised, which means it sees the component
-;; in a sensible state.
-
-;; This method should be decomposed to let the individual elements be
-;; called/overridden programmatically
+;; If sub-classes add additional :after methods specialised against
+;; themselves, these will see a component that's fully wired-up
+;; according to any embeded wiring diagram.
+;;
+;; The :after method should probably be decomposed to let the
+;; individual elements be called/overridden programmatically
 
 (defun component-width-of-slot (c slot-def)
   "Return the width of SLOT-DEF on C."
@@ -66,11 +58,11 @@ Components encapsulate functions and offer a pin-based interface."))
 	w)))
 
 
-(defmethod initialize-instance ((cc component) &rest initargs)
+(defmethod initialize-instance :after ((c component) &rest initargs)
   (declare (ignore initargs))
 
-  (let* ((c (call-next-method))
-	 (slot-defs (class-slots (class-of c))))
+  ;; create the slots and connectors for the pin interface
+  (let* ((slot-defs (class-slots (class-of c))))
     (dolist (slot-def slot-defs)
       (when (slot-def-in-pin-interface-p slot-def)
 	;; slot is in the pin interface
@@ -126,26 +118,22 @@ Components encapsulate functions and offer a pin-based interface."))
 		      (when bus
 			(connect-pins conn bus))
 
-		      conn))))))
+		      conn)))))))
 
-    ;; return the instance
-    c))
-
-
-(defmethod initialize-instance :around ((c component) &rest initargs)
-  (declare (ignore initargs))
-
-  ;; do the normal initialisation routines
-  (call-next-method)
-
-  ;; wire-up the component internally
+  ;; wire-up the slots we created
   (connect-component c)
+
+  ;; TODO make sure all sub-component slotsthat have objects have
+  ;; all their slots wired
 
   ;; make sure we're in a state consistent with our initial pins
   (on-pin-changed c))
 
 
 ;; ---------- Pin interface ----------
+
+;; TODO We should change these functions to cache the pin interface
+;; details at compile time to avoid the need to search the metaobjects
 
 (defun find-pin-slot-def (cl slot &key fatal)
   "Return the slot definition for SLOT in CL.
@@ -200,6 +188,16 @@ SLOT must be in C's pin interface."
   (remove-if-not #'(lambda (slot)
 		     (member (pin-role-for-slot cl slot) roles))
 		 (pin-interface cl)))
+
+
+;; This includes only the pin on the component, not on its sub-components
+
+(defmethod pins ((c component))
+  (let* ((cl (class-of c))
+	 (pin-slots (pin-interface cl)))
+    (mapappend #'(lambda (slot)
+		   (pins (slot-value c slot)))
+	       pin-slots)))
 
 
 ;; ---------- Pin roles ----------
@@ -264,21 +262,6 @@ the guard evaluates to false.")
   (:method ((c component) p v)))
 
 
-(defmethod pins (c)
-  (let* ((cl (class-of c))
-	 (pin-slots (pin-interface cl)))
-    (flatten (map 'list #'(lambda (slot)
-			    (coerce (pins (slot-value c slot)) 'list))
-		  pin-slots))))
-
-
-(defmethod fully-wired-p ((c component))
-  (let ((pin-slots (pin-interface (class-of c))))
-    (every #'(lambda (slot)
-	       (fully-wired-p (slot-value c slot)))
-	   pin-slots)))
-
-
 ;; ---------- Sub-components ----------
 
 (defun subcomponent-p (cl slot)
@@ -309,245 +292,82 @@ otherwise `NIL'."
 	  (subcomponent-interface (class-of c))))
 
 
-;; ---------- Mixins for common components ----------
-
-;; Enable-able components
-(defclass enabled ()
-  ((enable
-    :documentation "The component-enable pin."
-    :initarg :enable
-    :pins 1
-    :role :control)
-   (enabled
-    :documentation "Flag recording the component's enablement."
-    :initform nil
-    :accessor enabled))
-  (:metaclass metacomponent)
-  (:documentation "A mixin for a component that can be enabled.
-
-Enable-able components only respond to changes in their pin interface
-when they are enabled. The states of their pins are left unchanged."))
-
-(defmethod enabled-p ((c enabled))
-  (let ((en (elt (pins (slot-value c 'enable)) 0)))
-    (and (fully-wired-p en)
-	 (not (floating-p en))
-	 (equal (state en) 1))))
-
-
-;; Guards to prevent callbacks on disabled components
-(defmethod on-pin-changed :if ((c enabled))
-  (let ((en (enabled-p c))
-	(pre (enabled c)))
-
-    ;; re-direct the callback if the enabled status has changed
-    (cond ((and en (not pre))
-	   ;; component has become enabled
-	   (on-enable c))
-
-	  ((and (not en) pre)
-	   ;; component has become disabled
-	   (on-disable c)))
-    (setf (enabled c) en)
-
-    ;; return whether we're now enabled
-    en))
-
-
-(defmethod on-pin-triggered :if ((c enabled) p v)
-  (enabled-p c))
-
-
-;; Callbacks for enablement and disablement
-
-;; TODO: Should we tristate :io and :reading pins, or indeed all pins except
-;; enable, when the component is disabled?
-
-(defgeneric on-enable (c)
-  (:documentation "Callback called when a component is enabled.")
-
-  ;; default callback is empty
-  (:method ((c enabled))))
-
-
-(defgeneric on-disable (c)
-  (:documentation "Callback called when a component is disabled.")
-
-  ;; defalt callback is empty
-  (:method ((c enabled))))
-
-
-;; Clocked components
-(defclass clocked ()
-  ((clock
-    :documentation "The component's clock pin."
-    :initarg :clock
-    :pins 1
-    :role :trigger
-    :reader clock))
-  (:metaclass metacomponent)
-  (:documentation "A mixin for a component that has a clock line.
-
-Clocked components do most of their active work when the clock
-transitions, although they can change state at other times too."))
-
-
-;; Read/write components
-(defclass readwrite ()
-  ((write-enable
-    :documentation "The component's write-enable pin."
-    :initarg :write-enable
-    :pins 1
-    :role :control
-    :reader write-enable))
-  (:metaclass metacomponent)
-  (:documentation "A mixin for a component that has a write-enable line..
-
-This provides a common control line for determining whether a component
-reads data from a bus (when write-enable is high) or makes data available
-on the bus. 'Write' should be seen from the perspective of ourside the
-component.
-
-This only works for components with a single decision on read or write.
-More complicated components might need several such control lines."))
-
-
-(defmethod write-enabled-p ((c readwrite))
-  (equal (state (elt (pins (slot-value c 'write-enable)) 0)) 1))
-
-
-(defmethod read-enabled-p ((c readwrite))
-  (not (write-enabled-p c)))
-
-
 ;; ---------- Integral wiring diagrams ----------
+
+(defun ensure-wire-description-endpoint (cl endpoint)
+  "Parse ENDPOINT against class CL.
+
+Check the endpoint is valid, meaning that it is a symbol
+naming a pin slot on CL or a pair of symbols naming a sub-component
+slot on CL and a pin slot on that sub-component."
+  (or (cond ((symbolp endpoint)
+	     ;; slot on this component
+	     (pin-interface-p cl endpoint))
+
+	    ((consp endpoint)
+	     ;; slot on a sub-component
+	     (let* ((cslot (car endpoint))
+		    (slot-type (subcomponent-p cl cslot)))
+	       (if slot-type
+		   (let ((slot (safe-cadr endpoint)))
+		     (ensure-wire-description-endpoint (find-class slot-type) slot))))))
+
+      ;; if we fall through, the endpoint was invalid
+      (error 'invalid-endpoint :component cl :endpoint endpoint)))
+
+
+(defun ensure-wire-description (cl wiredesc)
+  "Parse WIREDESC against class CL and check validity."
+  (every #'(lambda (endpoint)
+	     (ensure-wire-description-endpoint cl endpoint))
+	 wiredesc))
+
+
+(defun ensure-wiring-diagram (cl wires)
+  "Parse the WIRES give for class CL."
+  (if (every #'(lambda (wiredesc)
+		 (ensure-wire-description cl wiredesc))
+	     wires)
+      wires))
+
+
+(defun endpoint-connector (c endpoint)
+  "Return the connector for ENDPOINT on C."
+  (if (symbolp endpoint)
+      (slot-value c endpoint)
+      (slot-value (slot-value c (car endpoint)) (safe-cadr endpoint))))
+
+
+;; TODO This will fall foul of pin slots with widths of T, which can
+;; be connected top any "appropriate" bus.
+
+(defun connect-wire (c w)
+  "Connect all the slots in W within C."
+  (let (b)
+    (dolist (endpoint w)
+      (let ((conn (endpoint-connector c endpoint)))
+	;; make sure we have a bus to connect to
+	(if (null b)
+	    (setq b (make-instance 'bus :width (width conn))))
+
+	;; connect the wires
+	(connect-pins conn b)))))
+
 
 (defgeneric connect-component (c)
   (:documentation "Internally wire C according to its wiring diagram.
 
-Methods on this function enact any wiring diagrams. They are
-synthesised for `component' classes and called automatically when the
-class is instanciated."))
+This function is called automatically by `make-instance' when a component
+is instanciated, and wires-up any class-wide wiring diagram. It can be
+specialised to add more behaviours."))
 
 
-;; No universally shared wiring -- although naybe there should be, to
-;; a clock?
-(defmethod connect-component ((c component)))
+;; TODO we should sanity-check the wiring disagram at compile time, from
+;; within metacomponent.
 
-
-;; These parse functions should probably signal errors to
-;; highlight where the problem is
-
-(defun parse-wire-description-endpoint (cl endpoint)
-  "Parse ENDPOINT against class CL.
-
-Return `T' if the endpoint is valid, meaning that it is a symbol
-naming a pin slot on CL or a pair of symbols naming a sub-component
-slot on CL and a pin slot on that sub-component."
-  (cond ((symbolp endpoint)
-	 (pin-interface-p cl endpoint))
-
-	((consp endpoint)
-	 (let* ((cslot (car endpoint))
-		(slot (if (consp (cdr endpoint))
-			  (cadr endpoint)  ;; for lists
-			  (cdr endpoint))) ;; for pairs
-		(slot-type (subcomponent-p cl cslot)))
-	   (and slot-type
-		(parse-wire-description-endpoint slot-type slot))))
-
-	(t
-	 nil)))
-
-
-(defun parse-wire-description (cl wiredesc)
-  "Parse WIREDESC against class CL and check validity.
-
-Return `T' if the wire description is valid, mmeaning all its
-endpoints are valid."
-  (every #'(lambda (endpoint)
-	     (parse-wire-description-endpoint cl endpoint))
-	 wiredesc))
-
-
-(defun parse-wiring-diagram (cl diagram)
-  "Parse the wiring DIAGRAM for class CL.
-
-Parsing is possibly the wrong word, since we just return the wire
-lists. But these are checked to ensure that they're all consistent
-with the definition of CL."
-  (if (wiring-diagram-p diagram)
-      (let ((wires (cdr diagram)))
-	(if (every #'(lambda (wiredesc)
-			(parse-wire-description cl wiredesc))
-		    diagram)
-	    wires))
-
-      (error "Not a wiring diagram")))
-
-
-;; This should perhaps be the top-level method, including the class?
-
-(defun wiring-diagram-p (arg)
-  "Test ARG is a wiring diagram.
-
-Wiring diagrams are class arguments that start with
-`:wiring'."
-  (equal (car arg) :wiring))
-
-
-(defun generate-wiring-method (name wiring)
-  "Generate a wiring method from the given WIRING diagram on class NAME."
-  (with-gensyms (c)
-    (flet ((generate-connect (wires)
-	     (destructuring-bind (from to)
-		 wires
-	       `(connect-slots ,c ',(ensure-list from)
-			       ,c ',(ensure-list to)))))
-
-      (let ((wirings (mapcar #'generate-connect (cdr wiring))))
-	`(defmethod connect-component ((,c ,name))
-	   ,@wirings)))))
-
-
-;; Should add sanity checks on superclasses, make sure there's no
-;; incompatible metaclass specified.
-
-(defmacro defcomponent (name superclasses slots &rest args)
-  "Define a new component NAME.
-
-This follows the same pattern as `defclass', with a possibly
-empty list of SUPERCLASSES followed by a list of SLOTS and
-further ARGS. The differences are:
-
-- NAME is always a sub-class of `component', which is added
-  if no SUPERCLASSES are specified
-- NAME is given the `metacomponent' metaclass
-- NAME can have a `:wiring' option providing a wiring diagram
-  describing how any sub-components should be wired-up when
-  an object is instanciated
-- The wiring diagram is used to synthesise a method on the
- `connect-component' generic function. "
-
-  ;; components default to sub-classes of `component'
-  (when (null superclasses)
-    (setq superclasses (list 'component)))
-
-  ;; if we have a wiring diagram, generate the wiring method
-  (let ((wiring (find-if #'wiring-diagram-p args))
-	wiring-method)
-    (when wiring
-      (setq args (remove-if #'wiring-diagram-p
-			    args))
-      (setq wiring-method (generate-wiring-method name wiring)))
-
-    `(progn
-       ;; class definition
-       (defclass ,name (,@superclasses)
-	 ,slots
-	 (:metaclass metacomponent)
-	 ,@args)
-
-       ;; wiring method definition (if any)
-       ,wiring-method
-       )))
+(defmethod connect-component ((c component))
+  (let* ((cl (class-of c))
+	 (diagram (wiring-diagram cl))
+	 (wires (ensure-wiring-diagram cl diagram)))
+    (dolist (wire wires)
+      (connect-wire c wire))))

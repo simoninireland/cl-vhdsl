@@ -39,7 +39,7 @@ when they are enabled. The states of their pins are left unchanged."))
 
 (defmethod enabled-p ((c enabled))
   (let ((en (elt (pins (slot-value c 'enable)) 0)))
-    (and (fully-wired-p en)
+    (and (pin-wired-p en)
 	 (not (floating-p en))
 	 (equal (state en) 1))))
 
