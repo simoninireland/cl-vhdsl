@@ -51,6 +51,7 @@
 			     (:file "arch")
 			     (:file "mop")
 			     (:file "component")
+			     (:file "mixins")
 			     (:file "wiring")
 			     (:file "register")
 			     (:file "alu")
