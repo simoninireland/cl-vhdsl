@@ -63,8 +63,8 @@ be connected to.
 If wires are provided and the `:pins' value is set to T, the number
 of wires will be taken as the width of the slot.
 
-Classes with this metaclass can also include a slot `:wiring' that
-specifies a wiring diagram for instances of the class."))
+Classes with this metaclass can also include an argument `:wiring'
+that specifies a wiring diagram for instances of the class."))
 
 
 ;; TODO There's more work to do here in deciding how slots can be
