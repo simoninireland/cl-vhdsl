@@ -54,6 +54,7 @@ Floating values are usually (although not necessarily) an error."))
 
 
 (defgeneric fully-wired-p (e)
+  (:method-combination and)
   (:documentation "Test whether element E is fully wired.
 
 Dangling wires are usually (although not necessarily) an error.
@@ -62,7 +63,6 @@ signal an error if there are dangling wires.
 
 Additional methods added to this function must use the \"and\"
 qualifier, and are treated as a conjunction,")
-  (:method-combination and)
 
   ;; the default checks that all pins are wired
   (:method and (e)
