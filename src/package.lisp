@@ -29,4 +29,8 @@
 
    ;; predicate combinators
    #:any-of-p
-   #:all-of-p))
+   #:all-of-p
+
+   ;; data structure manipulations
+   #:safe-cadr
+   ))

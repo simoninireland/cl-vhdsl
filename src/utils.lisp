@@ -90,3 +90,16 @@ or an inline function (lambda-expression)."
     (let ((pred-clauses (generate-predicate-clauses preds c)))
       `#'(lambda (,c)
 	   (and ,@pred-clauses)))))
+
+
+;; ---------- Second element of pair or list ----------
+
+;; Neither of `elt' or `cadr' ar safe when applied to pairs.
+
+(defun safe-cadr (l)
+  "Return  the second element of L.
+
+L can be a list or a pair."
+  (if (consp (cdr l))
+      (cadr l)
+      (cdr l)))

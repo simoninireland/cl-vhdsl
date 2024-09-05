@@ -88,3 +88,15 @@
 	     '(t nil)))
   (is (equal (mapcar (all-of-p evenp (lambda (n) (= n 15))) (list 15 15))
 	     '(nil nil))))
+
+
+;; ---------- safe-cadr ----------
+
+(test test-safe-cadr
+  "Test we can safely extract the second element of a pair or list."
+  (is (equal (safe-cadr (cons 1 2)) 2))
+  (is (equal (safe-cadr (cons 1 (cons 2 3))) 2))
+  (is (equal (safe-cadr (list 1 2)) 2))
+  (is (equal (safe-cadr (list 1 2 3)) 2))
+  (is (null (safe-cadr (list 1))))
+  (is (null (safe-cadr (cons 1 nil)))))
