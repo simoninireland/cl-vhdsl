@@ -103,3 +103,10 @@ L can be a list or a pair."
   (if (consp (cdr l))
       (cadr l)
       (cdr l)))
+
+
+;; ---------- Flat maps----------
+
+(defun mapappend (f &rest ls)
+  "Apply F to all elements of lists LS at whatever depth, returning a flat list of results."
+  (flatten (mapcar f (flatten ls))))

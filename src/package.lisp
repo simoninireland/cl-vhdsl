@@ -20,7 +20,7 @@
 (in-package :common-lisp-user)
 
 (defpackage cl-vhdsl
-  (:use :cl :alexandria)
+  (:use :cl :alexandria :serapeum)
   (:export
    ;; list utilities
    #:index-non-nil
@@ -33,4 +33,5 @@
 
    ;; data structure manipulations
    #:safe-cadr
+   #:mapappend
    ))

@@ -100,3 +100,26 @@
   (is (equal (safe-cadr (list 1 2 3)) 2))
   (is (null (safe-cadr (list 1))))
   (is (null (safe-cadr (cons 1 nil)))))
+
+
+;; ---------- Flat maps ----------
+
+(test test-mapappend-as-mapcar
+  "Test mapappend defaults to working like mapcar"
+  (let ((l (list 1 2 3 4 5)))
+    (is (equal (mapcar #'1+ l)
+	       (mapappend #'1+ l)))))
+
+
+(test test-mapappend-flattens
+  "Test that mapappend flattens its results."
+  (let ((l (list 1 2 (list 3 4) 5)))
+    (is (equal (mapcar #'1+ (flatten l))
+	       (mapappend #'1+ l)))))
+
+
+(test test-mapappend-flattens-leading-list
+  "Test that mapappend flattens its results with a leading list."
+  (let ((l (list (list 1 2) (list 3 4) 5)))
+    (is (equal (mapcar #'1+ (flatten l))
+	       (mapappend #'1+ l)))))
