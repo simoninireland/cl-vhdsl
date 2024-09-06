@@ -302,7 +302,7 @@
 
 
 (test test-self-wired-none
-     "Test we don't always have to have a wiring diagram."
+  "Test we don't always have to have a wiring diagram."
   (let ((c (make-instance 'test-slotted)))
     (is (null (hw:wiring-diagram (class-of c))))))
 
