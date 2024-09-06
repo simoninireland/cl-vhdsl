@@ -123,7 +123,7 @@ Components encapsulate functions and offer a pin-based interface."))
   ;; wire-up the slots we created
   (connect-component c)
 
-  ;; TODO make sure all sub-component slotsthat have objects have
+  ;; TODO make sure all sub-component slots that have objects have
   ;; all their slots wired
 
   ;; make sure we're in a state consistent with our initial pins
@@ -209,7 +209,9 @@ Methods can specialise this function to configure pins appropriatly for
 new roles.
 
 The standard roles are:
+
    - `:io' for I/O pins that can be read from and written to
+   - `:reading' for pins that can only be read from
    - `:control' for control pins permanently in `:reading' mode
    - `:status' for pins reporting component status
    - `:trigger' for pins that respond to a leading or trailing edge,
@@ -218,6 +220,9 @@ The standard roles are:
 
 (defmethod configure-pin-for-role (pin (role (eql :io)))
   (setf (state pin) :tristate))
+
+(defmethod configure-pin-for-role (pin (role (eql :reading)))
+  (setf (state pin) :reading))
 
 (defmethod configure-pin-for-role (pin (role (eql :control)))
   (setf (state pin) :reading))
@@ -233,15 +238,15 @@ The standard roles are:
 
 (defgeneric on-pin-changed (c)
   (:method-combination guarded)
-  (:documentation "Callback called when the calues asserted on pins of component C change.
+  (:documentation "Callback called when the values asserted on pins of component C change.
 
 This happens for changes on `:reading' and `:control' pins only.
 Changes to tristated pins are ignored; changes to `:trigger' pins
 cause a `pin-triggered' callback.
 
 The methods on this function are guarded, meaning that methods may
-implement the `:if' qualifier to prevent execution of the method if
-the guard evaluates to false.")
+implement the `:if' qualifier to conditionally prevent execution of
+the method if the guard evaluates to false.")
 
   ;; default callback is empty
   (:method ((c component))))
@@ -252,11 +257,11 @@ the guard evaluates to false.")
   (:documentation "Callback called when trigger pin P on component C transitions to V.
 
 This method can be specialised using `eql' to only be fired on (for example)
-rising transitions.
+rising transitions to 1.
 
 The methods on this function are guarded, meaning that methods may
-implement the `:if' qualifier to prevent execution of the method if
-the guard evaluates to false.")
+implement the `:if' qualifier to conditionally prevent execution of
+the method if the guard evaluates to false.")
 
   ;; default callback is empty
   (:method ((c component) p v)))
