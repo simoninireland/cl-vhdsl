@@ -96,34 +96,34 @@
       (is (equal v rv)))))
 
 
-;; ---------- ALU registers ----------
+;; ---------- Latches ----------
 
 (test test-alu-register-load
-  "Test a register makes a loaded value visible on its ALU bus."
+  "Test a latch makes a loaded value visible on its latched bus."
   (let* ((data-bus (make-instance 'hw:bus :width 8))
 	 (data-bus-connector (make-instance 'hw:connector
 					    :width 8))
-	 (alu-bus (make-instance 'hw:bus :width 8))
-	 (alu-bus-connector (make-instance 'hw:connector
-					    :width 8
-					    :role :reading))
+	 (latched-bus (make-instance 'hw:bus :width 8))
+	 (latched-bus-connector (make-instance 'hw:connector
+					       :width 8
+					       :role :reading))
 	 (clk (make-instance 'hw:pin :state 0
 				     :wire (make-instance 'hw:wire)))
 	 (en (make-instance 'hw:pin :state 0
 				    :wire (make-instance 'hw:wire)))
 	 (wr (make-instance 'hw:pin :state 0
 				    :wire (make-instance 'hw:wire)))
-	 (reg (make-instance 'hw:alu-register :width 8
-					      :clock (hw:wire clk)
-					      :enable (hw:wire en)
-					      :bus data-bus
-					      :alu-bus alu-bus
-					      :write-enable (hw:wire wr))))
+	 (latch (make-instance 'hw:latch :width 8
+					 :clock (hw:wire clk)
+					 :enable (hw:wire en)
+					 :bus data-bus
+					 :latched-bus latched-bus
+					 :write-enable (hw:wire wr))))
 
     ;; connect the connector
     (hw:connect-pins data-bus-connector data-bus)
-    (hw:connect-pins alu-bus-connector alu-bus)
-    (hw:ensure-fully-wired reg)
+    (hw:connect-pins latched-bus-connector latched-bus)
+    (hw:ensure-fully-wired latch)
 
     ;; put a value on the bus
     (setf (hw:pins-value data-bus-connector) #2r1101)
@@ -136,11 +136,11 @@
     (setf (hw:state clk) 1)
     (setf (hw:state clk) 0)
 
-    ;; check the value is on the ALU bus
-    (is (equal (hw::register-value reg)
-	       (hw:pins-value alu-bus-connector)))
+    ;; check the value is available on the latched bus
+    (is (equal (hw::register-value latch)
+	       (hw:pins-value latched-bus-connector)))
 
-    ;; disable the register and check the value is still visible on the ALU bus
+    ;; disable the latch and check the value is still visible on the latched bus
     (setf (hw:state en) 0)
-    (is (equal (hw::register-value reg)
-	       (hw:pins-value alu-bus-connector)))))
+    (is (equal (hw::register-value latch)
+	       (hw:pins-value latched-bus-connector)))))

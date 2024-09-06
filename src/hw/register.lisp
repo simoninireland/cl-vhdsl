@@ -92,29 +92,33 @@ This implies that the pins are all :reading."
 
 ;; ---------- ALU registers ----------
 
-(defclass alu-register (register)
-  ((alu-bus
-    :documentation "The ALU side the register feeds."
-    :initarg :alu-bus
+(defclass latch (register)
+  ((latched-bus
+    :documentation "The bus showing the latched value."
+    :initarg :latched-bus
     :pins width
     :role :io
-    :reader alu-bus))
+    :reader latched-bus))
   (:metaclass metacomponent)
-  (:documentation "An ALU register.
+  (:documentation "A latch.
 
-ALU registers have a second data bus that constantly feeds the value
-in the register to the ALU, regardless of whether the register is
-enabled or not."))
+A latch is a register that also provides a way of \"peeking\" at its
+value in a way that's always visible regardless of whether the latch
+is enabled or not. The `data-bus' connector is used to read and write
+the latch just like a register; the `latched-bus' connector makes
+the latched value available.
+
+A typical use for latches is attaching a register to an ALU, where the
+value is made available constantly for arithmetic but whose update
+and access via the data bus are controlled."))
 
 
 ;; This logic is in the triggering even because that's the only time the
 ;; value of the register should change.
 
-(defmethod on-pin-triggered :after ((r alu-register) p (v (eql 1)))
+(defmethod on-pin-triggered :after ((l latch) p (v (eql 1)))
   (declare (ignore p)) ;; we only have one trigger pin
 
-  ;; put the value on the ALU bus too
-  (if (write-enabled-p r)
-      (register-value-to-bus r (alu-bus r)))
-
-  )
+  ;; put the value on the latched bus too
+  (if (write-enabled-p l)
+      (register-value-to-bus l (latched-bus l))))
