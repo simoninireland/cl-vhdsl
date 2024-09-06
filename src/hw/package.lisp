@@ -71,6 +71,7 @@
    #:clocked
    #:readwrite
    #:register
+   #:alu-register
    #:register-value
    #:alu
    #:ram

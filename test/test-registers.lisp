@@ -94,3 +94,53 @@
 	  (rv (hw:pins-value data-bus-connector)))
       (is (equal v #2r10110))
       (is (equal v rv)))))
+
+
+;; ---------- ALU registers ----------
+
+(test test-alu-register-load
+  "Test a register makes a loaded value visible on its ALU bus."
+  (let* ((data-bus (make-instance 'hw:bus :width 8))
+	 (data-bus-connector (make-instance 'hw:connector
+					    :width 8))
+	 (alu-bus (make-instance 'hw:bus :width 8))
+	 (alu-bus-connector (make-instance 'hw:connector
+					    :width 8
+					    :role :reading))
+	 (clk (make-instance 'hw:pin :state 0
+				     :wire (make-instance 'hw:wire)))
+	 (en (make-instance 'hw:pin :state 0
+				    :wire (make-instance 'hw:wire)))
+	 (wr (make-instance 'hw:pin :state 0
+				    :wire (make-instance 'hw:wire)))
+	 (reg (make-instance 'hw:alu-register :width 8
+					      :clock (hw:wire clk)
+					      :enable (hw:wire en)
+					      :bus data-bus
+					      :alu-bus alu-bus
+					      :write-enable (hw:wire wr))))
+
+    ;; connect the connector
+    (hw:connect-pins data-bus-connector data-bus)
+    (hw:connect-pins alu-bus-connector alu-bus)
+    (hw:ensure-fully-wired reg)
+
+    ;; put a value on the bus
+    (setf (hw:pins-value data-bus-connector) #2r1101)
+
+    ;; enable the register and set its value as writeable from the bus
+    (setf (hw:state en) 1)
+    (setf (hw:state wr) 1)
+
+    ;; clock the register
+    (setf (hw:state clk) 1)
+    (setf (hw:state clk) 0)
+
+    ;; check the value is on the ALU bus
+    (is (equal (hw::register-value reg)
+	       (hw:pins-value alu-bus-connector)))
+
+    ;; disable the register and check the value is still visible on the ALU bus
+    (setf (hw:state en) 0)
+    (is (equal (hw::register-value reg)
+	       (hw:pins-value alu-bus-connector)))))

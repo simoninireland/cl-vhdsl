@@ -19,14 +19,14 @@
 
 (in-package :cl-vhdsl/hw)
 
-;; ---------- Registers ----------
+;; ---------- Simple registers ----------
 
 (defclass register (component enabled clocked readwrite)
   ((width
     :documentation "The width of the register."
     :initarg :width
     :initform 8
-    :reader register-width)
+    :reader width)
    (value
     :documentation "The register's current value."
     :initarg :value
@@ -37,7 +37,7 @@
     :initarg :bus
     :pins width
     :role :io
-    :reader register-data-bus))
+    :reader data-bus))
   (:metaclass metacomponent)
   (:documentation "A register.
 
@@ -56,35 +56,65 @@ of a client outside the register."))
   (declare (ignore p))            ;; we only have one trigger pin
 
   (when (write-enabled-p r)
-    (register-value-from-data-bus r)))
+    (register-value-from-bus r (data-bus r))))
 
 
 (defmethod on-pin-changed ((r register))
   (if (write-enabled-p r)
       ;; set all data bus pins to :reading
-      (setf (pin-states (register-data-bus r)) :reading)
+      (setf (pin-states (data-bus r)) :reading)
 
       ;; put the value of the register onto the data bus pins
-      (register-value-to-data-bus r)))
+      (register-value-to-bus r (data-bus r))))
 
 
 (defmethod on-enable ((r register))
   ;; set the data bus pins to reading
-  (setf (pin-states (register-data-bus r)) :reading))
+  (setf (pin-states (data-bus r)) :reading))
 
 
 (defmethod on-disable ((r register))
   ;; tri-state the data bus
-  (setf (pin-states (register-data-bus r)) :tristate))
+  (setf (pin-states (data-bus r)) :tristate))
 
 
-(defun register-value-to-data-bus (r)
-  "Move the value of R to the pins of the data bus."
-  (setf (pins-value (register-data-bus r)) (register-value r)))
+(defun register-value-to-bus (r b)
+  "Move the value of R to the pins of bus B."
+  (setf (pins-value b) (register-value r)))
 
 
-(defun register-value-from-data-bus (r)
-  "Make the value on the pins of the data bus the value of R.
+(defun register-value-from-bus (r b)
+  "Make the value on the pins of bus B the value of R.
 
 This implies that the pins are all :reading."
-  (setf (slot-value r 'value) (pins-value (register-data-bus r))))
+  (setf (slot-value r 'value) (pins-value b)))
+
+
+;; ---------- ALU registers ----------
+
+(defclass alu-register (register)
+  ((alu-bus
+    :documentation "The ALU side the register feeds."
+    :initarg :alu-bus
+    :pins width
+    :role :io
+    :reader alu-bus))
+  (:metaclass metacomponent)
+  (:documentation "An ALU register.
+
+ALU registers have a second data bus that constantly feeds the value
+in the register to the ALU, regardless of whether the register is
+enabled or not."))
+
+
+;; This logic is in the triggering even because that's the only time the
+;; value of the register should change.
+
+(defmethod on-pin-triggered :after ((r alu-register) p (v (eql 1)))
+  (declare (ignore p)) ;; we only have one trigger pin
+
+  ;; put the value on the ALU bus too
+  (if (write-enabled-p r)
+      (register-value-to-bus r (alu-bus r)))
+
+  )
