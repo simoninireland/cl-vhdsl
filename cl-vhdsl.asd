@@ -82,6 +82,7 @@
 	       (:file "test-wires")
 	       (:file "test-wiring")
 	       (:file "test-registers")
+	       (:file "test-alu")
 	       (:file "test-datapath")
 	       (:file "test-ring-counters")
 	       ;;(:file "test-microinstructions")
