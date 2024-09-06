@@ -371,7 +371,7 @@ caused the notification."))
 	(equal v 1))))
 
 
-(defmethod floating-p (p)
+(defmethod floating-p ((p pin))
   (or (pin-tristated-p p)
       (and (pin-reading-p p)
 	   (floating-p (wire p)))))
