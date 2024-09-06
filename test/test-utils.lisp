@@ -51,6 +51,62 @@
   (is (equal (non-nil-subseq '(nil 1 2 3 nil 1 2)) '(1 2 3))))
 
 
+;; ---------- Changing list depths ----------
+
+(test test-listify
+  "Test we can increase depth."
+  (is (null (listify '())))
+  (is (equal (listify '(1 2 3))
+	     '((1) (2) (3))))
+  (is (equal (listify '(1 (2 3) 4))
+	     '((1) ((2 3)) (4)))))
+
+
+(test test-delistify
+  "Test we can decrease depth."
+  (is (null (delistify '())))
+  (is (equal (delistify '((1) (2) (3)))
+	     '(1 2 3)))
+  (is (equal (delistify '((1) ((2 3)) (4)))
+	     '(1 (2 3) 4))))
+
+
+;; ---------- Zipping while ignoring nulls ----------
+
+(test test-zip-straight
+  "Test we can zip lists without nulls."
+  (is (equal (zip-without-null '(1 2 3) '(4 5 6))
+	     '((1 4) (2 5) (3 6))))
+  (is (equal (zip-without-null '(1 (2 3) 4) '(5 6 7))
+	     '((1 5) ((2 3) 6) (4 7)))))
+
+
+(test test-zip-null
+  "Test we can zip lists with nulls."
+  (is (equal (zip-without-null '(1 nil 3) '(4 5 6))
+	     '((1 4) (3 6))))
+  (is (equal (zip-without-null '(1 2 3) '(4 5 nil))
+	     '((1 4) (2 5)))))
+
+
+(test test-zip-unequal
+  "Test we can zip unequal-length lists with nulls."
+  (is (equal (zip-without-null '(1 nil 3) '(4 5 6 7 8))
+	     '((1 4) (3 6)))))
+
+
+(test test-zip-all-null
+  "Test we can zip lists that are all nulls"
+  (is (null (zip-without-null '(nil nil nil) '(1 2 3))))
+  (is (null (zip-without-null '(1 2 3) '(nil nil nil)))))
+
+
+(test test-zip-empty
+  "Test we can zip one empty list."
+  (is (null (zip-without-null '(1 2 3) nil)))
+  (is (null (zip-without-null nil '(1 2 3)))))
+
+
 ;; ---------- Predicate combinators ----------
 
 (test test-any

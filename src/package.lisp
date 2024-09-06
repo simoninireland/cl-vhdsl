@@ -26,6 +26,9 @@
    #:index-non-nil
    #:non-nil-subseq
    #:uniquify
+   #:listify
+   #:delistify
+   #:zip-without-null
 
    ;; predicate combinators
    #:any-of-p

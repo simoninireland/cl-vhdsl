@@ -50,6 +50,34 @@ next nil element of the end of the sequence."
   (remove-if #'null (remove-duplicates s)))
 
 
+;; ---------- Increasing and decreasing list nesting ----------
+
+(defun listify (l)
+  "Wrap each element of L in a singleton list."
+  (mapcar #'list l))
+
+
+(defun delistify (l)
+  "Remove a level of nesting from each element of L."
+  (mapcar #'car l))
+
+
+;; ---------- Zipping in the presence of null ----------
+
+(defun zip-without-null (xs ys)
+  "Zip lists XS and YS when elements are not null.
+
+If either element is null, the pair is omitted."
+  (when (not (or (null xs)
+		 (null ys)))
+    (if (or (null (car xs))
+	    (null (car ys)))
+	(zip-without-null (cdr xs) (cdr ys))
+
+	(cons (list (car xs) (car ys))
+	      (zip-without-null (cdr xs) (cdr ys))))))
+
+
 ;; ---------- Predicate combinators ----------
 
 (defun generate-predicate-clause (p c)
