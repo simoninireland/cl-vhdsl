@@ -38,23 +38,24 @@ SLOT is checked to make sure it is a component."
 SLOT is checked to ensure it's in the pin interface of C."
   (if (pin-interface-p (class-of c) slot)
       (slot-value c slot)
+
       (error 'non-pin-interface-slot :component c :slot slot)))
 
 
 (defun slot-connector (c s)
   "Return the connector for S on C.
 
-S should be a one- or two-element list identifying either a
-pin-slot of C or a pin-slot of a sub-component of C held
-in one of its slots."
+S should be a symbol or a two-element list identifying either a
+pin-slot of C or a pin-slot of a sub-component of C held in one of its
+slots."
 
-  ;; extract the right slot, either drectly or on the sub-component
-  (when (> (length s) 1)
+  ;; extract the right slot, either directly or on the sub-component
+  (when (consp s)
     (setq c (ensure-subcomponent c (car s)))
-    (setq s (cdr s)))
+    (setq s (safe-cadr s)))
 
   ;; return the connector
-  (ensure-pin-slot c (car s)))
+  (ensure-pin-slot c s))
 
 
 (defun ensure-compatible-widths (conn b)

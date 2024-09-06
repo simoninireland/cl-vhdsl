@@ -133,8 +133,8 @@
 (test test-wire-slots
   "Test we can wire two compatible slots."
   (let ((tc (make-instance 'test-slotted)))
-    (hw:connect-slots tc (list 'one)
-		      tc (list 'two))
+    (hw:connect-slots tc 'one
+		      tc 'two)
 
     ;; component doesn't see itself
     (is (null (hw:components-seen-by tc)))))
@@ -144,7 +144,7 @@
   "Test we can wire-up slots on sub-components."
   (let* ((tc1 (make-instance 'test-slotted ))
 	 (tc2 (make-instance 'test-subcomponents :sub tc1)))
-    (hw:connect-slots tc1 (list 'one)
+    (hw:connect-slots tc1 'one
 		      tc2 (list 'c 'two))))
 
 
@@ -152,7 +152,7 @@
   "Test we can wire-up slots between component and sub-somponent."
   (let* ((tc1 (make-instance 'test-slotted ))
 	 (tc2 (make-instance 'test-subcomponents :sub tc1)))
-    (hw:connect-slots tc2 (list 'four)
+    (hw:connect-slots tc2 'four
 		      tc2 (list 'c 'two))))
 
 
@@ -160,8 +160,8 @@
   "Test we can't wire slots with incompatible widths."
   (let ((tc (make-instance 'test-slotted)))
     (signals (hw:incompatible-pin-widths)
-      (hw:connect-slots tc (list 'one)
-			tc (list 'three)))))
+      (hw:connect-slots tc 'one
+			tc 'three))))
 
 
 (test test-wire-slots-widths-sub
@@ -169,7 +169,7 @@
   (let* ((tc1 (make-instance 'test-slotted ))
 	 (tc2 (make-instance 'test-subcomponents :sub tc1)))
     (signals (hw:incompatible-pin-widths)
-      (hw:connect-slots tc1 (list 'one)
+      (hw:connect-slots tc1 'one
 			tc2 (list 'c 'three)))))
 
 
@@ -177,16 +177,16 @@
   "Test we can't wire missing slots."
   (let ((tc (make-instance 'test-subcomponents)))
     (signals (hw:non-pin-interface-slot)
-      (hw:connect-slots tc (list 'four)
-			tc (list 'one)))))
+      (hw:connect-slots tc 'four
+			tc 'one))))
 
 
 (test test-wire-slots-other
   "Test we can't wire slots to non-pin-slots."
   (let ((tc (make-instance 'test-subcomponents)))
     (signals (hw:non-pin-interface-slot)
-      (hw:connect-slots tc (list 'four)
-			tc (list 'other)))))
+      (hw:connect-slots tc 'four
+			tc 'other))))
 
 
 ;; ---------- Fully wired ----------
