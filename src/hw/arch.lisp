@@ -320,6 +320,8 @@ to `component-pin-triggered', which also specifies the pin that
 caused the notification."))
 
 
+;; TODO This should be a type assertion
+
 (defun ensure-pin-state (p state)
   "Ensure it makes sense to use STATE for P."
   (unless (member state '(0 1 :reading :tristate :trigger))
