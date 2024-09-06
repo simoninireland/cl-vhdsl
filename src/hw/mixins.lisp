@@ -69,7 +69,7 @@ when they are enabled. The states of their pins are left unchanged."))
 
 ;; Callbacks for enablement and disablement
 
-;; TODO: Should we tristate :io and :reading pins, or indeed all pins except
+;; TODO Should we tristate :io and :reading pins, or indeed all pins except
 ;; enable, when the component is disabled? Or leave that to sub-classes?
 
 (defgeneric on-enable (c)
@@ -78,6 +78,9 @@ when they are enabled. The states of their pins are left unchanged."))
   ;; default callback is empty
   (:method ((c enabled))))
 
+
+;; TODO Should we have an :after method here that re-calls `on-pin-changed'
+;; so that the pins are updated to reflect the component's state?
 
 (defgeneric on-disable (c)
   (:documentation "Callback called when a component is disabled.")
