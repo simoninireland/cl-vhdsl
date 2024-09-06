@@ -134,10 +134,10 @@
       (let ((r (hw:pins-value (hw::alu-c-bus alu))))
 	(is (equal r (1- a)))
 
-	;; value remains on ALU output when ALU disabled
+	;; value remains on output when ALU disabled
 	(setf (hw:state en-u) 0)
 	(is (equal (hw:pins-value (hw::alu-c-bus alu)) r))
 
-	;; valuedoesn't change when ALU disabled
+	;; value doesn't change when ALU disabled
 	(setf (hw:pins-value op-bus-connector) #2r100)
-	(is (equal (hw:pins-value (hw::alu-c-bus alu)) r)))) ))
+	(is (equal (hw:pins-value (hw::alu-c-bus alu)) r))))))

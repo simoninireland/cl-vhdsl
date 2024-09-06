@@ -108,6 +108,8 @@ is no clock interface."))
 	      ;; decrement (a-side only)
 	      (#2r111 (1- (pins-value (alu-a-bus a))))
 
+	      ;; no need for this at the moment as all bit patterns
+	      ;; are meaningful
 	      (t (error 'unrecognised-alu-operation
 			:opcode op
 			:a (pins-value (alu-a-bus a))
