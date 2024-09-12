@@ -36,7 +36,7 @@ SLOT is checked to make sure it is a component."
   "Return the connector of SLOT on C.
 
 SLOT is checked to ensure it's in the pin interface of C."
-  (if (pin-interface-p (class-of c) slot)
+  (if (pin-interface-p c slot)
       (slot-value c slot)
 
       (error 'non-pin-interface-slot :component c :slot slot)))

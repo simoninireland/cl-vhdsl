@@ -166,7 +166,7 @@
 
 (test test-wire-slots-widths-sub
   "Test we can't wire-up slots on sub-components with incompatible widths."
-  (let* ((tc1 (make-instance 'test-slotted ))
+  (let* ((tc1 (make-instance 'test-slotted))
 	 (tc2 (make-instance 'test-subcomponents :sub tc1)))
     (signals (hw:incompatible-pin-widths)
       (hw:connect-slots tc1 'one

@@ -50,8 +50,7 @@ may affect C in some way."))
 
 
 (defmethod components-seen-by ((c component))
-  (let* ((cl (class-of c))
-	 (pin-slots (pin-interface cl))
+  (let* ((pin-slots (pin-interface c))
 	 (pins (flatten (map 'list #'(lambda (slot)
 				       (components-seen-by (slot-value c slot)))
 			     pin-slots))))

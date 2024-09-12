@@ -62,65 +62,64 @@ Components encapsulate functions and offer a pin-based interface."))
   (declare (ignore initargs))
 
   ;; create the slots and connectors for the pin interface
-  (let* ((slot-defs (class-slots (class-of c))))
-    (dolist (slot-def slot-defs)
-      (when (slot-def-in-pin-interface-p slot-def)
-	;; slot is in the pin interface
-	(let* ((slot (slot-definition-name slot-def))
+  (let* ((slot-defs (class-slots (class-of c)))
+	 (pin-slot-defs (remove-if-not #'slot-def-in-pin-interface-p slot-defs)))
+    (dolist (slot-def pin-slot-defs)
+      (let* ((slot (slot-definition-name slot-def))
 
-	       ;; number of wires in the slot
-	       (width (component-width-of-slot c slot-def))
+	     ;; number of wires in the slot
+	     (width (component-width-of-slot c slot-def))
 
-	       ;; role the slot fulfills
-	       ;; (set by `compute-effective-slot-definition' if omitted)
-	       (role (slot-value slot-def 'role))
+	     ;; role the slot fulfills
+	     ;; (set by `compute-effective-slot-definition' if omitted)
+	     (role (slot-value slot-def 'role))
 
-	       ;; wires the slot's pins should be connected to
-	       (bus (if (slot-exists-and-bound-p c slot)
-			(slot-value c slot))))
+	     ;; wires the slot's pins should be connected to
+	     (bus (if (slot-exists-and-bound-p c slot)
+		      (slot-value c slot))))
 
-	  ;; sanity check any wiring
-	  (when bus
-	    ;; we accept single wires and single pins
-	    (unless (typep bus 'bus)
-	      (let ((wire-or-pin bus))
-		(etypecase wire-or-pin
-		  (wire
-		   (setq bus (make-instance 'bus :width 1))
-		   (setf (elt (wires bus) 0) wire-or-pin))
-		  (pin
-		   (setq bus (make-instance 'bus :width 1))
-		   (setf (elt (wires bus) 0) (wire wire-or-pin))))))
+	;; sanity check any wiring
+	(when bus
+	  ;; we accept single wires and single pins
+	  (unless (typep bus 'bus)
+	    (let ((wire-or-pin bus))
+	      (etypecase wire-or-pin
+		(wire
+		 (setq bus (make-instance 'bus :width 1))
+		 (setf (elt (wires bus) 0) wire-or-pin))
+		(pin
+		 (setq bus (make-instance 'bus :width 1))
+		 (setf (elt (wires bus) 0) (wire wire-or-pin))))))
 
-	    ;; check widths match
-	    (let ((bus-width (width bus)))
-	      (cond ((eql width t)
-		     ;; no width, set it to the number of
-		     ;; wires on the bus we've been given
-		     (setq width bus-width))
+	  ;; check widths match
+	  (let ((bus-width (width bus)))
+	    (cond ((eql width t)
+		   ;; no width, set it to the number of
+		   ;; wires on the bus we've been given
+		   (setq width bus-width))
 
-		    ;; wrong number of wires, signal an error
-		    ((not (equal bus-width width))
-		     (error 'mismatched-wires
-			    :component c
-			    :slot slot
-			    :expected width
-			    :received bus-width)))))
+		  ;; wrong number of wires, signal an error
+		  ((not (equal bus-width width))
+		   (error 'mismatched-wires
+			  :component c
+			  :slot slot
+			  :expected width
+			  :received bus-width)))))
 
-	  ;; create the connector
-	  (setf (slot-value c slot)
-		(if (not (equal width t))
-		    (let ((conn (make-instance 'connector :width width
-							  :component c
-							  :role role)))
+	;; create the connector
+	(setf (slot-value c slot)
+	      (if (not (equal width t))
+		  (let ((conn (make-instance 'connector :width width
+							:component c
+							:role role)))
 
-		      ;; if we've been given a bus, connect it
-		      (when bus
-			(connect-pins conn bus))
+		    ;; if we've been given a bus, connect it
+		    (when bus
+		      (connect-pins conn bus))
 
-		      conn)))))))
+		    conn))))))
 
-  ;; wire-up the slots we created
+  ;; wire-up the slots we created using the wiring diagram
   (connect-component c)
 
   ;; TODO make sure all sub-component slots that have objects have
@@ -135,66 +134,37 @@ Components encapsulate functions and offer a pin-based interface."))
 ;; TODO We should change these functions to cache the pin interface
 ;; details at compile time to avoid the need to search the metaobjects
 
-(defun find-pin-slot-def (cl slot &key fatal)
-  "Return the slot definition for SLOT in CL.
-
-If FATAL is set to T an error is raised if SLOT does
-not exist or isn't part of the pin interface."
-  (flet ((pin-slot-named (slot-def)
-	   (and (slot-def-in-pin-interface-p slot-def)
-		(equal (slot-definition-name slot-def) slot))))
-    (if-let ((slot-defs (remove-if-not #'pin-slot-named
-				       (class-slots cl))))
-      (car slot-defs)
-
-      (if fatal
-	  (error "No slot named ~s in pin interface of ~s"
-		 slot cl)))))
+(defmethod pin-interface ((c component))
+  (pin-interface (class-of c)))
 
 
-(defun slot-def-in-pin-interface-p (slot-def)
-  "Test whether SLOT-DEF defines a slot composed of pins.
+(defun pin-interface-p (c slot)
+  "Test whether SLOT is in the pin interface of C.
 
-This tests for the existence of the :pins slot option in the
-slot definition."
-  (slot-exists-and-bound-p slot-def 'pins))
-
-
-(defun pin-interface (cl)
-  "Return a list of all the slots of class CL comprising its pin interface."
-  (let ((slot-defs (remove-if-not #'slot-def-in-pin-interface-p
-				  (class-slots cl))))
-    (mapcar #'slot-definition-name slot-defs)))
+Returns nil if SLOT either isn't a slot in C's pin
+interface, or isn't a slot of C at all."
+  (not (null (member slot (pin-interface c)))))
 
 
-(defun pin-interface-p (cl slot)
-  "Test whether SLOT is in the pin interface of class CL.
-
-Returns nil if SLOT either isn't a slot in CL's pin
-interface, or isn't a slot of CL at all."
-  (not (null (find-pin-slot-def cl slot))))
-
-
-(defun pin-role-for-slot (cl slot)
+(defun pin-role-for-slot (c slot)
   "Return the role assigned to the pins of SLOT in class CL.
 
 SLOT must be in C's pin interface."
-  (let ((slot-def (find-pin-slot-def cl slot :fatal t)))
+  (let ((slot-def (find-pin-slot-def (class-of c) slot :fatal t)))
     (slot-value slot-def 'role)))
 
 
-(defun pin-slots-for-roles (cl roles)
-  "Extract all the slots in the pin interface of CL having roles in ROLES."
+(defun pin-slots-for-roles (c roles)
+  "Extract all the slots in the pin interface of C having roles in ROLES."
   (remove-if-not #'(lambda (slot)
-		     (member (pin-role-for-slot cl slot) roles))
-		 (pin-interface cl)))
+		     (member (pin-role-for-slot c slot) roles))
+		 (pin-interface c)))
 
 
 ;; This includes only the pin on the component, not on its sub-components
 
 (defmethod pins ((c component))
-  (let* ((cl (class-of c))
-	 (pin-slots (pin-interface cl)))
+  (let ((pin-slots (pin-interface c)))
     (mapappend #'(lambda (slot)
 		   (pins (slot-value c slot)))
 	       pin-slots)))

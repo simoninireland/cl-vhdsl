@@ -31,7 +31,9 @@
 
 
 (defclass metacomponent (premetacomponent)
-  ((wiring
+  ((pin-interface-slots
+    :documentation "The slots forming the component's pin interface.")
+   (wiring
     :documentation "The wiring diagram."
     :initarg :wiring
     :initform nil
@@ -63,8 +65,10 @@ be connected to.
 If wires are provided and the `:pins' value is set to T, the number
 of wires will be taken as the width of the slot.
 
-Classes with this metaclass can also include an argument `:wiring'
-that specifies a wiring diagram for instances of the class."))
+Classes with this metaclass can include an argument `:wiring'
+that specifies a wiring diagram for instances of the class. They
+will also support the `pin-interface' function that extracts
+the slots in their pin interface as defined by the slot options."))
 
 
 ;; TODO There's more work to do here in deciding how slots can be
@@ -83,6 +87,46 @@ that specifies a wiring diagram for instances of the class."))
 
 (defmethod validate-superclass ((cl standard-class) (super metacomponent))
   t)
+
+
+(defun find-pin-slot-def (cl slot &key fatal)
+  "Return the slot definition for SLOT in CL.
+
+If FATAL is set to T an error is raised if SLOT does
+not exist or isn't part of the pin interface."
+  (flet ((pin-slot-named (slot-def)
+	   (and (slot-def-in-pin-interface-p slot-def)
+		(equal (slot-definition-name slot-def) slot))))
+    (if-let ((slot-defs (remove-if-not #'pin-slot-named
+				       (class-slots cl))))
+      (car slot-defs)
+
+      ;; no pin slot of that name, either ignored or fatal
+      (if fatal
+	  (error "No slot named ~a in pin interface of ~a"
+		 slot cl)))))
+
+
+(defun slot-def-in-pin-interface-p (slot-def)
+  "Test whether SLOT-DEF defines a slot composed of pins.
+
+This tests for the existence of the :pins slot option in the
+slot definition."
+  (slot-exists-and-bound-p slot-def 'pins))
+
+
+(defgeneric pin-interface (c)
+  (:documentation "Return the list of slots in the pin interface of C,")
+  (:method ((cl metacomponent))
+    (slot-value cl 'pin-interface-slots)))
+
+
+(defmethod finalize-inheritance :after ((class metacomponent))
+  ;; populate the class' pin interface cache
+  (let* ((slot-defs (class-slots class))
+	 (pin-slot-defs (remove-if-not #'slot-def-in-pin-interface-p slot-defs)))
+    (setf (slot-value class 'pin-interface-slots)
+	  (mapcar #'slot-definition-name pin-slot-defs))))
 
 
 ;; ---------- Enabler helper ----------

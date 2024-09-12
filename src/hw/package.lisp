@@ -26,6 +26,7 @@
 		#:standard-class
 		#:class-slots
 		#:class-direct-slots
+		#:finalize-inheritance
 		#:ensure-class-using-class
 		#:compute-slots
 		#:slot-definition-type
