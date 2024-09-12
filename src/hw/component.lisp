@@ -131,9 +131,6 @@ Components encapsulate functions and offer a pin-based interface."))
 
 ;; ---------- Pin interface ----------
 
-;; TODO We should change these functions to cache the pin interface
-;; details at compile time to avoid the need to search the metaobjects
-
 (defmethod pin-interface ((c component))
   (pin-interface (class-of c)))
 
@@ -155,7 +152,9 @@ SLOT must be in C's pin interface."
 
 
 (defun pin-slots-for-roles (c roles)
-  "Extract all the slots in the pin interface of C having roles in ROLES."
+  "Extract all the slots in the pin interface of C having roles in ROLES.
+
+C may be a comppnent or a component class."
   (remove-if-not #'(lambda (slot)
 		     (member (pin-role-for-slot c slot) roles))
 		 (pin-interface c)))
@@ -239,32 +238,25 @@ the method if the guard evaluates to false.")
 
 ;; ---------- Sub-components ----------
 
-(defun subcomponent-p (cl slot)
-  "Test whether SLOT holds a sub-component on class CL.
-
-The component type of SLOT is returned if it is a component,
-otherwise `NIL'."
-  (if-let ((slot-def (find slot (class-slots cl) :key #'slot-definition-name)))
-    (let ((slot-type (slot-definition-type slot-def) ))
-      (when (subtypep slot-type 'component)
-	slot-type))))
+(defmethod subcomponent-interface ((c component))
+  (subcomponent-interface (class-of c)))
 
 
-(defun subcomponent-interface (cl)
-  "Return the slots holding sub-components on class CL."
-  (let ((slot-names (mapcar #'slot-definition-name (class-slots cl))))
-    (remove-if-not #'(lambda (slot)
-			  (subcomponent-p cl slot))
-		      slot-names)))
+(defun subcomponent-p (c slot)
+  "Test whether SLOT holds a sub-component of C."
+  (not (null (member slot (subcomponent-interface c)))))
 
 
-;; sd: Should the definition of `components' when called on a component
-;; include the component itself? -- or just its sub-components, as at present?
+(defun subcomponent-type (cl slot)
+  "Return the type of the sub-components expected in SLOT of component class CL."
+  (let ((slot-def (find slot (class-slots cl) :key #'slot-definition-name)))
+    (slot-definition-type slot-def)))
+
 
 (defmethod components ((c component))
   (mapcar #'(lambda (slot)
 	      (slot-value c slot))
-	  (subcomponent-interface (class-of c))))
+	  (subcomponent-interface c)))
 
 
 ;; ---------- Integral wiring diagrams ----------
@@ -282,7 +274,7 @@ slot on CL and a pin slot on that sub-component."
 	    ((consp endpoint)
 	     ;; slot on a sub-component
 	     (let* ((cslot (car endpoint))
-		    (slot-type (subcomponent-p cl cslot)))
+		    (slot-type (subcomponent-type cl cslot)))
 	       (if slot-type
 		   (let ((slot (safe-cadr endpoint)))
 		     (ensure-wire-description-endpoint (find-class slot-type) slot))))))

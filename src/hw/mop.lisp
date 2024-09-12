@@ -33,6 +33,8 @@
 (defclass metacomponent (premetacomponent)
   ((pin-interface-slots
     :documentation "The slots forming the component's pin interface.")
+   (subcomponent-slots
+    :documentation "The slots containing sub-components.")
    (wiring
     :documentation "The wiring diagram."
     :initarg :wiring
@@ -68,7 +70,9 @@ of wires will be taken as the width of the slot.
 Classes with this metaclass can include an argument `:wiring'
 that specifies a wiring diagram for instances of the class. They
 will also support the `pin-interface' function that extracts
-the slots in their pin interface as defined by the slot options."))
+the slots in their pin interface as defined by the slot options,
+and the `subcomponents-interface' function that extracts the
+slots that have types that aresub-types of `component'."))
 
 
 ;; TODO There's more work to do here in deciding how slots can be
@@ -115,18 +119,38 @@ slot definition."
   (slot-exists-and-bound-p slot-def 'pins))
 
 
+(defun slot-def-in-subcomponents-p (slot-def)
+  "Test whether SLOT-DEF defines a sub-component.
+
+Sub-components are simply slots that gave a type that is
+a sub-class of `component'."
+  (subtypep (slot-definition-type slot-def)
+	    (find-class 'component)))
+
+
 (defgeneric pin-interface (c)
   (:documentation "Return the list of slots in the pin interface of C,")
   (:method ((cl metacomponent))
     (slot-value cl 'pin-interface-slots)))
 
 
+(defgeneric subcomponent-interface (c)
+  (:documentation "Return the list of slots of C holding sub-components.")
+  (:method ((cl metacomponent))
+    (slot-value cl 'subcomponent-slots)))
+
+
 (defmethod finalize-inheritance :after ((class metacomponent))
-  ;; populate the class' pin interface cache
   (let* ((slot-defs (class-slots class))
-	 (pin-slot-defs (remove-if-not #'slot-def-in-pin-interface-p slot-defs)))
+	 (pin-slot-defs (remove-if-not #'slot-def-in-pin-interface-p slot-defs))
+	 (subcomponent-slot-defs (remove-if-not #'slot-def-in-subcomponents-p slot-defs)))
+    ;; populate the class' pin interface slots
     (setf (slot-value class 'pin-interface-slots)
-	  (mapcar #'slot-definition-name pin-slot-defs))))
+	  (mapcar #'slot-definition-name pin-slot-defs))
+
+    ;; populate the class' subcomponent slots
+    (setf (slot-value class 'subcomponent-slots)
+	  (mapcar #'slot-definition-name subcomponent-slot-defs))))
 
 
 ;; ---------- Enabler helper ----------
