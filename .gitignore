@@ -20,11 +20,12 @@
 # C extensions
 *.so
 
-# Lisp cxompiled files
-*.fasl
-
-# Emacs (and other) backup files
+# Emacs (and other) backup (and other) files
 *.bak
 *~
 \#*\#
 TAGS
+
+# Sphinx documentation files
+doc/_build
+venv3
