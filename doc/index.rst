@@ -3,9 +3,11 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-CL-VHDSL: An experiment in high-level synthesis in Common Lisp
-==============================================================
+CL-VHDSL: An experiment in in building a hardware and processor description DSL
+===============================================================================
 
 
 .. toctree::
    :hidden:
+
+   install
