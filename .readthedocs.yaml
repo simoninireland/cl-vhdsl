@@ -5,9 +5,11 @@ build:
   tools:
     python: "3.11"
   apt_packages:
-  - roswell
-  - sbcl
-
+  - jq
+  jobs:
+    post_system_dependencies:
+    - curl -sOL `curl -s https://api.github.com/repos/roswell/roswell/releases/latest | jq -r '.assets | .[] | select(.name|test("\\.deb$")) | .browser_download_url'`
+    - dpkg -i roswell.deb
 
 python:
   install:
