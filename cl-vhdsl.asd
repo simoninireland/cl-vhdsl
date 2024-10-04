@@ -26,7 +26,8 @@
   :license "GPL3"
   :depends-on ("alexandria" "cl-bitfields"
 	       "cl-ppcre" "cl-interpol" "str"
-	       "closer-mop" "slot-extra-options")
+	       "closer-mop" "slot-extra-options"
+	       "clast")
   :pathname "src/"
   :serial t
   :components ((:file "package")
