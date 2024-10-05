@@ -8,7 +8,7 @@ build:
   - jq
   jobs:
     post_system_dependencies:
-    - curl -sOL `curl -s https://api.github.com/repos/roswell/roswell/releases/latest | jq -r '.assets | .[] | select(.name|test("\\.deb$")) | .browser_download_url'`
+    - curl -L https://github.com/roswell/roswell/releases/download/v23.10.14.114/roswell_23.10.14.114-1_amd64.deb --output roswell.deb
     - dpkg -i roswell.deb
 
 python:
