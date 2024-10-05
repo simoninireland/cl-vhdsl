@@ -23,6 +23,10 @@ extensions = [
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
+# roswell may be installed locally
+from os import environ
+environ["PATH"] += f":{environ['HOME']}/.local/bin"
+
 # Common Lisp ASDF systems and packages
 from os.path import join, dirname, realpath, expandvars
 
