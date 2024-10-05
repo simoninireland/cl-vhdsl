@@ -10,8 +10,8 @@ build:
     post_system_dependencies:
     - git clone -b release https://github.com/roswell/roswell.git
     - (cd roswell && sh bootstrap &&  ./configure --prefix=$HOME/.local && make && make install)
-    - mkdir -p ~/quicklisp/local-projects
-    - (cd ~/quicklisp/local-projects && git clone https://github.com/simoninireland/cl-bitfields.git)
+    - mkdir -p ~/.roswell/lisp/quicklisp/local-projects
+    - (cd ~/.roswell/lisp/quicklisp/local-projects && git clone https://github.com/simoninireland/cl-bitfields.git)
 
 python:
   install:
