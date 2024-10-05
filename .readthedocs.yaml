@@ -10,6 +10,7 @@ build:
     post_system_dependencies:
     - git clone -b release --depth 1 https://github.com/roswell/roswell.git
     - (cd roswell && sh bootstrap &&  ./configure --prefix=$HOME/.local && make && make install)
+    - $HOME/.local/bin/ros install sbcl
     - mkdir -p ~/.roswell/lisp/quicklisp/local-projects
     - (cd ~/.roswell/lisp/quicklisp/local-projects && git clone --depth 1 https://github.com/simoninireland/cl-bitfields.git)
 
