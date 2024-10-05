@@ -11,7 +11,7 @@ build:
     - git clone -b release https://github.com/roswell/roswell.git
     - cd roswell && sh bootstrap &&  ./configure --prefix=$HOME/.local && make && make install
     - echo 'PATH=$HOME/.local/bin:$PATH' >> ~/.profile
-    - cat .profile
+    - cd && cat .profile && . .profile
     - ros setup
 
 python:
