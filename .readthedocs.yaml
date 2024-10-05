@@ -8,8 +8,14 @@ build:
   - jq
   jobs:
     post_system_dependencies:
-    - curl -L https://github.com/roswell/roswell/releases/download/v23.10.14.114/roswell_23.10.14.114-1_amd64.deb --output roswell.deb
-    - sudo dpkg -i roswell.deb
+    - git clone -b release https://github.com/roswell/roswell.git
+    - cd roswell
+    - sh bootstrap
+    - ./configure --prefix=$HOME/.local
+    - make
+    - make install
+    - echo 'PATH=$HOME/.local/bin:$PATH' >> ~/.profile
+    - PATH=$HOME/.local/bin:$PATH ros setup
 
 python:
   install:
