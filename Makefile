@@ -39,6 +39,7 @@ PIP = pip
 VIRTUALENV = $(PYTHON) -m venv
 ACTIVATE = . $(VENV)/bin/activate
 CHDIR = cd
+RM = rm -fr
 
 # Files that are locally changed vs the remote repo
 # (See https://unix.stackexchange.com/questions/155046/determine-if-git-working-directory-is-clean-from-a-script)
@@ -55,7 +56,7 @@ VENV = venv3
 REQUIREMENTS = requirements.txt
 
  # Constructed commands
-RUN_SPHINX_HTML = PYTHONPATH=$(ROOT) make html
+RUN_SPHINX_HTML = $(CHDIR) doc && make html
 
 
 # ----- Top-level targets -----
@@ -67,7 +68,7 @@ help:
 # Build the API documentation using Sphinx
 .PHONY: doc
 doc: env $(SOURCES_ASDF) $(SOURCES_DOC) $(SOURCES_DOC_CONF)
-	$(ACTIVATE) && $(CHDIR) doc && $(RUN_SPHINX_HTML)
+	$(ACTIVATE) && $(RUN_SPHINX_HTML)
 
 # Build a documentation Python venv
 .PHONY: env
@@ -98,7 +99,7 @@ check-local-repo-clean:
 
 # Clean up the distribution build
 clean:
-	$(RM) $(SOURCES_GENERATED) $(SOURCES_DIST_DIR) $(PACKAGENAME).egg-info dist $(SOURCES_DOC_BUILD_DIR) $(SOURCES_DOC_ZIP)
+	$(RM) $(SOURCES_GENERATED)
 
 # Clean up everything, including the computational environment (which is expensive to rebuild)
 reallyclean: clean
