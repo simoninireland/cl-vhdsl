@@ -18,11 +18,17 @@
 # along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 # The version we're building
-VERSION = 0.1
+VERSION = $(shell cat version.sexp)
 
 
 # ----- Sources -----
 
+SOURCES_ASDF = cl-vhdsl.asd
+
+SOURCES = $(shell find src -name '*.lisp' -print)
+
+SOURCES_DOC =  $(shell ls doc/*.rst)
+SOURCES_DOC_CONF = doc/conf.py
 
 # ----- Tools -----
 
@@ -60,7 +66,7 @@ help:
 
 # Build the API documentation using Sphinx
 .PHONY: doc
-doc: env $(SOURCES_DOCUMENTATION) $(SOURCES_DOC_CONF)
+doc: env $(SOURCES_ASDF) $(SOURCES_DOC) $(SOURCES_DOC_CONF)
 	$(ACTIVATE) && $(CHDIR) doc && $(RUN_SPHINX_HTML)
 
 # Build a documentation Python venv
