@@ -6,6 +6,7 @@ build:
     python: "3.11"
   apt_packages:
   - jq
+  - libcurl-dev
   jobs:
     post_system_dependencies:
     - git clone -b release https://github.com/roswell/roswell.git
