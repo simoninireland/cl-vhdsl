@@ -9,8 +9,7 @@ build:
   jobs:
     post_system_dependencies:
     - git clone -b release https://github.com/roswell/roswell.git
-    - cd roswell && sh bootstrap &&  ./configure --prefix=$HOME/.local
-  && make && make install && echo 'PATH=$HOME/.local/bin:$PATH' >> ~/.profile
+    - cd roswell && sh bootstrap &&  ./configure --prefix=$HOME/.local && make && make install && echo 'PATH=$HOME/.local/bin:$PATH' >> ~/.profile
     - ros setup
 
 python:
