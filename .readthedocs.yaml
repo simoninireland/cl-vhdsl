@@ -10,6 +10,8 @@ build:
     post_system_dependencies:
     - git clone -b release https://github.com/roswell/roswell.git
     - (cd roswell && sh bootstrap &&  ./configure --prefix=$HOME/.local && make && make install)
+    - export PATH=$HOME/.local/bin:$PATH
+    - echo $PATH
     - $HOME/.local/bin/ros setup
 
 python:
