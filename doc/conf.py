@@ -38,7 +38,7 @@ todo_include_todos = False
 cl_systems = [{"name": "cl-vhdsl",
                "path": join(dirname(realpath(__file__)), "../")}]
 
-# PAckages to grab symbols from (in the core image)
+# Packages to grab symbols from (in the core image)
 cl_packages = ["common-lisp"]
 
 # List of patterns, relative to source directory, that match files and
