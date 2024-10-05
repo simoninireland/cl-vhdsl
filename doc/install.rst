@@ -18,11 +18,11 @@ In a nutshell
 Installation with ASDF
 ----------------------
 
-At the moment `CL-VHDSL` requires manual installation. Clone the
+At the moment ``CL-VHDSL`` requires manual installation. Clone the
 repository into a directory that ASDF will find.
 
-There are several other Lisp libraries on which `CL-VHDSL` depends.
-These can be loaded from the repo directory using the `Makefile`:
+There are several other Lisp libraries on which ``CL-VHDSL`` depends.
+These can be loaded from the repo directory using the ``Makefile``:
 
 .. code-block:: shell
 

@@ -11,3 +11,4 @@ CL-VHDSL: An experiment in in building a hardware and processor description DSL
    :hidden:
 
    install
+   cl-vhdsl
