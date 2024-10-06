@@ -99,9 +99,9 @@ check-local-repo-clean:
 
 # Clean up the distribution build
 clean:
-	$(RM) $(SOURCES_GENERATED)
+	$(RM) $(SOURCES_GENERATED) doc/_build
 
-# Clean up everything, including the computational environment (which is expensive to rebuild)
+# Clean up everything, including the documentation environment
 reallyclean: clean
 	$(RM) $(VENV)
 
