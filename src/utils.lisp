@@ -32,7 +32,7 @@
   "Return the non-nil sub-sequence of L.
 
 This will extract the first such sub-sequence, beginning from the index
-extracted by :cl:function:`index-not-nil' and containing all elements up to the
+extracted by INDEX-NOT-NIL and containing all elements up to the
 next nil element of the end of the sequence."
   (when-let ((i (index-non-nil l)))
     (dolist (j (iota (- (length l) (1+ i)) :start 1))
