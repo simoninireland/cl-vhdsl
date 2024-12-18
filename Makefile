@@ -26,9 +26,13 @@ VERSION = $(shell cat version.sexp)
 SOURCES_ASDF = cl-vhdsl.asd
 
 SOURCES = $(shell find src -name '*.lisp' -print)
+SOURCES_GENERATED =
+SOURCES_GENERATED_EXTRA = TAGS
 
 SOURCES_DOC =  $(shell ls doc/*.rst)
 SOURCES_DOC_CONF = doc/conf.py
+SOURCES_DOC_BUILD_DIR = doc/_build
+
 
 # ----- Tools -----
 
@@ -38,6 +42,7 @@ PYTHON = python3
 PIP = pip
 VIRTUALENV = $(PYTHON) -m venv
 ACTIVATE = . $(VENV)/bin/activate
+ETAGS = etags
 CHDIR = cd
 RM = rm -fr
 
@@ -79,17 +84,17 @@ $(VENV):
 	$(ACTIVATE) && $(PIP) install -U pip wheel && $(PIP) install -r requirements.txt
 
 # Make a new release
-release: $(SOURCES_GENERATED) master-only commit upload
+release: $(SOURCES_GENERATED) main-only commit upload
 
-# Check we're on the master branch before uploading
-master-only:
-	if [ "$(GIT_BRANCH)" != "master" ]; then echo "Can only release from master branch"; exit 1; fi
+# Check we're on the main branch before uploading
+main-only:
+	if [ "$(GIT_BRANCH)" != "main" ]; then echo "Can only release from main branch"; exit 1; fi
 
 # Update the remote repos on release
 # (This will trigger .github/workflows/release.yaml to create a GitHib release, and
 # .github/workflows/ci.yaml to run the full integration test suite)
 commit: check-local-repo-clean
-	$(GIT) push origin master
+	$(GIT) push origin main
 	$(GIT) tag -a v$(VERSION) -m "Version $(VERSION)"
 	$(GIT) push origin v$(VERSION)
 
@@ -97,36 +102,20 @@ commit: check-local-repo-clean
 check-local-repo-clean:
 	if [ "$(GIT_DIRTY)" ]; then echo "Uncommitted files: $(GIT_DIRTY)"; exit 1; fi
 
-# Clean up the distribution build
+# Clean up the distribution build and documentation
 clean:
-	$(RM) $(SOURCES_GENERATED) doc/_build
+	$(RM) $(SOURCES_GENERATED) $(SOURCES_GENERATED_EXTRA) $(SOURCES_DOC_BUILD_DIR)
 
-# Clean up everything, including the documentation environment
+# Clean up everything, including the documentation venv
 reallyclean: clean
 	$(RM) $(VENV)
 
 
 # ----- Generated files -----
 
-# Manifest for the package
-MANIFEST: Makefile
-	echo $(SOURCES_EXTRA) $(SOURCES_GENERATED) $(SOURCES_CODE_INIT) $(SOURCES_CODE) | $(TR) ' ' '\n' >$@
-
-# The setup.py script
-setup.py: $(SOURCES_SETUP_IN) $(REQUIREMENTS) Makefile
-	$(CAT) $(SOURCES_SETUP_IN) | $(SED) -e 's|VERSION|$(VERSION)|g' -e 's|REQUIREMENTS|$(PY_REQUIREMENTS)|g' >$@
-
-# The source distribution tarball
-$(DIST_SDIST): $(SOURCES_GENERATED) $(SOURCES_CODE_INIT) $(SOURCES_CODE) Makefile
-	$(ACTIVATE) && $(RUN_SETUP) sdist
-
-# The binary (wheel) distribution
-$(DIST_WHEEL): $(SOURCES_GENERATED) $(SOURCES_CODE_INIT) $(SOURCES_CODE) Makefile
-	$(ACTIVATE) && $(RUN_SETUP) bdist_wheel
-
 # The tags file
 TAGS:
-	$(ETAGS) -o TAGS $(SOURCES_CODE)
+	$(ETAGS) -o TAGS $(SOURCES)
 
 
 
@@ -134,7 +123,6 @@ TAGS:
 
 define HELP_MESSAGE
 Available targets:
-   make env          create a documentation virtual environment
    make doc          build the API documentation using Sphinx
    make release      make a release
    make clean        clean-up the build
