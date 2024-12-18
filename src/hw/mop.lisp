@@ -93,24 +93,6 @@ slots that have types that aresub-types of `component'."))
   t)
 
 
-(defun find-pin-slot-def (cl slot &key fatal)
-  "Return the slot definition for SLOT in CL.
-
-If FATAL is set to T an error is raised if SLOT does
-not exist or isn't part of the pin interface."
-  (flet ((pin-slot-named (slot-def)
-	   (and (slot-def-in-pin-interface-p slot-def)
-		(equal (slot-definition-name slot-def) slot))))
-    (if-let ((slot-defs (remove-if-not #'pin-slot-named
-				       (class-slots cl))))
-      (car slot-defs)
-
-      ;; no pin slot of that name, either ignored or fatal
-      (if fatal
-	  (error "No slot named ~a in pin interface of ~a"
-		 slot cl)))))
-
-
 (defun slot-def-in-pin-interface-p (slot-def)
   "Test whether SLOT-DEF defines a slot composed of pins.
 

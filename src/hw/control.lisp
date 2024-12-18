@@ -1,4 +1,4 @@
-;; Software-emulted control units
+;; Software-emulated control units
 ;;
 ;; Copyright (C) 2024 Simon Dobson
 ;;
@@ -19,16 +19,15 @@
 
 (in-package :cl-vhdsl/hw)
 
-
 ;; ---------- Control units ----------
 
 ;; The controller is a source of micro-instructions, in the sense that
 ;; it generates a stream of them to control its components. Where
-;; those instructions come from is somewhat irrelevent: we chuld be
+;; those instructions come from is somewhat irrelevent: we shuld be
 ;; able to abstract over explicit decoding, microcoded instructions,
 ;; and other forms within the same framework.
 
-(defclass control (component clocked)
+(defclass control (component enabled clocked)
   ()
   (:documentation "A control unit.
 

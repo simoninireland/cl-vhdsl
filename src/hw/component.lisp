@@ -143,11 +143,11 @@ interface, or isn't a slot of C at all."
   (not (null (member slot (pin-interface c)))))
 
 
-(defun pin-role-for-slot (c slot)
+(defun pin-role-for-slot (cl slot)
   "Return the role assigned to the pins of SLOT in class CL.
 
-SLOT must be in C's pin interface."
-  (let ((slot-def (find-pin-slot-def (class-of c) slot :fatal t)))
+SLOT must be in CL's pin interface."
+  (let ((slot-def (find slot (class-slots cl) :key #'slot-definition-name)))
     (slot-value slot-def 'role)))
 
 
@@ -250,7 +250,7 @@ the method if the guard evaluates to false.")
 (defun subcomponent-type (cl slot)
   "Return the type of the sub-components expected in SLOT of component class CL."
   (let ((slot-def (find slot (class-slots cl) :key #'slot-definition-name)))
-    (slot-definition-type slot-def)))
+    (find-class (slot-definition-type slot-def))))
 
 
 (defmethod components ((c component))
@@ -277,7 +277,7 @@ slot on CL and a pin slot on that sub-component."
 		    (slot-type (subcomponent-type cl cslot)))
 	       (if slot-type
 		   (let ((slot (safe-cadr endpoint)))
-		     (ensure-wire-description-endpoint (find-class slot-type) slot))))))
+		     (ensure-wire-description-endpoint slot-type slot))))))
 
       ;; if we fall through, the endpoint was invalid
       (error 'invalid-endpoint :component cl :endpoint endpoint)))

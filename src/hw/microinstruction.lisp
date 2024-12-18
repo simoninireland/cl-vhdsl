@@ -19,106 +19,49 @@
 
 (in-package :cl-vhdsl/hw)
 
-;; ---------- Micro-instrutions ----------
+;; ---------- Micro-instructions ----------
 
 (defclass microinstruction ()
-  ((system
-    :documentation "The system this metainstruction controls."
-    :initarg :system)
-   (value
-    :documentation "The value of the micro-instruction, as a bit field."
-    :initform 0
-    :accessor microinstruction-bitfield)
-   (mi-bus
-    :documentation "The control bus on whch micro-instructions are issued."
-    :initarg :bus
-    :reader microinstruction-bus))
+  ((component
+    :documentation "The component this microinstruction controls."
+    :initarg :component))
   (:documentation "Base class for micro-instructions.
 
 This class isn't used directly. It serves as the base class for
 micro-instructions created for specific systems, usually using
-ther `defmicroinstructions' macro."))
+the `defmicroinstructions' macro."))
 
 
-(defgeneric run-microinstruction (mi)
-  (:documentation "Run the micro-instruction MI against its system.
+;; ---------- Connecting to the control pin interface ----------
 
-This places the value of the micro-instruction onto the bus."))
-
-
-(defmethod run-microinstruction ((mi microinstruction))
-  (pins-from-value (microinstruction-bus mi) (microinstruction-bitfield mi)))
+(defun control-pin-interface (cl)
+  "Return the control pin interface slots of component class CL."
+  (pin-slots-for-roles cl (list :control)))
 
 
-;; ---------- The sub-classes constructed for specific systems ----------
-
-(defun component-slot (slot-def)
-  "Test whether SLOT-DEF is a slot holding a component.
-
-Component slots have a :type attribute that holds a class that is
-a sub-type of `component'.
-
-Returns the type of the component, or nil."
-  (if-let ((type (slot-definition-type slot-def)))
-    (if (subtypep type 'component)
-	;; return the class associated with the type
-	(find-class type))))
+(defun control-pin-endpoints (cl cslot)
+  "Return the control pin endpoints for sub-component CSLOT of class CL."
+  (let* ((sctype (subcomponent-type cl cslot))
+	 (control-pin-slots (control-pin-interface sctype)))
+    (map-product #'list (list cslot) control-pin-slots)))
 
 
-(defun mi-slot-name-for-slot (pin-slot component-slot-def)
-  "Compute the slot name used for a micro-instruction for PIN-SLOT on CL.
+(defun subcomponent-control-pin-endpoints (cl)
+  "Return the control pin endpoints for the sub-components of component class CL.
 
-The name is constructed for PIN-SLOT on the component held within
-COMPONENT-SLOT-DEF. The slot name is interned into the same package
-as COMPONENT-SLOT-DEFs name to ensure it's accessed from the same scope."
-  (let* ((component-symbol (slot-definition-name component-slot-def))
-
-	 ;; create the name for the new slot
-	 (component-name (symbol-name component-symbol))
-	 (pin-slot-name (symbol-name pin-slot))
-	 (mi-slot-name (str:concat component-name "/" pin-slot-name))
-
-	 ;; create the new slot's name as a symbol interned into the correct package
-	 (component-package (symbol-package component-symbol))
-	 (mi-slot (intern mi-slot-name component-package)))
-    mi-slot))
-
-
-(defun mi-pin-slots (cl)
-  "Return the slot definitions for the micro-instruction pin interface of CL."
-  (let ((slot-defs (class-slots cl))
-	nano-slots)
-    (dolist (slot-def slot-defs)
-      ;; construct a new slot per pin interface slot in an appropriate role
-      (when-let* ((type (component-slot slot-def)))
-	(let ((pin-slots (pin-slots-for-roles type (list :control))))
-	  (dolist (pin-slot pin-slots)
-	    (let ((mi-slot-name (mi-slot-name-for-slot pin-slot slot-def)))
-	      (setf nano-slots (cons mi-slot-name nano-slots)))))))
-
-    ;; return the constructed slots
-    nano-slots))
+Each endpoint is a two-element lists consisting of the sub-component
+slot and the control pin slot on that sub-component."
+  (let ((cslots (subcomponent-interface cl)))
+    (apply #'append (mapcar #'(lambda (cslot)
+				(control-pin-endpoints cl cslot))
+			    cslots))))
 
 
 ;; ---------- Macro interface ----------
 
-(defun declare-mi-pin-slot (mi-pin-slot-name)
-  "Return the code to declare the MI-PIN-SLOT-NAME in the micro-instruction."
-
-  ;; we need to intern the symbol name into th keywords package
-  ;; for use an the initial argument
-  (let ((mi-pin-slot-keyword (intern (symbol-name mi-pin-slot-name) "KEYWORD")))
-    `(,mi-pin-slot-name
-      :initarg ,mi-pin-slot-keyword)))
-
-
-(defun declare-mi-slot-initarg (mi mi-slot-name)
-  "Return the code to install the value of MI-SLOT-NAME.
-
-The value is assumed to be passed using the key MI-SLOT-NAME
-and is assigned to the object MI, which should be a symbol."
-  `(setf (slot-value ,mi ',mi-slot-name) ,mi-slot-name))
-
+(defun declare-mi-pin-slot (name)
+  "Return the code declaring a microinstriction's pin slot."
+  )
 
 (defun declare-mi-class (cl mi-pin-slot-names)
   "Return the code declaring the micro-instruction class named CL.
@@ -145,11 +88,10 @@ MI-PIN-SLOT-NAMES provides the slots to include."
 	 ,@mi-pin-slot-initargs))))
 
 
-(defmacro defmicroinstruction (cl (system) &body body)
-  "Define the class CL of micro-instructions for controlling SYSTEM."
-  (declare (ignore body))
-
-  (let* ((mi-pin-slot-names (mi-pin-slots (find-class system)))
+(defmacro defmicroinstruction (cl clo)
+  "Define the class CL of micro-instructions for controlling component class CLO."
+  (let* ((endpoints (subcomponent-control-pin-endpoints (find-class clo)))
+	 (mi-pin-slot-names (flatten (mapcar #'cadr endpoints)))
 	 (mi-class (declare-mi-class cl mi-pin-slot-names))
 	 (mi-initialize-instance (declare-mi-initialize-instance cl
 								 mi-pin-slot-names)))
