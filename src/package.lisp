@@ -29,6 +29,8 @@
    #:listify
    #:delistify
    #:zip-without-null
+   #:foldl
+   #:foldr
 
    ;; predicate combinators
    #:any-of-p
