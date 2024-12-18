@@ -20,15 +20,37 @@
 (in-package :common-lisp-user)
 
 (defpackage cl-vhdsl/rtl
-  (:use :cl :alexandria :serapeum :cl-vhdsl)
-  (:local-nicknames (:def :cl-vhdsl/def)
-		    (:ast :clast))
+  (:use :cl :alexandria
+   :cl-vhdsl            ;; for utilitiy functions
+   :cl-ppcre)           ;; for specifying identifiers
 
   (:export
+   ;; fixed-width types
+   #:fixed-width-integer
+   #:bitwidth
+
+   ;; environments
+   #:empty-environment
+   #:extend-environment
+   #:get-environment-names
+   #:get-environment-properties
+
    ;; validation
-   #:validate
+   #:check
+   #:check-sexp
+   #:check-module-decls
+
+   ;; synthesis
+   #:synthesise
+   #:synthesise-sexp
+
+   ;; macro lanuage
+   #:defmodule
 
    ;; conditions
    #:not-synthesisable
    #:unknown-variable
+   #:value-mismatch
+   #:direction-mismatch
+   #:type-mismatch
    ))

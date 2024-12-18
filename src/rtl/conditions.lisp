@@ -37,6 +37,8 @@ it contains non-synthesisable syntax, or because of a problem with the
 synthesiser's code generator."))
 
 
+;; ---------- Checking ----------
+
 (define-condition unknown-variable ()
   ((var
     :documentation "The variable(s)."
@@ -50,3 +52,59 @@ synthesiser's code generator."))
 
 This is caused either by an undeclared variable or by use of a variable
 that should be declared in the architectural environment, such as a register."))
+
+
+(define-condition value-mismatch ()
+  ((expected
+    :documentation "The values allowed."
+    :initarg :expected
+    :reader expected-values)
+   (received
+    :documentation "The value received."
+    :initarg :got
+    :reader received-value))
+  (:report (lambda (c str)
+	     (format str "Expected a value that is one of ~s, got ~s"
+		     (expected-values c)
+		     (received-value c))))
+  (:documentation "Condition signalled when a mis-matched value is received."))
+
+
+(define-condition direction-mismatch ()
+  ((expected
+    :documentation "The direction(s) allowed."
+    :initarg :expected
+    :reader expected-values)
+   (received
+    :documentation "The direction received."
+    :initarg :got
+    :reader received-value))
+  (:report (lambda (c str)
+	     (format str "Expected a direction that is one of ~s, got ~s"
+		     (expected-values c)
+		     (received-value c))))
+  (:documentation "Condition signalled when a mis-matched direction is received.
+
+This is usually caused by assigning to a module argument denoteed :IN."))
+
+
+(define-condition type-mismatch ()
+  ((expected
+    :documentation "The expected type."
+    :initarg :expected
+    :reader expected-type)
+   (received
+    :documentation "The received type."
+    :initarg :got
+    :reader received-type))
+  (:report (lambda (c str)
+	     (format str "Expected a value of type ~a, got one of type ~a"
+		     (expected-type c)
+		     (received-type c))))
+  (:documentation "Condition signalled when types don't match.
+
+The most common case is making an assignment of an expression to a
+variable that is too narrow to accommodate all its possible values.
+This is usually signalled as a warning, as there is a
+sometimes-acceptable default action to risk the loss of precision
+caused by the assignment."))

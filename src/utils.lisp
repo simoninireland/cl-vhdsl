@@ -138,3 +138,17 @@ L can be a list or a pair."
 (defun mapappend (f &rest ls)
   "Apply F to all elements of lists LS at whatever depth, returning a flat list of results."
   (flatten (mapcar f (flatten ls))))
+
+
+;; ---------- Folds ----------
+
+;; These are just wrappers around REDUCE, but I find them easier to remember.
+
+(defun foldl (fun l init)
+  "Fold the values of L left through FUN, starting with initial value INIT."
+  (reduce fun l :from-end t :initial-value init))
+
+
+(defun foldr (fun l init)
+  "Fold the values of L rightwards through FUN, starting with INIT."
+  (reduce fun l :initial-value init))
