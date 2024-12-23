@@ -1,4 +1,4 @@
-;; Package for RTLisp, a synthesisable fragment of Lisp
+;; References to variables
 ;;
 ;; Copyright (C) 2024 Simon Dobson
 ;;
@@ -17,41 +17,10 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
-(in-package :common-lisp-user)
+(in-package :cl-vhdsl/rtl)
 
-(defpackage cl-vhdsl/rtl
-  (:use :cl :alexandria
-   :cl-vhdsl            ;; for utility functions
-   :cl-ppcre)           ;; for specifying identifiers
 
-  (:export
-   ;; fixed-width types
-   #:fixed-width-unsigned
-   #:fixed-width-signed
-   #:bitwidth
+;; ---------- General references ----------
 
-   ;; environments
-   #:empty-environment
-   #:extend-environment
-   #:get-environment-names
-   #:get-environment-properties
-
-   ;; validation
-   #:check
-   #:check-sexp
-   #:check-module-decls
-
-   ;; synthesis
-   #:synthesise
-   #:synthesise-sexp
-
-   ;; macro lanuage
-   #:defmodule
-
-   ;; conditions
-   #:not-synthesisable
-   #:unknown-variable
-   #:value-mismatch
-   #:direction-mismatch
-   #:type-mismatch
-   ))
+(defmethod synthesise ((form symbol) as &optional str)
+  (format str "~s" form))

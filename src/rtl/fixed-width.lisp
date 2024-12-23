@@ -21,9 +21,15 @@
 
 ;; ---------- Fixed-width integers ----------
 
-(deftype fixed-width-integer (width)
-  "A fixed-width integer using WIDTH bits."
+(deftype fixed-width-unsigned (width)
+  "A fixed-width unsigned integer using WIDTH bits."
   `(integer 0 ,(round (1- (expt 2 width)))))
+
+
+(deftype fixed-width-signed (width)
+  "A fixed-width signed integer using WIDTH bits."
+  `(integer ,(- (round (expt 2 (1- width))))
+	    ,(round (1- (expt 2 (1- width))))))
 
 
 (defun bitwidth (val env)
@@ -31,24 +37,31 @@
 
 VAL can be a constant number, a type, or a symbol, the latter having
 their types looked-up in ENV."
-  (cond ((and (listp val)
-	      (eq (car val) 'fixed-width-integer))
-	 (cadr val))
+  (flet ((bits-for-integer (val)
+	   (multiple-value-bind (b res)
+	       (ceiling (log val 2))
+	     (let ((bits (if (= res 0.0)
+			     (1+ b) ; add a bit if val is on a power-of-two boundary
+			     b)))
+	       bits))))
 
-	((typep val 'integer)
-	 (if (= val 0)
-	     0
+    (cond ((and (listp val)
+		(or (eq (car val) 'fixed-width-unsigned)
+		    (eq (car val) 'fixed-width-signed)))
+	   (cadr val))
 
-	     ;; compute the number of bits needed to store the value
-	     (multiple-value-bind (b res)
-		 (ceiling (log val 2))
-	       (let ((bits (if (= res 0.0)
-			       (1+ b) ; add a bit if val is on a power-of-two boundary
-			       b)))
-		 bits))))
+	  ((typep val 'integer)
+	   (cond ((= val 0)
+		  0)
 
-	((symbolp val)
-	 (get-width val env))
+		 ((> val 0)
+		  (bits-for-integer val))
 
-	(t
-	 (error 'not-synthesisable :fragment val))))
+		 (t
+		  (1+ (bits-for-integer (abs val))))))
+
+	  ((symbolp val)
+	   (get-width val env))
+
+	  (t
+	   (error 'not-synthesisable :fragment val)))))

@@ -74,6 +74,49 @@
     (is (not (rtl::ensure-legal-identifier "reg")))))
 
 
+;; ---------- Types ----------
+
+(test test-unsigned-range
+  "Test the range of an unsigned fixed-width integer."
+  (is (typep 12 '(rtl::fixed-width-unsigned 8)))
+  (is (typep 12 '(rtl::fixed-width-unsigned 16)))
+  (is (typep 128 '(rtl::fixed-width-signed 8)))
+
+  (is (typep 512 '(rtl::fixed-width-unsigned 16)))
+  (is (not (typep 512 '(rtl::fixed-width-unsigned 8))))
+
+  (is (not (typep -64 '(rtl::fixed-width-unsigned 8)))))
+
+
+(test test-signed-range
+  "Test the range of a signed fixed-width integer."
+  (is (typep 12 '(rtl::fixed-width-signed 8)))
+  (is (typep 12 '(rtl::fixed-width-signed 16)))
+  (is (typep 127 '(rtl::fixed-width-signed 8)))
+  (is (typep -128 '(rtl::fixed-width-signed 8)))
+
+  (is (not (typep 128 '(rtl::fixed-width-signed 8))))
+  (is (not (typep -129 '(rtl::fixed-width-signed 8))))
+  (is (not (typep -64 '(rtl::fixed-width-signed 4)))))
+
+
+(test test-bitwidths-integer-types
+  "Test we can extract the widths of integer types."
+  (is (= (rtl::bitwidth '(rtl:fixed-width-unsigned 8) ()) 8))
+  (is (= (rtl::bitwidth '(rtl:fixed-width-signed 8) ()) 8)))
+
+
+(test test-bitwidths-integer-constants
+  "Test we can extract bit widths of integer constants."
+  (is (= (rtl::bitwidth 0 ()) 0))
+  (is (= (rtl::bitwidth 1 ()) 1))
+  (is (= (rtl::bitwidth 2 ()) 2))
+  (is (= (rtl::bitwidth 127 ()) 7))
+
+  (is (= (rtl::bitwidth -127 ()) 8))
+  (is (= (rtl::bitwidth -1 ()) 2)))
+
+
 ;; ---------- Argument and other detailed parsing ----------
 
 (test test-split-args-params
@@ -107,146 +150,76 @@
       (is (equal params '(c (d 12)))))))
 
 
-;; ---------- Constants ----------
-
-(test test-constant-literal
-  "Test a literal is a constant."
-  (is (rtl::constant-p 6 emptyenv)))
-
-
-(test test-constant-param
-  "Test a module parameter is a constant."
-  (is (rtl::constant-p 'e
-		       (rtl:extend-environment 'e '((:type :lisp)) emptyenv))))
-
-
-(test test-constant-param
-  "Test a constant is a constant."
-  (is (rtl::constant-p 'e
-		       (rtl:extend-environment 'e '((:constant t)) emptyenv))))
-
-
-(test test-constant-operator
-  "Test an operator applied to constants is a constant."
-  (is (rtl::constant-p '(+ 1 2 3) emptyenv))
-
-  ;; a is known to be a constant
-  (is (rtl::constant-p '(+ 1 a 3) '((a (:width 2) (:constant t)))))
-
-  ;; a is a parameter and therefore constant
-  (is (rtl::constant-p '(+ 1 a 3) '((a (:width 2) (:type :lisp)))))
-
-  ;; a isn't known to be constant
-  (is (not (rtl::constant-p '(+ 1 a 3) '((a (:width 2)))))))
-
-
-;; ---------- Structure checking ----------
-
-(test test-add
-  "Test addition maintain types."
-  (is (subtypep (rtl::check '(+ 1 2) emptyenv)
-		'(rtl:fixed-width-integer 4))))
-
-
-(test test-assignment
-  "Test we can do an assignment."
-  (is (subtypep (rtl::check '(let ((a 0 :width 8))
-			       (+ a 1))
-			    emptyenv)
-		'(rtl:fixed-width-integer 9))))
-
-
-(test test-assignment-too-narrow
-  "Test we catch too-wide assignments to too-narrow variables."
-  (signals (rtl:type-mismatch)
-    (rtl::check '(let ((a 0 :width 2))
-		    (setf a 90)
-		  a)
-		emptyenv)))
-
-
-(test test-assignment-illegal-identifier
-  "Test we catch illegal identifiers."
-  (signals (rtl:not-synthesisable)
-    (rtl::check '(let ((reg 0 :width 2))
-		  reg)
-		emptyenv)))
-
-
-(test test-simple-module
-  "Test we can declare a very simple module."
-  (is (rtl:check '(cl-vhdsl/rtl::module test1 ((a (:width 1 :direction :in))
-					       (b (:width 8 :direction :out))
-					       (c (:direction :in))
-					       (d (:width 8 :direction :inout))
-					       e)
-		   (+ a b))
-		 emptyenv)))
-
-
-(test test-simple-module-no-argument
-  "Test we can handle a very simple module with a mis-used argument."
-  (signals (rtl:unknown-variable)
-    (rtl::check '(cl-vhdsl/rtl::module test1 (e)
-		  (+ a b))
-		emptyenv)))
-
-
-(test test-simple-module-param
-  "Test we can declare a very simple module with a paramater."
-  (is (rtl:check '(cl-vhdsl/rtl::module test1 ((a (:width 1 :direction :in))
-					       :key (b 25))
-		    (+ a b))
-		 emptyenv)))
-
-
-
-(test test-complex-module-legal-assignments
-  "Test we can check a complex module successfully."
-  (is (rtl:check '(rtl::module test ((clk :width 1 :direction :in)
-				     (a :width 8 :direction :in)
-				     (b :width 4 :direction :out)
-				     :key e (f 45))
-		   (let ((x 0 :width 8)
-			 (y 10 :width 8))
-		     (when (rtl::posedge clk)
-		       (setf x (+ x b) :sync t)     ; to a register we define
-		       (setf b (+ x 5) :sync t))))  ; to an :out argument
-		 emptyenv)))
-
-
-(test test-complex-module-illegal-in-assignment
-  "Test we can detect an illegal assignment to an :in argument."
-  (signals (rtl:not-synthesisable)
-    (rtl:check '(rtl::module test ((clk :width 1 :direction :in)
-				   (a :width 8 :direction :in)
-				   (b :width 4 :direction :out)
-				   :key e (f 45))
-		 (let ((x 0 :width 8)
-		       (y 10 :width 8))
-		   (when (rtl::posedge clk)
-		     (setf a (+ x b)))))
-	       emptyenv)))
-
-
-(test test-complex-module-illegal-param-assignment
-  "Test we can detect an illegal assignment to a parameter"
-  (signals (rtl:not-synthesisable)
-    (rtl:check '(rtl::module test ((clk :width 1 :direction :in)
-				   (a :width 8 :direction :in)
-				   (b :width 4 :direction :out)
-				   :key e (f 45))
-		 (let ((x 0 :width 8)
-		       (y 10 :width 8))
-		   (when (rtl::posedge clk)
-		     (setf f (+ x b)))))
-	       emptyenv)))
-
-
 ;; ---------- Synthesis ----------
 
-;; It's not really possible to check the results of synthesis, so
+;; It's not generally possible to check the results of synthesis, so
 ;; we just make sure about the errors
+
+(test test-operators
+  "Test we can synthesise operators."
+  ;; arithmetic
+  (dolist (op '(+ - *))
+    ;; conventional two-operand
+    (is (rtl:synthesise `(,op 1 2)
+			:rvalue))
+
+    ;; Lisp-y multi-operand
+    (is (rtl:synthesise `(,op 1 2 3)
+			:rvalue)))
+
+  ;; unary minus
+  (is (rtl:synthesise `(- 1)
+		      :rvalue))
+
+  ;; nested
+  (is (rtl:synthesise `(+ 1 (- (* 2 3 -1)))
+			:rvalue))
+
+  ;; shifts
+  (dolist (op '(rtl::<< rtl::>>))
+    ;; conventional two-operand
+    (is (rtl:synthesise `(,op 1 2)
+			:rvalue))
+
+    ;; only two operands
+    (signals (rtl:not-synthesisable)
+      (rtl:synthesise `(,op 1)
+		      :rvalue))
+    (signals (rtl:not-synthesisable)
+      (rtl:synthesise `(,op 1 2 3)
+		      :rvalue))))
+
+
+(test test-synthesise-setf
+  "Test we can synthesise assignments."
+  ;; as statements
+  (is (rtl:synthesise '(setf a 5)
+		      :statement))
+  (is (rtl:synthesise '(setf a 5 :sync t)
+		      :statement)))
+
+
+(test test-synthesise-progn
+  "Test we can synthesise PROGN forms."
+  (is (rtl:synthesise '(progn
+			(setf a 5)
+			(setf b 34))
+		      :statement)))
+
+
+(test test-synthesise-binders
+  "Test we can synthesise binders."
+  ;; as statements
+  (is (rtl:synthesise `(let ((a 1 :width 8))
+			 (setf a (+ a 1)))
+		      :statement))
+
+  ;; can't return values in statement role
+  (signals (rtl:not-synthesisable)
+    (rtl:synthesise `(let ((a 1 :width 8))
+		       (+ a 1))
+		    :statement)))
+
 
 (test test-synthesise-module
   "Test we can syntheise a module with a variety of features."
@@ -258,24 +231,12 @@
 			      (y 10 :width 8))
 			  (when (rtl::posedge clk)
 			    (setf x (+ x b) :sync t))))
-		      :statement)))
-
-
-(test test-synthesise-constant
-  "Test we can synthesise constants."
-  (is (rtl:synthesise '(rtl::module test ((clk :width 1 :direction :in)
-					  (a :width 8 :direction :in)
-					  (b :width 4 :direction :out)
-					  :key e (f 45))
-			(when (rtl::posedge clk)
-			  (setf b (+ 1 2))))
-		      :statement)))
+		      :toplevel)))
 
 
 (test test-synthesise-if-statement
-  "Test we can synthesise if statements."
-
-  ;; full statement
+  "Test we can synthesise if forms."
+  ;; as statements
   (is (rtl:synthesise '(let ((a 0 :width 4))
 			(if (logand 1 1)
 			    (setf a (+ 1 2))
