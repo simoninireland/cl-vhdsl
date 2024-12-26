@@ -22,5 +22,5 @@
 
 ;; ---------- Integers ----------
 
-(defmethod synthesise ((form integer) as &optional str)
-  (format str "~s" form))
+(defmethod synthesise ((form integer) as)
+  (format *synthesis-stream* "~s" form))

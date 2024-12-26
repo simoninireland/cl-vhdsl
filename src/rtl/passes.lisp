@@ -22,30 +22,28 @@
 
 ;; ---------- Synthesis ----------
 
-(defgeneric synthesise (form as &optional str)
-  (:documentation "Synthesise the Verilog for FORM to stream STR.
+(defgeneric synthesise (form as)
+  (:documentation "Synthesise the Verilog for FORM.
 
 The form may have a specified role of position indicated by AS.
 This may be used to specialise synthesis methods according to
 syntactic classes and the like.
 
-Methods should return a list of lines of synthesised code. Nested
-lists indicate containment, which may be used in pretty-printing.
-If only a single line is being sythesised, it needn't be wrapped into
-a list.
-
 A NOT-SYNTHESISABLE error will be signalled for all underlying
 conditions.")
-  (:method ((form list) as &optional str)
+  (:method ((form list) as)
     (let ((fun (car form))
 	  (args (cdr form)))
       (handler-bind ((error #'(lambda (cond)
-				(error 'not-synthesisable :fragment form))))
-	(synthesise-sexp fun args as str)))))
+				;;(error 'not-synthesisable :fragment form)
+				(error cond)
+				)))
+	(synthesise-sexp fun args as)
+	t))))
 
 
-(defgeneric synthesise-sexp (fun args as str)
-  (:documentation "Write the synthesised Verilog of FUN called with ARGS on STR.
+(defgeneric synthesise-sexp (fun args as)
+  (:documentation "Write the synthesised Verilog of FUN called with ARGS.
 
 The synthesised code may depend on the role or position AS,
 which can be used to specialise the method."))

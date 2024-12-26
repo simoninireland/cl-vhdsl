@@ -20,7 +20,7 @@
 (in-package :cl-vhdsl/rtl)
 
 
-;; A bider defines an environment, and we expect the following
+;; A binder defines an environment, and we expect the following
 ;; keys to be provided where appropriate:
 ;;
 ;; - :width -- the width of a register in bits
@@ -32,16 +32,24 @@
 
 The register has name N and initial value V, with the optional
 WIDTH defaulting to the system's global width."
-  (format nil "reg [ ~a - 1 : 0] ~a = ~a;"
-	  (synthesise width :lvalue)
-	  n v))
+  (format *synthesis-stream* "~areg [ "
+	  (indentation))
+  (synthesise width :rvalue)
+  (format *synthesis-stream* " - 1 : 0 ] ")
+  (synthesise n :rvalue)
+  (format *synthesis-stream* " = ")
+  (synthesise v :rvalue)
+  (format *synthesis-stream* ";~&"))
 
 
-(defmethod synthesise-sexp ((fun (eql 'let)) args as str)
+(defmethod synthesise-sexp ((fun (eql 'let)) args (as (eql :statement)))
   (let ((decls (car args))
 	(body (cdr args)))
-    (format str "~{~a ~^~& ~}"
-	    (append  (mapcar (lambda (decl)
-			       (apply #'synthesise-register def))
-			     decls)
-		     (list (synthesise (cons 'progn body) :statement))))))
+
+    ;; synthesise the registers
+    (dolist (decl decls)
+      (apply #'synthesise-register decl))
+
+    ;; synthesise the body
+    (dolist (form body)
+      (synthesise form :statement))))

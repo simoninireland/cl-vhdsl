@@ -1,4 +1,4 @@
-;; References to variables
+;; An embedding of RTLisp code within Lisp, ready for synthesis
 ;;
 ;; Copyright (C) 2024 Simon Dobson
 ;;
@@ -17,10 +17,9 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
-(in-package :cl-vhdsl/rtl)
-
-
-;; ---------- General references ----------
-
-(defmethod synthesise ((form symbol) as)
-  (format *synthesis-stream* "~s" form))
+(defclass fragment ()
+  ((source-code
+    :documentation "The source code of the fragment."
+    :initarg :code
+    :reader source-code))
+  (:documentation "A fragment of RTLisp."))

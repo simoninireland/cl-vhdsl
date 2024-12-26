@@ -39,28 +39,23 @@ constant or an input parameter."
     (error 'not-synthesisable :fragment `(setf ,n))))
 
 
-(defmethod synthesise-sexp ((fun (eql 'setf)) args (as (eql :statement)) str)
+(defmethod synthesise-sexp ((fun (eql 'setf)) args (as (eql :statement)))
   (destructuring-bind (var val &key (sync nil))
       args
-    (format str "~a ~a ~a;"
-	    (synthesise var :lvalue)
-	    (if sync "=" "<=")
-	    (synthesise val :rvalue))))
+    (format *synthesis-stream* "~a" (indentation))
+    (synthesise var :lvalue)
+    (if sync
+	(format *synthesis-stream* " = ")
+	(format *synthesis-stream* " <= "))
+    (synthesise val :rvalue)
+    (format *synthesis-stream* ";~&")))
 
 
 ;; Triggers
 
-(defmethod synthesise-sexp ((fun (eql 'posedge)) args (as (eql :rvalue))  str)
+(defmethod synthesise-sexp ((fun (eql 'posedge)) args (as (eql :rvalue)))
   (destructuring-bind (pin)
       args
-    (format str "posedge ~a" (synthesise pin :rvalue))))
-
-
-;; Wiring
-
-(defmethod synthesise-sexp ((fun (eql 'wire)) args as str)
-  (destructuring-bind (from to)
-      args
-    (format str "assign ~a = ~a"
-	    (synthesise from :lvalue nil)
-	    (synthesise to :rvalue nil))))
+    (format *synthesis-stream* "posedge(")
+    (synthesise pin :rvalue)
+    (format *synthesis-stream* ")")))

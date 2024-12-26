@@ -241,13 +241,13 @@
 			(if (logand 1 1)
 			    (setf a (+ 1 2))
 			    (setf a (+ 1 3))))
-		      emptyenv))
+		      :statement))
 
   ;; no else branch
   (is (rtl:synthesise '(let ((a 0 :width 4))
 			(if (logand 1 1)
 			    (setf a (+ 1 2))))
-		      emptyenv)))
+		      :statement)))
 
 
 (test test-blink
@@ -258,7 +258,8 @@
 			 :key (width 5) (delay 22))
 			(let ((counter 0 :width (+ bits delay))
 			      (out 0 :width bits))
-			  (when (rtl::posedge clk)
+			  (rtl::@ (rtl::posedge clk)
 			    (setf counter (+ counter 1))
 			    (setf out (rtl::>> counter delay)))
-			  (rtl::wire leds out))))))
+			  (setf leds out)))
+		      :toplevel)))

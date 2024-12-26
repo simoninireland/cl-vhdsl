@@ -20,21 +20,35 @@
 (in-package :cl-vhdsl/rtl)
 
 
-(defmethod synthesise-sexp ((fun (eql '+)) args (as (eql :rvalue))  str)
-  (format str "(~{~a ~^+ ~})" (mapcar (lambda (form) (synthesise form as)) args)))
+(defmethod synthesise-sexp ((fun (eql '+)) args (as (eql :rvalue)))
+  (format *synthesis-stream* "(")
+  (dolist (i (iota (length args)))
+    (synthesise (elt args i) :rvalue)
+    (if (< i (1- (length args)))
+	(format *synthesis-stream* " + ")))
+  (format *synthesis-stream* ")"))
 
 
-(defmethod synthesise-sexp ((fun (eql '-)) args (as (eql :rvalue))  str)
+(defmethod synthesise-sexp ((fun (eql '-)) args (as (eql :rvalue)))
   (if (= (length args) 1)
       ;; unary minus
-      (format str "(-~a)" (car args))
+      (progn
+	(format *synthesis-stream* "(-~a)" (car args)))
 
       ;; application
-      (format str "(~{~a ~^-0 ~})" (mapcar (lambda (form) (synthesise form as)) args))))
+      (progn
+	(format *synthesis-stream* "(")
+	(dolist (i (iota (length args)))
+	  (synthesise (elt args i) :rvalue)
+	  (if (< i (1- (length args)))
+	      (format *synthesis-stream* " - ")))
+	(format *synthesis-stream* ")"))))
 
 
-(defmethod synthesise-sexp ((fun (eql '*)) args (as (eql :rvalue))  str)
-  (format str "(~{~a ~^* ~})" (mapcar (lambda (form) (synthesise form as)) args)))
+(defmethod synthesise-sexp ((fun (eql '*)) args (as (eql :rvalue)))
+  (format *synthesis-stream* "(~{~a ~^* ~})" (mapcar (lambda (form)
+						       (synthesise form as))
+						     args)))
 
 
 ;; Verilog provides left and right shift operators; Common Lisp uses ash
@@ -43,17 +57,17 @@
 ;; register, so we provide two different operators instead. (This will
 ;; change if I can figure out a way to synthesise ash.)
 
-(defmethod synthesise-sexp ((fun (eql '<<)) args (as (eql :rvalue)) str)
+(defmethod synthesise-sexp ((fun (eql '<<)) args (as (eql :rvalue)))
   (destructuring-bind (val offset)
       args
-    (format str "(~a << ~a)"
+    (format *synthesis-stream* "(~a << ~a)"
 	    (synthesise val as)
 	    (synthesise offset as))))
 
 
-(defmethod synthesise-sexp ((fun (eql '>>)) args (as (eql :rvalue))  str)
+(defmethod synthesise-sexp ((fun (eql '>>)) args (as (eql :rvalue)))
   (destructuring-bind (val offset)
       args
-    (format str "(~a >> ~a)"
+    (format *synthesis-stream* "(~a >> ~a)"
 	    (synthesise val as)
 	    (synthesise offset as))))

@@ -20,44 +20,21 @@
 (in-package :cl-vhdsl/rtl)
 
 
-(defmethod synthesise-sexp ((fun (eql 'progn)) args as str)
-  (format str "~{~a ~^~&~}" (mapcar (lambda (form) (synthesise form :statement))
-				    args)))
+;; ---------- PROGN ----------
+
+(defmethod synthesise-sexp ((fun (eql 'progn)) args as)
+  (dolist (form args)
+    (synthesise form :statement)))
 
 
-(defmethod synthesise-sexp ((fun (eql 'when)) args (as (eql :statement)) str)
+;; ---------- Triggered blocks ----------
+
+(defmethod synthesise-sexp ((fun (eql '@)) args (as (eql :statement)))
   (let ((test (car args))
 	(body (cdr args)))
-    (format str "always @(~a) begin~&~a~&end"
-	    (synthesise test :rvalue)
-	    (synthesise (cons 'progn body) :statement))))
-
-
-;; statement form
-(defmethod synthesise-sexp ((fun (eql 'if)) args (as (eql :statement)) str)
-  (destructuring-bind (condition then &optional else)
-      args
-    (let ((condbranch (synthesise condition :rvalue))
-	  (thenbranch (synthesise then :statement))
-	  (elsebranch (if else
-			  (format nil "else~&~a" (synthesise else :statement))
-			  "")))
-      (format str "if (~a)~&~a~&~a~&end~&"
-	      condbranch
-	      thenbranch
-	      elsebranch))))
-
-
-;; conditional expression form
-(defmethod synthesise-sexp ((fun (eql 'if)) args (as (eql :rvalue)) str)
-  (destructuring-bind (condition then &optional else)
-      args
-    (let ((condbranch (synthesise condition :rvalue))
-	  (thenbranch (synthesise then :rvalue))
-	  (elsebranch (if else
-			  (format nil ": ~a" (synthesise else :rvalue))
-			  "")))
-      (format str "~a ? ~a ~a"
-	      condbranch
-	      thenbranch
-	      elsebranch))))
+    (format *synthesis-stream* "~aalways @(" (indentation))
+    (synthesise test :rvalue)
+    (format *synthesis-stream* ")~&")
+    (in-logical-block (:before "begin" :after "end")
+      (dolist (form body)
+	(synthesise form :statement)))))

@@ -45,6 +45,10 @@
    #:synthesise
    #:synthesise-sexp
 
+   ;; pretty-printing
+   #:indentation
+   #:in-logical-block
+
    ;; macro lanuage
    #:defmodule
 

@@ -71,10 +71,13 @@
 				     (:file "operators")
 				     (:file "comparisons")
 				     (:file "control-flow")
+				     (:file "conditionals")
 				     (:file "binders")
 				     (:file "assignment")
 				     (:file "modules")
+				     (:file "pretty-printer")
 				     (:file "passes")
+				     (:file "embedding")
 				     (:file "conditions"))))
   :in-order-to ((test-op (test-op "cl-vhdsl/test"))))
 

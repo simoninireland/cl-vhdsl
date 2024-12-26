@@ -65,12 +65,12 @@ be interpolated."
       ;; parameter with an initial value
       (destructuring-bind (n v)
 	  decl
-	(format nil "parameter ~a = ~a"
+	(format *synthesis-stream* "parameter ~a = ~a"
 		n
 		v))
 
       ;; naked parameter
-      (format nil "parameter ~a"
+      (format *synthesis-stream* "parameter ~a"
 	      decl)))
 
 
@@ -78,7 +78,7 @@ be interpolated."
   "Return the code for argument DECL."
   (destructuring-bind (n &key direction width)
       decl
-    (format nil "~a ~a~a"
+    (format *synthesis-stream* "~a ~a~a"
 	    (case direction
 	      (:in    "input")
 	      (:out   "output")
@@ -89,20 +89,35 @@ be interpolated."
 	    n)))
 
 
-(defmethod synthesise-sexp ((fun (eql 'module)) args (as (eql :toplevel)) str)
+(defmethod synthesise-sexp ((fun (eql 'module)) args (as (eql :toplevel)))
   (destructuring-bind (modname decls &rest body)
       args
     (destructuring-bind (args params)
 	(split-args-params decls)
-      (let* ((argdefs (mapcar #'synthesise-arg
-			      args))
-	     (paramdefs (mapcar #'synthesise-param
-				params)))
-	 (format str "module ~a~a(~{~a ~^,~});~&~a~&endmodule // ~a"
-	      modname
-	      (if params
-		  (format nil " # (~{~a ~^, ~})" paramdefs)
-		  "")
-	      argdefs
-	      (synthesise (cons 'progn body) :statement)
-	      modname)))))
+
+      (format *synthesis-stream* "module ")
+      (synthesise modname :rvalue)
+
+      ;; parameters
+      (if params
+	  (in-logical-block (:before " #(" :after ")")
+	    (dolist (i (iota (length params)))
+	      (format *synthesis-stream* "~a" (indentation))
+	      (synthesise-param (elt params i))
+	      (if (< i (1- (length params)))
+		  (format *synthesis-stream* ","))
+	      (format *synthesis-stream* "~&"))))
+
+      ;; arguments
+      (in-logical-block (:before "(" :after ");" )
+	(dolist (i (iota (length args)))
+	  (format *synthesis-stream* "~a" (indentation))
+	  (synthesise-arg (elt args i))
+	  (if (< i (1- (length args)))
+	      (format *synthesis-stream* ","))
+	  (format *synthesis-stream* "~&"))))
+
+    ;; body
+    (in-logical-block (:after (format nil "endmodule // ~a" modname))
+      (dolist (form body)
+	(synthesise form :statement)))))
