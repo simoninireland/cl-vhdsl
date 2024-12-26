@@ -21,12 +21,7 @@
 
 
 (defmethod synthesise-sexp ((fun (eql '+)) args (as (eql :rvalue)))
-  (format *synthesis-stream* "(")
-  (dolist (i (iota (length args)))
-    (synthesise (elt args i) :rvalue)
-    (if (< i (1- (length args)))
-	(format *synthesis-stream* " + ")))
-  (format *synthesis-stream* ")"))
+  (as-infix '+ args as))
 
 
 (defmethod synthesise-sexp ((fun (eql '-)) args (as (eql :rvalue)))
@@ -36,19 +31,11 @@
 	(format *synthesis-stream* "(-~a)" (car args)))
 
       ;; application
-      (progn
-	(format *synthesis-stream* "(")
-	(dolist (i (iota (length args)))
-	  (synthesise (elt args i) :rvalue)
-	  (if (< i (1- (length args)))
-	      (format *synthesis-stream* " - ")))
-	(format *synthesis-stream* ")"))))
+      (as-infix '- args as)))
 
 
 (defmethod synthesise-sexp ((fun (eql '*)) args (as (eql :rvalue)))
-  (format *synthesis-stream* "(~{~a ~^* ~})" (mapcar (lambda (form)
-						       (synthesise form as))
-						     args)))
+  (as-infix '* args as))
 
 
 ;; Verilog provides left and right shift operators; Common Lisp uses ash
@@ -56,18 +43,16 @@
 ;; That behaviour seems impossible to synthesise without using an extra
 ;; register, so we provide two different operators instead. (This will
 ;; change if I can figure out a way to synthesise ash.)
+;;
+;; The destructuring is to ensure there are only two arguments.
 
 (defmethod synthesise-sexp ((fun (eql '<<)) args (as (eql :rvalue)))
   (destructuring-bind (val offset)
       args
-    (format *synthesis-stream* "(~a << ~a)"
-	    (synthesise val as)
-	    (synthesise offset as))))
+    (as-infix '<< args as)))
 
 
 (defmethod synthesise-sexp ((fun (eql '>>)) args (as (eql :rvalue)))
   (destructuring-bind (val offset)
       args
-    (format *synthesis-stream* "(~a >> ~a)"
-	    (synthesise val as)
-	    (synthesise offset as))))
+    (as-infix '>> args as)))

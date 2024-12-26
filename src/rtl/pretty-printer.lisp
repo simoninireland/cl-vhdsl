@@ -67,3 +67,13 @@
 		   (or always
 		       (> (length body) 1)))
 	      `(format *synthesis-stream* "~a~a~&" (indentation) ,after)))))
+
+
+(defun as-infix (op args as)
+  "Synthesise ARGS with OP between them. "
+  (format *synthesis-stream* "(")
+  (dolist (i (iota (length args)))
+    (synthesise (elt args i) as)
+    (if (< i (1- (length args)))
+	(format *synthesis-stream* " ~a " (symbol-name op))))
+  (format *synthesis-stream* ")"))
