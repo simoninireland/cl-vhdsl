@@ -99,25 +99,16 @@ be interpolated."
       (synthesise modname :rvalue)
 
       ;; parameters
-      (if params
-	  (in-logical-block (:before " #(" :after ")")
-	    (dolist (i (iota (length params)))
-	      (format *synthesis-stream* "~a" (indentation))
-	      (synthesise-param (elt params i))
-	      (if (< i (1- (length params)))
-		  (format *synthesis-stream* ","))
-	      (format *synthesis-stream* "~&"))))
+      (as-list params :argument :before " #(" :after ")" :sep ","
+			     :in-logical-block t
+			     :process (lambda (form as)
+					(synthesise-param form)))
 
       ;; arguments
-      (in-logical-block (:before "(" :after ");" )
-	(dolist (i (iota (length args)))
-	  (format *synthesis-stream* "~a" (indentation))
-	  (synthesise-arg (elt args i))
-	  (if (< i (1- (length args)))
-	      (format *synthesis-stream* ","))
-	  (format *synthesis-stream* "~&"))))
-
+      (as-list args :argument :before "(" :after ")" :sep ","
+			     :in-logical-block t
+			     :process (lambda (form as)
+					(synthesise-arg form))))
     ;; body
-    (in-logical-block (:after (format nil "endmodule // ~a" modname))
-      (dolist (form body)
-	(synthesise form :statement)))))
+    (as-list body :statement :in-logical-block t
+			     :after (format nil "endmodule // ~a" modname))))

@@ -38,7 +38,9 @@
 		       *indentation*)))
 
 
-(defmacro in-logical-block ((&key before after (always t) (indented t)) &body body)
+(defmacro in-logical-block ((&key before after (always t)
+			       (indented t))
+			    &body body)
   "Synthesise BODY forms in an indented logical block."
   (if (not (or before after))
       ;; no bracketing
@@ -59,7 +61,10 @@
 	 ,(if indented
 	      ;; indented
 	      `(let ((*indentation-level* (1+ *indentation-level*)))
-		 ,@body)
+		 ,@(mapcar (lambda (form)
+			     `(progn
+				(format *synthesis-stream* "~a" (indentation))
+				form))))
 
 	      ;; no indentation
 	      body)
@@ -70,10 +75,54 @@
 
 
 (defun as-infix (op args as)
-  "Synthesise ARGS with OP between them. "
+  "Synthesise ARGS with OP between them.
+
+Each element of ARGS is synthesised in the AS role."
   (format *synthesis-stream* "(")
   (dolist (i (iota (length args)))
     (synthesise (elt args i) as)
     (if (< i (1- (length args)))
 	(format *synthesis-stream* " ~a " (symbol-name op))))
   (format *synthesis-stream* ")"))
+
+
+(defun as-list (args as
+		&key before after
+		  (sep " ")
+		  in-logical-block
+		  (process #'synthesise))
+  "Synthesise ARGS as a list.
+
+Each element of ARGS is synthesised in the AS role.
+
+The list defaults to space-separated, which can be changed using the
+SEP key. If BEFORE and AFTER are given, they bracket the list. If
+INDENT is T (the default) ARGS are output indented. If NEWLINES is T
+(not the default) each element appears on a new line, as do the
+brackets. PROCESS (defaults to SYNTHESISE) is applied to each argument
+before synthesis, passing the argument and role."
+  (flet ((construct-list ()
+	   (dolist (i (iota (length args)))
+	     (if in-logical-block
+		 (format *synthesis-stream* "~a" (indentation)))
+	     (funcall process (elt args i) as)
+	     (if (< i (1- (length args)))
+		 (format *synthesis-stream* sep))
+	     (if in-logical-block
+		 (format *synthesis-stream* "~&")))))
+
+    ;; start bracket
+    (when before
+      (if in-logical-block
+	  (in-logical-block ()
+	    (format *synthesis-stream* "~a" before))))
+
+    ;; elements
+    (in-logical-block (:indented t)
+	(construct-list))
+
+    ;; end bracket
+    (when after
+      (if in-logical-block
+	  (in-logical-block ()
+	    (format *synthesis-stream* "~a" after))))))

@@ -28,9 +28,4 @@ in many applications."
 
 
 (defmethod synthesise-sexp ((fun (eql 'logand)) args as)
-  (format *synthesis-stream* "(")
-  (dolist (i (iota (length args)))
-    (synthesise (elt args i) :rvalue)
-    (if (< i (1- (length args)))
-	(format *synthesis-stream* " & ")))
-  (format *synthesis-stream* ")"))
+  (as-infix 'logand args as))
