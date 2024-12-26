@@ -39,4 +39,7 @@
    ;; data structure manipulations
    #:safe-cadr
    #:mapappend
+
+   ;; string functions
+   #:string-times
    ))

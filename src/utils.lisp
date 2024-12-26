@@ -152,3 +152,10 @@ L can be a list or a pair."
 (defun foldr (fun l init)
   "Fold the values of L rightwards through FUN, starting with INIT."
   (reduce fun l :initial-value init))
+
+
+;; ---------- String utilities ----------
+
+(defun string-times (str n)
+  "Return a string consisting of N copies of STR."
+  (apply #'concatenate (cons'string (mapcar (lambda (i) str) (iota n)))))
