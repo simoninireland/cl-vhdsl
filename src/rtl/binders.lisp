@@ -27,19 +27,20 @@
 ;; - :type -- the type being held by the binding
 
 
-(defun synthesise-register (n v &key (width *default-register-width*))
+(defun synthesise-register (decl as)
   "Synthesise a register declaration within a LET block.
 
 The register has name N and initial value V, with the optional
 WIDTH defaulting to the system's global width."
-  (format *synthesis-stream* "~areg [ "
-	  (indentation))
-  (synthesise width :rvalue)
-  (format *synthesis-stream* " - 1 : 0 ] ")
-  (synthesise n :rvalue)
-  (format *synthesis-stream* " = ")
-  (synthesise v :rvalue)
-  (format *synthesis-stream* ";~&"))
+  (destructuring-bind  (n v &key (width *default-register-width*))
+      decl
+    (format *synthesis-stream* "reg [ ")
+    (synthesise width :rvalue)
+    (format *synthesis-stream* " - 1 : 0 ] ")
+    (synthesise n :rvalue)
+    (format *synthesis-stream* " = ")
+    (synthesise v :rvalue))
+  (format *synthesis-stream* ";"))
 
 
 (defmethod synthesise-sexp ((fun (eql 'let)) args (as (eql :statement)))
@@ -47,9 +48,8 @@ WIDTH defaulting to the system's global width."
 	(body (cdr args)))
 
     ;; synthesise the registers
-    (dolist (decl decls)
-      (apply #'synthesise-register decl))
+    (as-body decls :declaration :process #'synthesise-register)
+    (format *synthesis-stream* "~%")
 
     ;; synthesise the body
-    (dolist (form body)
-      (synthesise form :statement))))
+    (as-body body :statement)))

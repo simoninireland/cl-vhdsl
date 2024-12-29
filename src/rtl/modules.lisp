@@ -83,7 +83,8 @@ be interpolated."
 	      (:in    "input")
 	      (:out   "output")
 	      (:inout "inout"))
-	    (if (= width 1)
+	    (if (and (integerp width)
+		     (= width 1))
 		""
 		(format nil "[ ~a - 1 : 0 ] " width))
 	    n)))
@@ -99,16 +100,18 @@ be interpolated."
       (synthesise modname :rvalue)
 
       ;; parameters
-      (as-list params :argument :before " #(" :after ")" :sep ","
-			     :in-logical-block t
-			     :process (lambda (form as)
-					(synthesise-param form)))
+      (as-list params :argument :before " #(" :after ")"
+				:indented t :newlines t
+				:process (lambda (form as)
+					   (synthesise-param form)))
 
       ;; arguments
-      (as-list args :argument :before "(" :after ")" :sep ","
-			     :in-logical-block t
-			     :process (lambda (form as)
-					(synthesise-arg form))))
+      (as-list args :argument :before "(" :after ")"
+			      :indented t :newlines t
+			      :process (lambda (form as)
+					 (synthesise-arg form))))
+
     ;; body
-    (as-list body :statement :in-logical-block t
-			     :after (format nil "endmodule // ~a" modname))))
+    (with-indentation
+      (as-body body :statement))
+    (format *synthesis-stream* "endmodule // ~a" modname)))

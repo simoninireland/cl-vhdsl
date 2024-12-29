@@ -18,6 +18,7 @@
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 (in-package :cl-vhdsl/rtl)
+(declaim (optimize debug))
 
 
 (defvar *synthesis-stream* *standard-output*
@@ -38,58 +39,92 @@
 		       *indentation*)))
 
 
-(defmacro in-logical-block ((&key before after (always t)
-			       (indented t))
-			    &body body)
-  "Synthesise BODY forms in an indented logical block."
-  (if (not (or before after))
-      ;; no bracketing
-      (if indented
-	  ;; indented
-	  `(let ((*indentation-level* (1+ *indentation-level*)))
-	     ,@body)
+(defmacro with-indentation (&body body)
+  "doc"
+  `(let ((*indentation-level* (1+ *indentation-level*)))
+     ,@body))
 
-	  ;; no indentation
-	  body)
 
-      ;; insert before and/or after brackets
-      `(progn
-	 ,(if (and before
-		   (or always
-		       (> (length body) 1)))
-	      `(format *synthesis-stream* "~a~a~&" (indentation) ,before))
-	 ,(if indented
-	      ;; indented
-	      `(let ((*indentation-level* (1+ *indentation-level*)))
-		 ,@(mapcar (lambda (form)
-			     `(progn
-				(format *synthesis-stream* "~a" (indentation))
-				form))))
+(defun as-block (args as &key before after
+			   (always t)
+			   (indented t)
+			   (sep "")
+			   (newlines t)
+			   (process #'synthesise))
+  "doc"
+  (let ((n (length args)))
+    (labels ((format-arg (arg)
+	       "Format a single ARG along with any terminator string."
+	       (funcall process arg as))
 
-	      ;; no indentation
-	      body)
-	 ,(if (and after
-		   (or always
-		       (> (length body) 1)))
-	      `(format *synthesis-stream* "~a~a~&" (indentation) ,after)))))
+	     (format-args (args)
+	       "Format all ARGS along with any seperator strings and indentation."
+	       (dolist (i (iota n))
+		 (if (and indented
+			  (or newlines
+			      (= i 0)))
+		     (format *synthesis-stream* "~a" (indentation)))
+
+		 (format-arg (elt args i))
+
+		 (when (< i (1- n))
+		   (format *synthesis-stream* "~a" sep))
+		 (if newlines
+		     (format *synthesis-stream* "~&")))))
+
+      ;; leading bracket
+      (when (and before
+		 (or always
+		     (> n 1)))
+	(if indented
+	    (format *synthesis-stream* "~a" (indentation)))
+	(format *synthesis-stream* "~a" before)
+	(if newlines
+	    (format *synthesis-stream* "~&")))
+
+      ;; arguments
+      (if (and before after indented)
+	  ;; indent the contents
+	  (with-indentation
+	    (format-args args))
+
+	  ;; format the arguments at the current level
+	  (format-args args))
+
+      ;; trailing bracket
+      (when (and after
+		 (or always
+		     (> n 1)))
+	(if indented
+	    (format *synthesis-stream* "~a" (indentation)))
+	(format *synthesis-stream* "~a" after)
+	(if newlines
+	    (format *synthesis-stream* "~&"))))))
+
+
+(defun as-body (args as &key before after (process #'synthesise))
+  "doc"
+  (as-block args as
+	    :before before :after after
+	    :indented t :newlines t
+	    :process process))
 
 
 (defun as-infix (op args as)
   "Synthesise ARGS with OP between them.
 
 Each element of ARGS is synthesised in the AS role."
-  (format *synthesis-stream* "(")
-  (dolist (i (iota (length args)))
-    (synthesise (elt args i) as)
-    (if (< i (1- (length args)))
-	(format *synthesis-stream* " ~a " (symbol-name op))))
-  (format *synthesis-stream* ")"))
+  (as-block args as :before "("
+		    :after ")"
+		    :sep (format nil " ~a " op)
+		    :always nil
+		    :indented nil
+		    :newlines nil))
 
 
 (defun as-list (args as
 		&key before after
-		  (sep " ")
-		  in-logical-block
+		  indented newlines
 		  (process #'synthesise))
   "Synthesise ARGS as a list.
 
@@ -101,28 +136,9 @@ INDENT is T (the default) ARGS are output indented. If NEWLINES is T
 (not the default) each element appears on a new line, as do the
 brackets. PROCESS (defaults to SYNTHESISE) is applied to each argument
 before synthesis, passing the argument and role."
-  (flet ((construct-list ()
-	   (dolist (i (iota (length args)))
-	     (if in-logical-block
-		 (format *synthesis-stream* "~a" (indentation)))
-	     (funcall process (elt args i) as)
-	     (if (< i (1- (length args)))
-		 (format *synthesis-stream* sep))
-	     (if in-logical-block
-		 (format *synthesis-stream* "~&")))))
-
-    ;; start bracket
-    (when before
-      (if in-logical-block
-	  (in-logical-block ()
-	    (format *synthesis-stream* "~a" before))))
-
-    ;; elements
-    (in-logical-block (:indented t)
-	(construct-list))
-
-    ;; end bracket
-    (when after
-      (if in-logical-block
-	  (in-logical-block ()
-	    (format *synthesis-stream* "~a" after))))))
+  (as-block args as :before before
+		    :after after
+		    :sep ", "
+		    :indented indented
+		    :newlines newlines
+		    :process process))

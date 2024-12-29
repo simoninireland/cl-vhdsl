@@ -32,9 +32,9 @@
 (defmethod synthesise-sexp ((fun (eql '@)) args (as (eql :statement)))
   (let ((test (car args))
 	(body (cdr args)))
-    (format *synthesis-stream* "~aalways @(" (indentation))
+    (format *synthesis-stream* "always @(")
     (synthesise test :rvalue)
     (format *synthesis-stream* ")~&")
-    (in-logical-block (:before "begin" :after "end")
-      (dolist (form body)
-	(synthesise form :statement)))))
+    (as-block body :statement
+	      :before "begin" :after "end"
+	      :indented t :newlines t)))

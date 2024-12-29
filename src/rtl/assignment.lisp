@@ -42,13 +42,12 @@ constant or an input parameter."
 (defmethod synthesise-sexp ((fun (eql 'setf)) args (as (eql :statement)))
   (destructuring-bind (var val &key (sync nil))
       args
-    (format *synthesis-stream* "~a" (indentation))
     (synthesise var :lvalue)
     (if sync
 	(format *synthesis-stream* " = ")
 	(format *synthesis-stream* " <= "))
     (synthesise val :rvalue)
-    (format *synthesis-stream* ";~&")))
+    (format *synthesis-stream* ";")))
 
 
 ;; Triggers
