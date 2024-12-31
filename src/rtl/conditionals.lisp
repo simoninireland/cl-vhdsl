@@ -9,6 +9,23 @@
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 (in-package :cl-vhdsl/rtl)
+(declaim (optimize debug))
+
+
+(defmethod typecheck-sexp ((fun (eql 'if)) args env)
+  (destructuring-bind (condition then &rest else)
+      args
+    (let ((tycond (typecheck condition env))
+	  (tythen (typecheck then env))
+	  (tyelse (if else
+		      (typecheck (cons 'progn else) env))))
+      (ensure-boolean tycond env)
+
+      ;; the type of the expression is the widest of the
+      ;; types of the two arms
+      (if else
+	  (lub-fixed-width tythen tyelse env)
+	  tythen))))
 
 
 (defmethod synthesise-sexp ((fun (eql 'if)) args (as (eql :statement)))

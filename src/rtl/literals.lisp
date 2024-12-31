@@ -22,5 +22,12 @@
 
 ;; ---------- Integers ----------
 
+(defmethod typecheck ((form integer) env)
+  (let ((w (bitwidth form env)))
+    (if (< form 0)
+	`(fixed-width-signed ,w)
+	`(fixed-width-unsigned ,w))))
+
+
 (defmethod synthesise ((form integer) as)
   (format *synthesis-stream* "~s" form))

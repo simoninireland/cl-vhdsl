@@ -150,6 +150,208 @@
       (is (equal params '(c (d 12)))))))
 
 
+;; ---------- Type and width checking ----------
+
+(test test-literal-widths
+  "Test we can extract the types of literals."
+  (is (subtypep (rtl:typecheck 2 emptyenv)
+		'(rtl::fixed-width-unsigned 2)))
+
+  (is (not (subtypep (rtl:typecheck -2 emptyenv)
+		     '(rtl::fixed-width-signed 2))))
+  (is (subtypep (rtl:typecheck -2 emptyenv)
+		'(rtl::fixed-width-signed 3))))
+
+
+(test test-add-widths
+  "Test we can determine the widths of additions."
+  (is (subtypep (rtl:typecheck '(+ 1 1)
+			       emptyenv)
+		'(rtl::fixed-width-unsigned 2)))
+  (is (subtypep (rtl:typecheck '(+ 15 2)
+			       emptyenv)
+		`(rtl::fixed-width-unsigned 5)))
+
+  (is (not (subtypep (rtl:typecheck '(+ 15 -2)
+				    emptyenv)
+		     `(rtl::fixed-width-unsigned 5))))
+  (is (subtypep (rtl:typecheck '(+ 15 -2)
+			       emptyenv)
+		`(rtl::fixed-width-signed 5))))
+
+
+(test test-width-subtractions
+  "Test we can extract the widths of subtractions."
+    (is (subtypep (rtl:typecheck '(- 1)
+			       emptyenv)
+		  '(rtl::fixed-width-signed 2)))
+    (is (subtypep (rtl:typecheck '(- 2 1)
+			       emptyenv)
+		  '(rtl::fixed-width-signed 3))))
+
+
+(test test-width-shifts
+  "Test we can extract the widths of shifts."
+  (is (subtypep (rtl:typecheck '(rtl::<< 1 2)
+			       emptyenv)
+		'(rtl::fixed-width-unsigned 4)))
+  (is (subtypep (rtl:typecheck '(rtl::<< 15 15)
+			       emptyenv)
+		'(rtl::fixed-width-unsigned 19)))
+
+  (is (subtypep (rtl:typecheck '(rtl::>> 16 4)
+			       emptyenv)
+		'(rtl::fixed-width-unsigned 1))))
+
+
+(test test-let-single
+  "Test we can typecheck an expression."
+  (is (subtypep (rtl:typecheck '(let ((a 1 :width 5))
+				 (+ 1 a))
+			       emptyenv)
+		'(rtl::fixed-width-unsigned 6))))
+
+
+(test test-let-single-infer-width
+  "Test we can infer a width."
+  (is (subtypep (rtl:typecheck '(let ((a 1))
+				 (+ 1 a))
+			       emptyenv)
+		'(rtl::fixed-width-unsigned 2))))
+
+
+(test test-let-double
+  "Test we can typecheck an expression with two variables."
+  (is (subtypep (rtl:typecheck '(let ((a 1 :width 8)
+				      (b 6 :width 16))
+				 (+ a b))
+			       emptyenv)
+		'(rtl::fixed-width-unsigned 24))))
+
+
+(test test-let-too-narrow
+  "Test we pick up too-wide initial values."
+  (signals (rtl:type-mismatch)
+    (rtl:typecheck '(let ((a 100 :width 5))
+		     (+ 1 a))
+		   emptyenv)))
+
+
+(test test-let-widen
+  "Test we can take the width from a given type."
+  (is (subtypep (rtl:typecheck '(let ((a 5 :type (rtl::fixed-width-unsigned 8)))
+				 (+ 1 a))
+			       emptyenv)
+		'(rtl::fixed-width-unsigned 9))))
+
+
+(test test-let-scope
+  "Test we catch variables not declared."
+  (signals (rtl:unknown-variable)
+    (rtl:typecheck '(let ((a 1))
+		     (+ 1 b))
+		   emptyenv)))
+
+
+(test test-let-result
+  "Test we pick up the right result type."
+  (is (subtypep (rtl:typecheck '(let ((a 99)
+				      (b 100 :width 8))
+				 (+ b 1)
+				 (+ b a b))
+			       emptyenv)
+		'(rtl::fixed-width-unsigned 10))))
+
+
+(test test-let-constant
+  "Test we admit constant bindings."
+  (is (subtypep (rtl:typecheck '(let ((a 15 :constant t))
+				 a)
+			       emptyenv)
+		'(rtl::fixed-width-unsigned 4))))
+
+
+(test test-let-naked
+  "Test that we accept "naked" declarations."
+  (is (subtypep (rtl:typecheck '(let ((a 10)
+				      b)
+				 (+ a b))
+			       emptyenv)
+		`(rtl::fixed-width-unsigned ,(1+ rtl::*default-register-width*)))))
+
+
+(test test-if-then-else
+  "Test we can check a complete if form."
+  (is (subtypep (rtl:typecheck '(if 1
+				 (+ 1 2)
+				 (+ 16 8))
+			       emptyenv)
+		 '(rtl::fixed-width-unsigned 6))))
+
+
+(test test-if-then
+  "Test we can check an incomplete if form."
+  (is (subtypep (rtl:typecheck '(if 1
+				 (+ 1 2))
+			       emptyenv)
+		 '(rtl::fixed-width-unsigned 3))))
+
+
+(test test-assignment-same-width
+  "Test we can assign."
+  (is (subtypep (rtl:typecheck '(let ((a 10))
+				 (setf a 12))
+			       emptyenv)
+		'(rtl::fixed-width-unsigned 5))))
+
+
+(test test-assignment-same-width-sync
+  "Test we can assign synchronously (same types)."
+  (is (subtypep (rtl:typecheck '(let ((a 10))
+				 (setf a 12 :sync t))
+			       emptyenv)
+		'(rtl::fixed-width-unsigned 5))))
+
+
+(test test-assignment-too-wide
+  "Test we can't assign a value that's too wide."
+  (signals (rtl:type-mismatch)
+    (rtl:typecheck '(let ((a 10))
+		     (setf a 120))
+		   emptyenv)))
+
+
+(test test-assignment-out-of-scope
+  "Test we can't assign to a non-existent variable."
+  (signals (rtl:unknown-variable)
+    (rtl:typecheck '(let ((a 10))
+		     (setf b 12))
+		   emptyenv)))
+
+
+(test test-assignment-constant
+  "Test we can't assign to a constant variable."
+  (signals (rtl:not-synthesisable)
+    (rtl:typecheck '(let ((a 10 :constant t))
+		     (setf a 12))
+		   emptyenv)))
+
+
+(test test-typecheck-module
+  "Test we can type-check a module with a variety of features."
+  (is (subtypep (rtl:typecheck '(rtl::module test ((clk :width 1 :direction :in)
+						    (a :width 8 :direction :in)
+						    (b :width 4)
+						    :key e (f 45))
+				  (let ((x 0 :width 8)
+					(y 10 :width 8))
+				    (setf x (+ x b) :sync t)))
+				emptyenv)
+		'(rtl::fixed-width-unsigned 16))))
+
+
+
+
 ;; ---------- Synthesis ----------
 
 ;; It's not generally possible to check the results of synthesis, so
@@ -173,7 +375,7 @@
 
   ;; nested
   (is (rtl:synthesise `(+ 1 (- (* 2 3 -1)))
-			:rvalue))
+		      :rvalue))
 
   ;; shifts
   (dolist (op '(rtl::<< rtl::>>))

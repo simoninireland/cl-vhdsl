@@ -22,5 +22,9 @@
 
 ;; ---------- General references ----------
 
+(defmethod typecheck ((fun symbol) env)
+  (get-type fun env))
+
+
 (defmethod synthesise ((form symbol) as)
   (format *synthesis-stream* "~s" form))

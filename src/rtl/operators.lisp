@@ -18,10 +18,39 @@
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 (in-package :cl-vhdsl/rtl)
+(declaim (optimize debug))
+
+
+(defun typecheck-addition (args env)
+  "Type-check an addition or subtraction of ARGS in ENV.
+
+The width of the resulting number is the width of the widest argument
+plus the number of other arguments."
+  (let ((tys (mapcar (rcurry #'typecheck env) args)))
+    (dolist (ty tys)
+      (ensure-fixed-width ty))
+
+    (let* ((ws (mapcar (rcurry #'bitwidth env) tys))
+	   (minus (some #'fixed-width-signed-p tys))
+	   (w (+ (apply #'max ws)
+		 (1- (length args)))))
+      (if minus
+	  `(fixed-width-signed ,w)
+	  `(fixed-width-unsigned ,w)))))
+
+
+(defmethod typecheck-sexp ((fun (eql '+)) args env)
+  (typecheck-addition args env))
 
 
 (defmethod synthesise-sexp ((fun (eql '+)) args (as (eql :rvalue)))
   (as-infix '+ args as))
+
+
+(defmethod typecheck-sexp ((fun (eql '-)) args env)
+  ;; we force subtractions to be signed
+  (let ((ty (typecheck-addition args env)))
+    `(fixed-width-signed ,(bitwidth ty env))))
 
 
 (defmethod synthesise-sexp ((fun (eql '-)) args (as (eql :rvalue)))
@@ -45,11 +74,41 @@
 ;; change if I can figure out a way to synthesise ash.)
 ;;
 ;; The destructuring is to ensure there are only two arguments.
+;;
+;; The result is always unsigned.
+
+(defmethod typecheck-sexp ((fun (eql '<<)) args env)
+  (destructuring-bind (val offset)
+      args
+    (let ((tyval (typecheck val env))
+	  (tyoffset (typecheck offset env)))
+      (ensure-fixed-width tyval)
+      (ensure-fixed-width tyoffset)
+
+      ;; the width is the width of the value plus the
+      ;; maximum number that can be in the offset
+      `(fixed-width-unsigned ,(+ (bitwidth tyval env)
+				 (1- (round (expt 2 (bitwidth tyoffset env)))))))))
+
 
 (defmethod synthesise-sexp ((fun (eql '<<)) args (as (eql :rvalue)))
   (destructuring-bind (val offset)
       args
     (as-infix '<< args as)))
+
+
+(defmethod typecheck-sexp ((fun (eql '>>)) args env)
+  (destructuring-bind (val offset)
+      args
+    (let ((tyval (typecheck val env))
+	  (tyoffset (typecheck offset env)))
+      (ensure-fixed-width tyval)
+      (ensure-fixed-width tyoffset)
+
+      ;; the width is the width of the value minus the
+      ;; maximum number that can be in the offset
+      `(fixed-width-unsigned ,(- (bitwidth tyval env)
+				 (1- (round (expt 2 (bitwidth tyoffset env)))))))))
 
 
 (defmethod synthesise-sexp ((fun (eql '>>)) args (as (eql :rvalue)))

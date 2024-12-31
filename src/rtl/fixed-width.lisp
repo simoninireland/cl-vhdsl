@@ -21,15 +21,91 @@
 
 ;; ---------- Fixed-width integers ----------
 
-(deftype fixed-width-unsigned (width)
-  "A fixed-width unsigned integer using WIDTH bits."
-  `(integer 0 ,(round (1- (expt 2 width)))))
+(deftype fixed-width-unsigned (&optional width)
+  "A fixed-width unsigned integer using WIDTH bits.
+
+WIDTH may also be the symbol * if the exact width is unknown.
+If omitted, WIDTH is assumed to be *."
+  (if (or (null width)
+	  (eql width '*))
+      '(integer 0 *)
+      `(integer 0 ,(round (1- (expt 2 width))))))
 
 
-(deftype fixed-width-signed (width)
-  "A fixed-width signed integer using WIDTH bits."
-  `(integer ,(- (round (expt 2 (1- width))))
-	    ,(round (1- (expt 2 (1- width))))))
+(deftype fixed-width-signed (&optional width)
+  "A fixed-width signed integer using WIDTH bits.
+
+WIDTH may also be the symbol * if the exact width is unknown.
+If omitted, WIDTH is assumed to be *."
+  (if (or (null width)
+	  (eql width '*))
+      '(integer * *)
+      `(integer ,(- (round (expt 2 (1- width))))
+		,(round (1- (expt 2 (1- width)))))))
+
+
+(defun fixed-width-p (ty)
+  "Test whether TY is a fixed-width type."
+  (and (not (null ty))
+       (or (subtypep ty '(fixed-width-signed *))
+	   (subtypep ty '(fixed-width-unsigned *)))))
+
+
+(defun fixed-width-signed-p (ty)
+  "Test whether TY is a signed fixed-width type."
+  (and (not (null ty))
+       (subtypep ty '(fixed-width-signed *))
+       (not (subtypep ty '(fixed-width-unsigned *)))))
+
+
+(defun ensure-fixed-width (ty)
+  "Ensure that TY is a fixed-width integer."
+  (unless (fixed-width-p ty)
+    (error 'type-mismatch :expected '(fixed-width-unsigned
+				      fixed-width-signed)
+			  :got ty)))
+
+
+(defun widen-fixed-width (ty w)
+  "Widen TY to use W bits.
+
+TY is returned if it is already at least as wide as W."
+  (ensure-fixed-width ty)
+  (let ((tytag (car ty)))
+    (if (= (length ty) 0)
+	;; widest already
+	`(tytag)
+
+	(let ((tyw (cadr ty)))
+	  (if (eql tyw '*)
+	      ;; widest already
+	      `(,tytag *)
+
+	      ;; new width should be the larger of the two
+	      `(,tytag ,(max tyw w)))))))
+
+
+(defun lub-fixed-width (ty1 ty2 env)
+  "Return the least upper-bound of two types TY1 and TY2."
+  (cond ((and (subtypep ty1 '(fixed-width-unsigned))
+	      (subtypep ty2 '(fixed-width-unsigned)))
+	 `(fixed-width-unsigned ,(max (bitwidth ty1 env)
+				      (bitwidth ty2 env))))
+
+	((and (subtypep ty1 '(fixed-width-signed))
+	      (subtypep ty2 '(fixed-width-signed)))
+	 `(fixed-width-signed ,(max (bitwidth ty1 env)
+				    (bitwidth ty2 env))))
+
+	((and (subtypep ty1 '(fixed-width-unsigned))
+	      (subtypep ty2 '(fixed-width-signed)))
+	 `(fixed-width-signed ,(max (1+ (bitwidth ty1 env))
+				    (bitwidth ty2 env))))
+
+	((and (subtypep ty1 '(fixed-width-signed))
+	      (subtypep ty2 '(fixed-width-unsigned)))
+	 (lub-fixed-width ty1 ty1 env))))
+
 
 
 (defun bitwidth (val env)

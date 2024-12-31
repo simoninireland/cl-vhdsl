@@ -24,7 +24,7 @@
 
 Signals TYPE-MISMATCH if FORM isn't boolean, which may be ignored
 in many applications."
-  (ensure-subtype form 'bit env))
+  (ensure-subtype form 'bit))
 
 
 (defmethod synthesise-sexp ((fun (eql 'logand)) args as)

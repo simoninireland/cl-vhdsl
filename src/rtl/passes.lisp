@@ -20,6 +20,24 @@
 (in-package :cl-vhdsl/rtl)
 
 
+;; ---------- Type and width checking ----------
+
+(defgeneric typecheck (form env)
+  (:documentation "Type-check FORM in ENV.")
+  (:method ((form list) env)
+    (let ((fun (car form))
+	  (args (cdr form)))
+      (handler-bind ((error #'(lambda (cond)
+				;;(error 'not-synthesisable :fragment form)
+				(error cond)
+				)))
+	(typecheck-sexp fun args env)))))
+
+
+(defgeneric typecheck-sexp (fun args env)
+  (:documentation "Type-check the application of FUN to ARGS in ENV."))
+
+
 ;; ---------- Synthesis ----------
 
 (defgeneric synthesise (form as)

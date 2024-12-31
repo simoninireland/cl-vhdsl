@@ -39,6 +39,17 @@ constant or an input parameter."
     (error 'not-synthesisable :fragment `(setf ,n))))
 
 
+(defmethod typecheck-sexp ((fun (eql 'setf)) args env)
+  (destructuring-bind (var val &key sync)
+      args
+    (let ((tyvar (typecheck var env))
+	  (tyval (typecheck val env)))
+      (ensure-subtype tyval tyvar)
+      (ensure-writeable var env)
+
+      tyval)))
+
+
 (defmethod synthesise-sexp ((fun (eql 'setf)) args (as (eql :statement)))
   (destructuring-bind (var val &key (sync nil))
       args

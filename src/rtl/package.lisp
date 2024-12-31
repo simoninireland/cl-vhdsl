@@ -37,9 +37,8 @@
    #:get-environment-properties
 
    ;; validation
-   #:check
-   #:check-sexp
-   #:check-module-decls
+   #:typecheck
+   #:typecheck-sexp
 
    ;; synthesis
    #:synthesise

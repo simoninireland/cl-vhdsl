@@ -22,6 +22,10 @@
 
 ;; ---------- PROGN ----------
 
+(defmethod typecheck-sexp ((fun (eql 'progn)) args env)
+  (mapn (rcurry #'typecheck env) args))
+
+
 (defmethod synthesise-sexp ((fun (eql 'progn)) args as)
   (dolist (form args)
     (synthesise form :statement)))

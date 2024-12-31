@@ -1,4 +1,4 @@
-;; Assignments
+;; Environments
 ;;
 ;; Copyright (C) 2024 Simon Dobson
 ;;

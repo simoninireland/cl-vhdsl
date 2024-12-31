@@ -59,6 +59,64 @@ be interpolated."
   (eql (get-type n env) :lisp))
 
 
+(defun typecheck-module-param (env decl)
+  "Type-check a module parameter declaration DECL in ENV."
+  (if (listp decl)
+      ;; standard declaration
+      (destructuring-bind (n v)
+	  decl
+	(extend-environment n `((:initial-value ,v)
+				(:type :lisp)
+				(:constant t))
+			    env))
+
+      ;; naked paramater
+      (extend-environment decl `((:initial-value 0)
+				 (:type :lisp)
+				 (:constant t))
+			  env)))
+
+
+(defun typecheck-module-params (decls env)
+  "Type-check the module parameter declarations DECLS to extend ENV."
+  (foldr #'typecheck-module-param decls env))
+
+
+(defun typecheck-module-arg (env decl)
+  "Type-check a module argument declaration DECL in ENV."
+  (destructuring-bind (n &key (width 1) type (direction :in))
+      decl
+    (ensure-direction direction)
+
+    (if type
+	;; make sure the argument is wide enough to accommodate
+	;; the type
+	(ensure-width-can-store width type env)
+
+	;; no type, use width for a default unsigned
+	(setq type `(fixed-width-unsigned ,width)))
+
+    (extend-environment n `((:type ,type)
+			    (:width ,width)
+			    (:direction ,direction))
+			env)))
+
+
+(defun typecheck-module-args (decls env)
+  "Type-check the module argument declarations DECLS to extend ENV."
+  (foldr #'typecheck-module-arg decls env))
+
+
+(defmethod typecheck-sexp ((fun (eql 'module)) args env)
+  (destructuring-bind (modname decls &rest body)
+      args
+    (destructuring-bind (args params)
+	(split-args-params decls)
+      (let* ((extparams (typecheck-module-params params env))
+	     (ext (typecheck-module-args args extparams)))
+	(typecheck (cons 'progn body) ext)))))
+
+
 (defun synthesise-param (decl)
   "Return the code for parameter DECL."
   (if (listp decl)

@@ -179,3 +179,18 @@
   (let ((l (list (list 1 2) (list 3 4) 5)))
     (is (equal (mapcar #'1+ (flatten l))
 	       (mapappend #'1+ l)))))
+
+
+;; ---------- Last maps ----------
+
+(test test-mapn-one
+  "Test we can extract the last value of mapping over a single list."
+  (is (= (mapn (lambda (a) (1+ a)) '(1 2 3))
+	 4))
+  (is (null (mapn (lambda (a) (1+ a)) '()))))
+
+
+(test test-mapn-two
+  "Test we can extract the last value of mapping over two lists."
+  (is (= (mapn #'+ '(1 2 3) '(4 5 6))
+	 9)))
