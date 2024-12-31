@@ -133,11 +133,25 @@ L can be a list or a pair."
       (cdr l)))
 
 
-;; ---------- Flat maps----------
+;; ---------- Flat maps ----------
 
 (defun mapappend (f &rest ls)
   "Apply F to all elements of lists LS at whatever depth, returning a flat list of results."
   (flatten (mapcar f (flatten ls))))
+
+
+;; ---------- A map returning only the last result ----------
+
+;; this could be a lot more optimised
+(defun mapn (fun &rest lists)
+  "Map FUN across the cars of LISTS, returning the value of the last application.
+
+If the lists are empty, the result is NIL.
+
+The name MAPN is supposed to invoke the behaviour of PROGN."
+  (let ((res (apply #'mapcar (cons fun lists))))
+    (if (listp res)
+	(car (last res)))))
 
 
 ;; ---------- Folds ----------

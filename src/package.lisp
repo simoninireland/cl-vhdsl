@@ -31,6 +31,7 @@
    #:zip-without-null
    #:foldl
    #:foldr
+   #:mapn
 
    ;; predicate combinators
    #:any-of-p
