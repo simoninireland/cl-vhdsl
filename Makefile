@@ -33,11 +33,15 @@ SOURCES_DOC =  $(shell ls doc/*.rst)
 SOURCES_DOC_CONF = doc/conf.py
 SOURCES_DOC_BUILD_DIR = doc/_build
 
+BINARIES = \
+	vhdslc
+
 
 # ----- Tools -----
 
 # Base commands
 LISP = sbcl
+LISPCORE = ~/sbcl-dev.core
 PYTHON = python3
 PIP = pip
 VIRTUALENV = $(PYTHON) -m venv
@@ -69,6 +73,14 @@ RUN_SPHINX_HTML = $(CHDIR) doc && make html
 # Default prints a help message
 help:
 	@make usage
+
+# Build the output binaries
+bin: $(BINARIES)
+	$(LISP) --core $(LISPCORE) \
+	--eval '(ql:quickload :unix-opts)' \
+	--eval '(ql:quickload :cl-vhdsl/cli)' \
+	--eval '(asdf:make :cl-vhdsl/cli)' \
+	--eval '(quit)'
 
 # Build the API documentation using Sphinx
 .PHONY: doc
@@ -111,6 +123,12 @@ reallyclean: clean
 	$(RM) $(VENV)
 
 
+# ----- Dependencies -----
+
+vhdslc:
+	$(ASDF-MAKE)
+
+
 # ----- Generated files -----
 
 # The tags file
@@ -123,6 +141,7 @@ TAGS:
 
 define HELP_MESSAGE
 Available targets:
+   make bin          build the binaries
    make doc          build the API documentation using Sphinx
    make release      make a release
    make clean        clean-up the build

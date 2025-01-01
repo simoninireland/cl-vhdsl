@@ -104,6 +104,22 @@
   :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))
 
 
+;; ---------- Synthesiser CLI ----------
+
+(asdf:defsystem "cl-vhdsl/cli"
+  :description "Command line tool to synthesise Verilog from VHDSL."
+  :author "Simon Dobson <simoninireland@gmail.com"
+  :license "GPL3"
+  :depends-on ("alexandria" "unix-opts" "cl-vhdsl")
+  :pathname "src/cli/"
+  :serial t
+  :components ((:file "package")
+	       (:file "vhdslc"))
+  :build-operation "program-op"
+  :build-pathname "../../vhdslc"
+  :entry-point "cl-vhdsl/cli:main")
+
+
 ;; ---------- 6502 emulator ----------
 
 (asdf:defsystem "cl-vhdsl/6502"
