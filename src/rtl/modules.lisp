@@ -18,6 +18,7 @@
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 (in-package :cl-vhdsl/rtl)
+(declaim (optimize debug))
 
 
 (defun direction-p (dir)
@@ -115,6 +116,23 @@ be interpolated."
       (let* ((extparams (typecheck-module-params params env))
 	     (ext (typecheck-module-args args extparams)))
 	(typecheck (cons 'progn body) ext)))))
+
+
+(defmethod float-let-blocks-sexp ((fun (eql 'module)) args)
+  (destructuring-bind (modname decls &rest body)
+      args
+    (destructuring-bind (newbody newdecls)
+	(float-let-blocks `(progn ,@body))
+      `((module ,modname ,decls
+		(let ,newdecls
+		  ,@ (cdr newbody)))
+	()))))
+
+
+(defmethod simplify-progn-sexp ((fun (eql 'module)) args)
+  (destructuring-bind (modname decls &rest body)
+      args
+    `(module ,modname ,decls ,@ (mapcar #'simplify-progn body))))
 
 
 (defun synthesise-param (decl)

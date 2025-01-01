@@ -18,12 +18,27 @@
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 (in-package :cl-vhdsl/rtl)
+(declaim (optimize debug))
 
 
 ;; ---------- PROGN ----------
 
 (defmethod typecheck-sexp ((fun (eql 'progn)) args env)
   (mapn (rcurry #'typecheck env) args))
+
+
+(defmethod simplify-progn-sexp ((fun (eql 'progn)) args)
+  (destructuring-bind (&rest body)
+      args
+    (let ((newbody (mapcar #'simplify-progn args)))
+      (cond ((= (length newbody) 0)
+	     nil)
+
+	    ((= (length newbody) 1)
+	     (car newbody))
+
+	    (t
+	     `(progn ,@newbody))))))
 
 
 (defmethod synthesise-sexp ((fun (eql 'progn)) args as)

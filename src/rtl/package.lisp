@@ -40,6 +40,10 @@
    #:typecheck
    #:typecheck-sexp
 
+   ;; transformations
+   #:float-let-blocks
+   #:float-let-blocks-sexp
+
    ;; synthesis
    #:synthesise
    #:synthesise-sexp

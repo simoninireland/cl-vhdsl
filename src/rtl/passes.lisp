@@ -18,6 +18,7 @@
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 (in-package :cl-vhdsl/rtl)
+(declaim (optimize debug))
 
 
 ;; ---------- Type and width checking ----------
@@ -36,6 +37,68 @@
 
 (defgeneric typecheck-sexp (fun args env)
   (:documentation "Type-check the application of FUN to ARGS in ENV."))
+
+
+;; ---------- Let block coalescence ----------
+
+(defgeneric float-let-blocks (form)
+  (:documentation "Float nested LET blocks in FORM to the outermost level.
+
+Return a list consisting of the new form and any declarations floated.")
+  (:method ((form list))
+    (let ((fun (car form))
+	  (args (cdr form)))
+      (handler-bind ((error #'(lambda (cond)
+				;;(error 'not-synthesisable :fragment form)
+				(error cond)
+				)))
+	(float-let-blocks-sexp fun args)))))
+
+
+(defgeneric float-let-blocks-sexp (fun args)
+  (:documentation "Float nested LET blocks in FUN applied to ARGS.
+
+The default recurses into each element of ARGS and reconstructs
+the form with re-written versions of ARGS.
+
+Return a list consisting of the new form and any declarations floated.")
+  (:method (fun args)
+    (flet ((pairwise-append (old form)
+	     (destructuring-bind (oldbody olddecls)
+		 old
+	       (destructuring-bind (newbody newdecls)
+		   (float-let-blocks form)
+		 (list (append oldbody (if (atom newbody)
+					   (list newbody)
+					   (list newbody)))
+		       (append olddecls newdecls))))))
+
+      (destructuring-bind (fargs fdecls)
+	  (foldr #'pairwise-append args '(() ()))
+	`((,fun ,@fargs) ,fdecls)))))
+
+
+;; ---------- PROGN coalescence ----------
+
+(defgeneric simplify-progn (form)
+  (:documentation "Collapse unnecessary PROGN forms in FORM.
+
+This removes the PROGN around a single other form, as
+well as PROGNs nested inside other PROGNs.")
+  (:method ((form list))
+    (let ((fun (car form))
+	  (args (cdr form)))
+      (handler-bind ((error #'(lambda (cond)
+				;;(error 'not-synthesisable :fragment form)
+				(error cond)
+				)))
+	(simplify-progn-sexp fun args)))))
+
+
+(defgeneric simplify-progn-sexp (fun args)
+  (:documentation "Simplify PROGN blocks in FUN applied to ARGS.")
+  (:method (fun args)
+    `(,fun ,@(mapcar #'simplify-progn args))))
 
 
 ;; ---------- Synthesis ----------

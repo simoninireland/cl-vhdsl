@@ -28,6 +28,7 @@
 ;; - :type -- the type being held by the binding
 ;; - :constant -- T is the binding is a constant
 ;; - :direction -- direction of dataflow for module arguments
+;; - :as -- the representation to be used
 ;;
 ;; Default and consistency checks are applied.
 
@@ -42,14 +43,31 @@
     (error 'type-mismatch :expected ty :got w)))
 
 
+(defun representation-p (rep)
+  "Test REP is a valid variable representation.
+
+Valid representations are :REGISTER, :WIRE, or :VALUE."
+  (member rep '(:register :wire :value)))
+
+
+(defun ensure-representation (rep)
+  "Ensure REP is a valid variable representation.
+
+Signal VALUE-MISMATCH as an error if not."
+  (unless (representation-p rep)
+    (error 'value-mismatch :expected (list :register :wire :value) :got rep)))
+
+
 ;; the lambda list is the "wrong way round" from "normal" to allow
 ;; this function to be folded across a list of declarations
 (defun typecheck-decl (env decl)
   "Typecheck DECL in ENV, returning ENV extended by DECL."
   (if (listp decl)
       ;; full declaration
-      (destructuring-bind (n v &key width type constant)
+      (destructuring-bind (n v &key width type constant (as :register))
 	  decl
+	(ensure-representation as)
+
 	(let ((ty (typecheck v env)))
 	  (when type
 	    ;; if a type is provided, make sure the initial
@@ -73,7 +91,8 @@
 	  (extend-environment n `((:initial-value ,v)
 				  (:type ,ty)
 				  (:width ,width)
-				  (:constant ,constant))
+				  (:constant ,constant)
+				  (:as ,as))
 			      env)))
 
       ;; otherwise we have a naked name, so apply the defaults
@@ -90,6 +109,21 @@
 	(body (cdr args)))
     (let ((ext (typecheck-env decls env)))
       (mapn (rcurry #'typecheck ext) body ))))
+
+
+(defmethod float-let-blocks-sexp ((fun (eql 'let)) args)
+  (declare (optimize debug))
+  (destructuring-bind (decls &rest body)
+      args
+
+    ;; extract the body and decls of the body
+    (destructuring-bind (newbody newdecls)
+	(float-let-blocks `(progn ,@body))
+
+      ;; re-write the block to a PROGN of the body only
+      ;; TODO: handle initialisations of decls
+      (list newbody
+	    (append decls newdecls)))))
 
 
 (defun synthesise-register (decl as)

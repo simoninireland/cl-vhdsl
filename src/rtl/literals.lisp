@@ -29,5 +29,13 @@
 	`(fixed-width-unsigned ,w))))
 
 
+(defmethod float-let-blocks ((form integer))
+  `(,form ()))
+
+
+(defmethod simplify-progn ((form integer))
+  form)
+
+
 (defmethod synthesise ((form integer) as)
   (format *synthesis-stream* "~s" form))

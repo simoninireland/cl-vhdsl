@@ -22,8 +22,16 @@
 
 ;; ---------- General references ----------
 
-(defmethod typecheck ((fun symbol) env)
-  (get-type fun env))
+(defmethod typecheck ((form symbol) env)
+  (get-type form env))
+
+
+(defmethod float-let-blocks ((form symbol))
+  `(,form ()))
+
+
+(defmethod simplify-progn ((form symbol))
+  form)
 
 
 (defmethod synthesise ((form symbol) as)
