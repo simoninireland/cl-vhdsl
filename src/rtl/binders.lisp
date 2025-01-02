@@ -43,11 +43,16 @@
     (error 'type-mismatch :expected ty :got w)))
 
 
-(defun representation-p (rep)
-  "Test REP is a valid variable representation.
+(deftype representation ()
+  "The type of variable representations.
 
 Valid representations are :REGISTER, :WIRE, or :VALUE."
-  (member rep '(:register :wire :value)))
+  '(member :register :wire :value))
+
+
+(defun representation-p (rep)
+  "Test REP is a valid variable representation."
+  (typep rep 'representation))
 
 
 (defun ensure-representation (rep)
@@ -56,7 +61,6 @@ Valid representations are :REGISTER, :WIRE, or :VALUE."
 Signal VALUE-MISMATCH as an error if not."
   (unless (representation-p rep)
     (error 'value-mismatch :expected (list :register :wire :value) :got rep)))
-
 
 ;; the lambda list is the "wrong way round" from "normal" to allow
 ;; this function to be folded across a list of declarations
@@ -77,10 +81,10 @@ Signal VALUE-MISMATCH as an error if not."
 	    (setq ty type))
 
 	  (if width
-	      (progn
+	      (let ((w (typecheck width env)))
 		;; if a width is provided, make sure it's enough to
 		;; accommodate the type
-		(ensure-width-can-store width ty env)
+		(ensure-width-can-store w ty env)
 
 		;; widen the type to match the width
 		(setq ty (widen-fixed-width ty width)))
