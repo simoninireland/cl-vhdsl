@@ -97,8 +97,37 @@ well as PROGNs nested inside other PROGNs.")
 
 (defgeneric simplify-progn-sexp (fun args)
   (:documentation "Simplify PROGN blocks in FUN applied to ARGS.")
+  )
+
+
+;; ---------- Macro expansion ----------
+
+(defgeneric expand-macros (form)
+  (:documentation "Expand macros in FORM.")
+  (:method (form)
+    form)
+  (:method ((form list))
+    (multiple-value-bind (expansion expanded)
+	(macroexpand form)
+      (if expanded
+	  ;; form was expanded by macro, expand the expansion
+	  (expand-macros expansion)
+
+	  ;; form wasn't expanded, descend into the form
+	  (let ((fun (car form))
+		(args (cdr form)))
+	    (handler-bind ((error #'(lambda (cond)
+				      ;;(error 'not-synthesisable :fragment form)
+				      (error cond)
+				      )))
+	      (expand-macros-sexp fun args)))))))
+
+
+(defgeneric expand-macros-sexp (fun args)
+  (:documentation "Expand macros in FUN applied to ARGS.")
   (:method (fun args)
-    `(,fun ,@(mapcar #'simplify-progn args))))
+    `(,fun ,@(mapcar #'expand-macros args))))
+
 
 
 ;; ---------- Synthesis ----------
@@ -109,6 +138,7 @@ well as PROGNs nested inside other PROGNs.")
 ;; - :module -- for elements directly within a module
 ;; - :statement -- for elements used as statements within a block
 ;; - :rvalue -- for expressions
+;; - :declaration -- for declarations
 
 (defgeneric synthesise (form as)
   (:documentation "Synthesise the Verilog for FORM.

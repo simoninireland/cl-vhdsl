@@ -43,6 +43,8 @@
    ;; transformations
    #:float-let-blocks
    #:float-let-blocks-sexp
+   #:expand-macros
+   #:expand-macros-sexp
 
    ;; synthesis
    #:synthesise
