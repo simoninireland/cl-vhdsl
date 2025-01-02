@@ -47,6 +47,13 @@ plus the number of other arguments."
   (as-infix '+ args as))
 
 
+(defmethod lispify-sexp ((fun (eql '+)) args env)
+  (let ((vals (mapcar (lambda (arg)
+			(lispify arg env))
+		      args)))
+    `(+ ,@vals)))
+
+
 (defmethod typecheck-sexp ((fun (eql '-)) args env)
   ;; we force subtractions to be signed
   (let ((ty (typecheck-addition args env)))
@@ -65,6 +72,13 @@ plus the number of other arguments."
 
 (defmethod synthesise-sexp ((fun (eql '*)) args (as (eql :rvalue)))
   (as-infix '* args as))
+
+
+(defmethod lispify-sexp ((fun (eql '-)) args env)
+  (let ((vals (mapcar (lambda (arg)
+			(lispify arg env))
+		      args)))
+    `(- ,@vals)))
 
 
 ;; Verilog provides left and right shift operators; Common Lisp uses ash
@@ -97,6 +111,11 @@ plus the number of other arguments."
     (as-infix '<< args as)))
 
 
+(defmethod lispify-sexp ((fun (eql '<<)) args env)
+  (let ((vals (lispify args env)))
+    `(ash ,@vals)))
+
+
 (defmethod typecheck-sexp ((fun (eql '>>)) args env)
   (destructuring-bind (val offset)
       args
@@ -115,3 +134,8 @@ plus the number of other arguments."
   (destructuring-bind (val offset)
       args
     (as-infix '>> args as)))
+
+
+(defmethod lispify-sexp ((fun (eql '>>)) args env)
+  (let ((vals (lispify args env)))
+    `(ash ,(car vals) (- ,(cadr vals)))))

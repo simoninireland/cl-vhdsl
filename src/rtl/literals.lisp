@@ -39,3 +39,7 @@
 
 (defmethod synthesise ((form integer) as)
   (format *synthesis-stream* "~s" form))
+
+
+(defmethod lispify ((form integer) env)
+  form)

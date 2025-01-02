@@ -36,3 +36,7 @@
 
 (defmethod synthesise ((form symbol) as)
   (format *synthesis-stream* "~s" form))
+
+
+(defmethod lispify ((form symbol) env)
+  form)

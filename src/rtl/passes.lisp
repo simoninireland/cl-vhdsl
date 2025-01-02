@@ -128,3 +128,21 @@ conditions.")
 
 The synthesised code may depend on the role or position AS,
 which can be used to specialise the method."))
+
+
+;; ---------- Lispification ----------
+
+(defgeneric lispify (form env)
+  (:documentation "Convert FORM to a Lisp expression  in ENV.")
+  (:method ((form list) env)
+    (let ((fun (car form))
+	  (args (cdr form)))
+      (handler-bind ((error #'(lambda (cond)
+				;;(error 'not-synthesisable :fragment form)
+				(error cond)
+				)))
+	(lispify-sexp fun args env)))))
+
+
+(defgeneric lispify-sexp (fun args env)
+  (:documentation "Convert FUN applied to ARGS in ENV to Lisp."))

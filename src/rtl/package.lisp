@@ -48,6 +48,10 @@
    #:synthesise
    #:synthesise-sexp
 
+   ;; Lispification
+   #:lispify
+   #:lispify-sexp
+
    ;; pretty-printing
    #:indentation
    #:in-logical-block

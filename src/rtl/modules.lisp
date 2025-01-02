@@ -1,6 +1,6 @@
 ;; Top-level modules
 ;;
-;; Copyright (C) 2024 Simon Dobson
+;; Copyright (C) 2024--2025 Simon Dobson
 ;;
 ;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
 ;;
@@ -21,11 +21,24 @@
 (declaim (optimize debug))
 
 
-(defun direction-p (dir)
-  "Test DIR is a valid pin direction.
+(deftype module (&optional params args)
+  "The type of modules.
 
-Valid directions are :IN, :OUT, and :INOUT"
-  (member dir '(:in :out :inout)))
+PARAMS and ARGS are lists of parameter and argument declarations
+respectively.")
+
+
+(deftype direction ()
+  "The type of dataflow directions.
+
+Valid directions are :IN, :OUT, and :INOUT, and are seen from the
+perspective of inside the module."
+  '(member :in :out :inout))
+
+
+(defun direction-p (dir)
+  "Test DIR is a valid pin direction."
+  (typep dir 'direction))
 
 
 (defun ensure-direction (dir)
@@ -61,20 +74,28 @@ be interpolated."
 
 
 (defun typecheck-module-param (env decl)
-  "Type-check a module parameter declaration DECL in ENV."
+  "Type-check a module parameter declaration DECL in ENV.
+
+The value of the parameter, if provided, is evaluated as a Lisp
+expression in the current Lisp environment. This means that parameter
+values can't be defined in terms of other parameter values."
   (if (listp decl)
       ;; standard declaration
       (destructuring-bind (n v)
 	  decl
-	(extend-environment n `((:initial-value ,v)
-				(:type :lisp)
-				(:constant t))
-			    env))
+	(let ((ty (typecheck v env))
+	      (val (eval v)))        ;; this might need to change to
+				     ;; make sure the environment makes
+				     ;; sense
+	  (extend-environment n `((:initial-value ,val)
+				  (:type ,ty)
+				  (:parameter t))
+			      env)))
 
       ;; naked paramater
       (extend-environment decl `((:initial-value 0)
-				 (:type :lisp)
-				 (:constant t))
+				 (:type (fixed-width-unsigned 1))
+				 (:parameter t))
 			  env)))
 
 
@@ -89,13 +110,15 @@ be interpolated."
       decl
     (ensure-direction direction)
 
-    (if type
-	;; make sure the argument is wide enough to accommodate
-	;; the type
-	(ensure-width-can-store width type env)
+    (let ((w (typecheck width env)))
+      (if type
+	   ;; make sure the argument is wide enough to accommodate
+	   ;; the type
+	   (ensure-width-can-store w type env)
+	   (setq width (bitwidth w env)))
 
-	;; no type, use width for a default unsigned
-	(setq type `(fixed-width-unsigned ,width)))
+	  ;; no type, use width for a default unsigned
+	  (setq type `(fixed-width-unsigned ,(bitwidth w env))))
 
     (extend-environment n `((:type ,type)
 			    (:width ,width)
@@ -115,7 +138,10 @@ be interpolated."
 	(split-args-params decls)
       (let* ((extparams (typecheck-module-params params env))
 	     (ext (typecheck-module-args args extparams)))
-	(typecheck (cons 'progn body) ext)))))
+	(typecheck (cons 'progn body) ext)
+
+
+	`(module ,params ,args)))))
 
 
 (defmethod float-let-blocks-sexp ((fun (eql 'module)) args)

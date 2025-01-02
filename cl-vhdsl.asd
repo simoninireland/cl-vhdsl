@@ -1,6 +1,6 @@
 ;; System definitions
 ;;
-;; Copyright (C) 2023--2024 Simon Dobson
+;; Copyright (C) 2024--2025 Simon Dobson
 ;;
 ;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
 ;;
@@ -77,6 +77,7 @@
 				     (:file "modules")
 				     (:file "pretty-printer")
 				     (:file "passes")
+				     (:file "eval")
 				     (:file "embedding")
 				     (:file "conditions"))))
   :in-order-to ((test-op (test-op "cl-vhdsl/test"))))
@@ -104,10 +105,10 @@
   :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))
 
 
-;; ---------- Synthesiser CLI ----------
+;; ---------- Transpiler CLI ----------
 
 (asdf:defsystem "cl-vhdsl/cli"
-  :description "Command line tool to synthesise Verilog from VHDSL."
+  :description "Command line tool to transpile VHDSL to Verilog."
   :author "Simon Dobson <simoninireland@gmail.com"
   :license "GPL3"
   :depends-on ("alexandria" "unix-opts" "cl-vhdsl")
