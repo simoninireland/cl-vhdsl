@@ -1,6 +1,6 @@
 ;; Environments
 ;;
-;; Copyright (C) 2024 Simon Dobson
+;; Copyright (C) 2024--2025 Simon Dobson
 ;;
 ;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
 ;;
@@ -72,20 +72,22 @@ can be ignored for systems not concerned with loss of precision."
 (defun extend-environment (n props env)
   "Return a type environment extending ENV with a binding of N to PROPS.
 
+PROPS should be an alist of properties.
+
+N must be a legal identifier according to LEGAL-IDENTIFIER-P.
 The new binding will mask any existing bindings of N in ENV.
 ENV itself is unchanged.
 
-The properties must include:
-
-   - :type -- the type associated with the name
-
-and may include:
+The properties may include:
 
    - :width -- the width in bits assigned to the variable
    - :initial-value -- the initial value assigned to the name
+   - :type -- the type to be stored in the variable
+   - :as -- representation used for this variable
    - :direction -- for arguments to modules, the direction of information
      flow, which should be :in, :out, or :inout
-   - :constant -- T if the value is constant and cannot be re-assigned"
+   - :constant -- T if the value is constant and cannot be re-assigned
+   - :parameter -- T if the value is a module parameter"
   (ensure-legal-identifier n)
   (cons (cons n props) env))
 
@@ -140,31 +142,48 @@ An UNKNOWN-VARIABLE error is signalled if N is undefined."
 
 (defun get-width (n env)
   "Return the width of N in ENV."
-  (if-let ((props (get-environment-property n :width env)))
-    props
+  (or (get-environment-property n :width env)
 
-    ;; default value
-    *default-register-width*))
+      ;; default value
+      *default-register-width*))
 
 
 (defun get-initial-value (n env)
   "Return the initial value of N in ENV."
-  (if-let ((props (get-environment-property n :initial-value env)))
-    props
+  (or (get-environment-property n :initial-value env)
 
-    ;; default value
-    0))
+      ;; default value
+      0))
 
 
 (defun get-constant (n env)
   "Return whether N is constant in ENV."
-  (if-let ((const (get-environment-property n :constant env)))
-    const
-
-    ;; default is not constant
-    nil))
+  (get-environment-property n :constant env))
 
 
 (defun get-direction (n env)
   "Return the direction of N in ENV."
   (get-environment-property n :direction env))
+
+
+(defun filter-environment (pred env)
+  "Return an environment containing all the entries of ENV matching PRED.
+
+PRED should be a predicate taking a name and en environment."
+  (flet ((filter-p (decl)
+	   (let ((n (car decl)))
+	     (not (funcall pred n env)))))
+
+    (remove-if #'filter-p env)))
+
+
+(defun map-environment (f env)
+  "Map F across each declaration in ENV.
+
+F should be a function taking a name and an environment. The
+result is a list of the values returned from F."
+  (flet ((map-decl (decl)
+	   (let ((n (car decl)))
+	     (funcall f n env))))
+
+    (mapcar #'map-decl env)))
