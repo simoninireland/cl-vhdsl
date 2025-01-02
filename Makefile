@@ -77,6 +77,10 @@ help:
 # Build the output binaries
 bin: $(BINARIES)
 	$(LISP) $(LISPOPTS) \
+	--eval '(ql:quickload :alexandria)' \
+	--eval '(ql:quickload :closer-mop)' \
+	--eval '(ql:quickload :cl-ppcre)' \
+	--eval '(ql:quickload :slot-extra-options)' \
 	--eval '(ql:quickload :unix-opts)' \
 	--eval '(ql:quickload :cl-vhdsl/cli)' \
 	--eval '(asdf:make :cl-vhdsl/cli)' \
