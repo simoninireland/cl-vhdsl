@@ -36,9 +36,9 @@ example 8, 16, 32, or 64 bits.")
   "The regexp scanner used for determining legal variable names.
 
 Legal names contains letters, digits, and underscores, not leading
-with a digit. This is a /lot/ more restrictive than Lisp's legal
-names, and is intentionally quite conservative with respect to Verilog
-identifier names.")
+with a digit, and not consisting solely of an underscore. This is a
+/lot/ more restrictive than Lisp's legal names, and is intentionally
+quite conservative with respect to Verilog identifier names.")
 
 
 ;; There are probably more reserved words
