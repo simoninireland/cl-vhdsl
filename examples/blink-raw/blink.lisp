@@ -22,14 +22,14 @@
 
 (let ((p '(module blink
 	   ((clk  :width 1 :direction :in)
-	    (leds :width bits :direction :out)
-	    :key (bits 5) (delay 22))
+	    (leds :width 5 :direction :out))
 
-	   (let ((counter 0 :width (+ bits delay))
-		 (out 0 :width bits))
+	   (let ((counter 0 :width (+ 5 22))
+		 (out 0 :width 5))
+
 	     (@ (posedge clk)
 		(setf counter (+ counter 1))
-		(setf out (>> counter delay)))
+		(setf out (>> counter 22)))
 
 	     (setf leds out)))))
 
