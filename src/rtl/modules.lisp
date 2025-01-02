@@ -188,7 +188,7 @@ values can't be defined in terms of other parameter values."
 	    (if (and (integerp width)
 		     (= width 1))
 		""
-		(format nil "[ ~a - 1 : 0 ] " width))
+		(format nil "[ ~(~a~) - 1 : 0 ] " width))
 	    n)))
 
 
@@ -217,4 +217,4 @@ values can't be defined in terms of other parameter values."
     ;; body
     (with-indentation
       (as-body body :module))
-    (format *synthesis-stream* "endmodule // ~a" modname)))
+    (format *synthesis-stream* "endmodule // ~(~a~)" modname)))
