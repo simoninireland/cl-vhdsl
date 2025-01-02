@@ -1,6 +1,6 @@
 # Makefile for cl-vhdsl
 #
-# Copyright (C) 2024 Simon Dobson
+# Copyright (C) 2024--2025 Simon Dobson
 #
 # This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
 #
@@ -41,7 +41,7 @@ BINARIES = \
 
 # Base commands
 LISP = sbcl
-LISPCORE = ~/sbcl-dev.core
+LISPOPTS =
 PYTHON = python3
 PIP = pip
 VIRTUALENV = $(PYTHON) -m venv
@@ -76,7 +76,7 @@ help:
 
 # Build the output binaries
 bin: $(BINARIES)
-	$(LISP) --core $(LISPCORE) \
+	$(LISP) $(LISPOPTS) \
 	--eval '(ql:quickload :unix-opts)' \
 	--eval '(ql:quickload :cl-vhdsl/cli)' \
 	--eval '(asdf:make :cl-vhdsl/cli)' \
@@ -134,7 +134,6 @@ vhdslc:
 # The tags file
 TAGS:
 	$(ETAGS) -o TAGS $(SOURCES)
-
 
 
 # ----- Usage -----
