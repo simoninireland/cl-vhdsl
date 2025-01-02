@@ -74,6 +74,40 @@
     (is (not (rtl::ensure-legal-identifier "reg")))))
 
 
+(test test-filter-env
+  "Test we can filter environments."
+  (flet ((filter-by-f (n env)
+	   (if-let ((prop (rtl::get-environment-property n :f env)))
+	     (> prop 20))))
+    (let ((env (foldl (lambda (decl env)
+			(rtl::extend-environment (car decl) (cadr decl) env))
+		      '((a ()) (b ((:f 23) (:g 34))) (c ((:f 12))))
+		      emptyenv)))
+      ;; by name
+      (is (equal (rtl::filter-environment (lambda (n env)
+					    (equal n 'a))
+					  env)
+		 '((a))))
+
+      ;; by property
+      (is (equal (rtl::filter-environment #'filter-by-f
+					  env)
+		 '((b (:f 23) (:g 34))))))))
+
+
+(test test-map-env
+  "Test we can map across environments."
+  (let ((env (foldl (lambda (decl env)
+		      (rtl::extend-environment (car decl) (cadr decl) env))
+		    '((a ()) (b ((:f 23) (:g 34))) (c ((:f 12))))
+		    emptyenv)))
+    (is (equal (rtl::map-environment (lambda (n env)
+				       (or (rtl::get-environment-property n :f env)
+				      0))
+				env)
+	       '(0 23 12)))))
+
+
 ;; ---------- Types ----------
 
 (test test-unsigned-range
@@ -148,6 +182,37 @@
 	(cl-vhdsl/rtl::split-args-params decls)
       (is (equal args nil))
       (is (equal params '(c (d 12)))))))
+
+
+;; ---------- Lispification and evaluation ----------
+
+(test test-eval-empty
+  "Test we can construct and evaluate an expression in an empty environment."
+  (is (= (rtl::eval-in-static-environment '(+ 1 2) emptyenv)
+	 3)))
+
+
+(test test-eval-env
+  "Test we can evaluate an expression with a static variable."
+  (let ((env (rtl:extend-environment 'a '((:initial-value 2)
+					  (:parameter t))
+				     emptyenv)))
+    (is (= (rtl::eval-in-static-environment '(+ 1 a) env)
+	 3))))
+
+
+(test test-eval-not-static
+  "Test we don't pick up non-static variables."
+  (let* ((env1 (rtl:extend-environment 'a '((:initial-value 2)
+					    (:parameter t))
+				       emptyenv))
+	 (env2  (rtl:extend-environment 'b '((:initial-value 3))
+				       env1)))
+    (is (= (rtl::eval-in-static-environment '(+ 1 a) env2)
+	   3))
+
+    (signals (unbound-variable)
+      (rtl::eval-in-static-environment '(+ a b) env2))))
 
 
 ;; ---------- Type and width checking ----------
@@ -347,9 +412,7 @@
 					(y 10 :width 8))
 				    (setf x (+ x b) :sync t)))
 				emptyenv)
-		'(rtl::fixed-width-unsigned 16))))
-
-
+		'rtl::module)))
 
 
 ;; ---------- Synthesis ----------
