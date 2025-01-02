@@ -215,6 +215,14 @@
       (rtl::eval-in-static-environment '(+ a b) env2))))
 
 
+(test test-eval-non-lisp
+  "Test we synthesise the right operator for << and >>."
+  (is (= (rtl::eval-in-static-environment '(rtl::<< 1 3) emptyenv)
+	 8))
+  (is (= (rtl::eval-in-static-environment '(rtl::>> 8 3) emptyenv)
+	 1)))
+
+
 ;; ---------- Type and width checking ----------
 
 (test test-literal-widths

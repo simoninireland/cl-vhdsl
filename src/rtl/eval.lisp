@@ -22,25 +22,26 @@
 
 
 (defun close-form-in-environment (form env)
-  "Close FORM as a Lisp term in the environment ENV.
+  "Close the RTLisp FORM as a Lisp term in the environment ENV.
 
-Each declaration in ENV is converted into a LET declaration
-with the same name and initial value. FORM is then placed
-as the body of this LET form."
+Each declaration in ENV is converted into a LET declaration with the
+same name and initial value. FORM is then Lispified and placed as the
+body of this LET form."
   (labels ((make-decl (n env)
 	     `(,n ,(get-environment-property n :initial-value env)))
 
 	   (make-env (env)
 	     (map-environment #'make-decl env)))
 
-    (if (null env)
-	form
-	`(let ,(make-env env)
-	   ,form))))
+    (let ((lispform (lispify form env)))
+      (if (null env)
+	  lispform
+	  `(let ,(make-env env)
+	     ,lispform)))))
 
 
 (defun close-form-in-static-environment (form env)
-  "Close  FORM as Lisp in the static part of environment ENV.
+  "Close the RTLisp FORM as Lisp in the static part of environment ENV.
 
 ENV is filtered to include only the static elements of the
 environment, consisting of package parameters. In other words, the
@@ -53,7 +54,7 @@ form is placed into an environment that is known at compile time."
 
 
 (defun eval-in-static-environment (form env)
-  "Evaluate FORM as Lisp in the static part of environment ENV.
+  "Evaluate RTLisp FORM as Lisp in the static part of environment ENV.
 
 ENV is filtered to include only the static elements of the
 environment, consisting of package parameters. In other words,

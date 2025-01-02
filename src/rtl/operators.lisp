@@ -112,7 +112,9 @@ plus the number of other arguments."
 
 
 (defmethod lispify-sexp ((fun (eql '<<)) args env)
-  (let ((vals (lispify args env)))
+  (let ((vals (mapcar (lambda (arg)
+			(lispify arg env))
+		      args)))
     `(ash ,@vals)))
 
 
@@ -137,5 +139,7 @@ plus the number of other arguments."
 
 
 (defmethod lispify-sexp ((fun (eql '>>)) args env)
-  (let ((vals (lispify args env)))
+  (let ((vals (mapcar (lambda (arg)
+			(lispify arg env))
+		      args)))
     `(ash ,(car vals) (- ,(cadr vals)))))
