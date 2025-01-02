@@ -61,6 +61,16 @@ constant or an input parameter."
     (format *synthesis-stream* ";")))
 
 
+(defmethod synthesise-sexp ((fun (eql 'setf)) args (as (eql :module)))
+  (destructuring-bind (var val &key (sync nil))
+      args
+    (format *synthesis-stream* "assign ")
+    (synthesise var :lvalue)
+    (format *synthesis-stream* " = ")
+    (synthesise val :rvalue)
+    (format *synthesis-stream* ";")))
+
+
 ;; Triggers
 
 (defmethod synthesise-sexp ((fun (eql 'posedge)) args (as (eql :rvalue)))

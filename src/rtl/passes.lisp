@@ -103,6 +103,13 @@ well as PROGNs nested inside other PROGNs.")
 
 ;; ---------- Synthesis ----------
 
+;; We use the following roles:
+;;
+;; - :toplevel -- for top-level items like modules
+;; - :module -- for elements directly within a module
+;; - :statement -- for elements used as statements within a block
+;; - :rvalue -- for expressions
+
 (defgeneric synthesise (form as)
   (:documentation "Synthesise the Verilog for FORM.
 

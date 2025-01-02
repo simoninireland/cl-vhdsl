@@ -167,12 +167,12 @@ values can't be defined in terms of other parameter values."
       ;; parameter with an initial value
       (destructuring-bind (n v)
 	  decl
-	(format *synthesis-stream* "parameter ~a = ~a"
+	(format *synthesis-stream* "parameter ~(~a~) = ~a"
 		n
 		v))
 
       ;; naked parameter
-      (format *synthesis-stream* "parameter ~a"
+      (format *synthesis-stream* "parameter ~(~a~)"
 	      decl)))
 
 
@@ -180,7 +180,7 @@ values can't be defined in terms of other parameter values."
   "Return the code for argument DECL."
   (destructuring-bind (n &key direction width)
       decl
-    (format *synthesis-stream* "~a ~a~a"
+    (format *synthesis-stream* "~a ~a~(~a~)"
 	    (case direction
 	      (:in    "input")
 	      (:out   "output")
@@ -202,18 +202,19 @@ values can't be defined in terms of other parameter values."
       (synthesise modname :rvalue)
 
       ;; parameters
-      (as-list params :argument :before " #(" :after ")"
-				:indented t :newlines t
-				:process (lambda (form as)
-					   (synthesise-param form)))
+      (if params
+	  (as-list params :argument :before " #(" :after ")"
+				    :indented t :newlines t
+				    :process (lambda (form as)
+					       (synthesise-param form))))
 
       ;; arguments
-      (as-list args :argument :before "(" :after ")"
+      (as-list args :argument :before "(" :after ");"
 			      :indented t :newlines t
 			      :process (lambda (form as)
 					 (synthesise-arg form))))
 
     ;; body
     (with-indentation
-      (as-body body :statement))
+      (as-body body :module))
     (format *synthesis-stream* "endmodule // ~a" modname)))

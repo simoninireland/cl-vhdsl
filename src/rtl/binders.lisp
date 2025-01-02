@@ -146,7 +146,7 @@ WIDTH defaulting to the system's global width."
     (format *synthesis-stream* ";")))
 
 
-(defmethod synthesise-sexp ((fun (eql 'let)) args (as (eql :statement)))
+(defmethod synthesise-sexp ((fun (eql 'let)) args (as (eql :module)))
   (let ((decls (car args))
 	(body (cdr args)))
 
@@ -155,4 +155,4 @@ WIDTH defaulting to the system's global width."
     (format *synthesis-stream* "~%")
 
     ;; synthesise the body
-    (as-body body :statement)))
+    (as-body body :module)))

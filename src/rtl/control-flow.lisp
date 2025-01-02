@@ -48,7 +48,7 @@
 
 ;; ---------- Triggered blocks ----------
 
-(defmethod synthesise-sexp ((fun (eql '@)) args (as (eql :statement)))
+(defmethod synthesise-sexp ((fun (eql '@)) args (as (eql :module)))
   (let ((test (car args))
 	(body (cdr args)))
     (format *synthesis-stream* "always @(")
