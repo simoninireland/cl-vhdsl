@@ -33,7 +33,7 @@
 
 
 (defun unknown-option (condition)
-  (format t "warning: ~s option is unknown~%" (optsmagi:option condition))
+  (format t "warning: ~s option is unknown~%" (opts:option condition))
   (invoke-restart 'skip-option))
 
 
