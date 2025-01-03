@@ -24,6 +24,8 @@ TOPMODULE =
 # Sources
 SOURCES = \
 	blink.v
+SOURCES_COMMON = \
+	package.lisp
 CONFIG = \
 	blink.pcf
 
@@ -43,6 +45,7 @@ PROGRAM = iceprog
 RM = rm -fr
 
 # Tool options
+VHDSLC_OPTS = $(SOURCES_COMMON)
 SYNTH_OPTS = -q
 PNR_OPTS = -q
 PROGRAM_OPTS =
@@ -81,7 +84,7 @@ help:
 # ---------- Implicit rules ----------
 
 %.v: %.lisp
-	$(VHDSLC) -o $*.v $*.lisp
+	$(VHDSLC) $(VHDSLC_OPTS) $*.lisp
 
 %.json: %.v
 	$(SYNTH) $(SYNTH_OPTS) -p "synth_ice40 -top $(TOPMODULE) -json $*.json" $<

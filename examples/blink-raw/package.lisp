@@ -22,6 +22,7 @@
 (defpackage cl-vhdsl/examples/blink-raw
   (:use :cl)
   (:import-from :cl-vhdsl/rtl
+		#:defmodule
 		#:module
 		#:<<
 		#:>>

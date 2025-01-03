@@ -21,7 +21,6 @@
 (defpackage cl-vhdsl/cli
   (:use :cl :alexandria
 	:cl-vhdsl :cl-vhdsl/rtl)
-  (:import-from :uiop
-		#:command-line-arguments)
+
   (:export
    main))

@@ -1,4 +1,4 @@
-;; A simple LED blinker in close-to-Verilog
+;; A simple LED blinker in close-to-Verilog RTLisp
 ;;
 ;; Copyright (C) 2024--2025 Simon Dobson
 ;;
@@ -20,23 +20,15 @@
 (in-package :cl-vhdsl/examples/blink-raw)
 
 
-(let ((p '(module blink
-	   ((clk  :width 1 :direction :in)
-	    (leds :width bits :direction :out)
-	    :key (bits 5) (delay 22))
+(defmodule blink ((clk  :width 1 :direction :in)
+		  (leds :width bits :direction :out)
+		  :key (bits 5) (delay 22))
 
-	   (let ((counter 0 :width (+ bits delay))
-		 (out 0 :width 5))
+  (let ((counter 0 :width (+ bits delay))
+	(out 0 :width 5))
 
-	     (@ (posedge clk)
-		(setf counter (+ counter 1))
-		(setf out (>> counter delay)))
+    (@ (posedge clk)
+       (setf counter (+ counter 1))
+       (setf out (>> counter delay)))
 
-	     (setf leds out)))))
-
-  ;;(typecheck p (empty-environment))
-
-  (with-open-file (str #p"blink.v" :direction :output
-				   :if-exists :supersede)
-    (let ((*synthesis-stream* str))
-      (synthesise p :toplevel))))
+    (setf leds out)))
