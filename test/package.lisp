@@ -18,12 +18,9 @@
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 (defpackage cl-vhdsl/test
-  (:use :cl :alexandria :serapeum :fiveam
+  (:use :cl :alexandria :fiveam
 	:cl-vhdsl)
-  (:local-nicknames (:ast :clast)
-		    (:def :cl-vhdsl/def)
-		    (:emu :cl-vhdsl/emu)
-		    (:hw :cl-vhdsl/hw)
+  (:local-nicknames (:def :cl-vhdsl/def)
 		    (:rtl :cl-vhdsl/rtl))
   (:import-from :fiveam #:is #:test))
 
