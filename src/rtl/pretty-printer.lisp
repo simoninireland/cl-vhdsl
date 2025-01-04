@@ -45,20 +45,20 @@
      ,@body))
 
 
-(defun as-block (args as &key before after
-			   (always t)
-			   (indented t)
-			   (sep "")
-			   (newlines t)
-			   (process #'synthesise))
+(defun as-block (args context &key before after
+				(always t)
+				(indented t)
+				(sep "")
+				(newlines t)
+				(process #'synthesise))
   "doc"
   (let ((n (length args)))
     (labels ((format-arg (arg)
 	       "Format a single ARG along with any terminator string."
-	       (funcall process arg as))
+	       (funcall process arg context))
 
 	     (format-args (args)
-	       "Format all ARGS along with any seperator strings and indentation."
+	       "Format all ARGS along with any separator strings and indentation."
 	       (dolist (i (iota n))
 		 (if (and indented
 			  (or newlines
@@ -102,33 +102,33 @@
 	    (format *synthesis-stream* "~&"))))))
 
 
-(defun as-body (args as &key before after (process #'synthesise))
+(defun as-body (args context &key before after (process #'synthesise))
   "doc"
-  (as-block args as
+  (as-block args context
 	    :before before :after after
 	    :indented t :newlines t
 	    :process process))
 
 
-(defun as-infix (op args as)
+(defun as-infix (op args context)
   "Synthesise ARGS with OP between them.
 
-Each element of ARGS is synthesised in the AS role."
-  (as-block args as :before "("
-		    :after ")"
-		    :sep (format nil " ~a " op)
-		    :always nil
-		    :indented nil
-		    :newlines nil))
+Each element of ARGS is synthesised in the CONTEXT role."
+  (as-block args context :before "("
+			 :after ")"
+			 :sep (format nil " ~a " op)
+			 :always nil
+			 :indented nil
+			 :newlines nil))
 
 
-(defun as-list (args as
+(defun as-list (args context
 		&key before after
 		  indented newlines
 		  (process #'synthesise))
   "Synthesise ARGS as a list.
 
-Each element of ARGS is synthesised in the AS role.
+Each element of ARGS is synthesised in the CONTEXT role.
 
 The list defaults to space-separated, which can be changed using the
 SEP key. If BEFORE and AFTER are given, they bracket the list. If
@@ -136,9 +136,9 @@ INDENT is T (the default) ARGS are output indented. If NEWLINES is T
 (not the default) each element appears on a new line, as do the
 brackets. PROCESS (defaults to SYNTHESISE) is applied to each argument
 before synthesis, passing the argument and role."
-  (as-block args as :before before
-		    :after after
-		    :sep ", "
-		    :indented indented
-		    :newlines newlines
-		    :process process))
+  (as-block args context :before before
+			 :after after
+			 :sep ", "
+			 :indented indented
+			 :newlines newlines
+			 :process process))
