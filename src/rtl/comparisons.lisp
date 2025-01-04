@@ -27,5 +27,5 @@ in many applications."
   (ensure-subtype form 'bit))
 
 
-(defmethod synthesise-sexp ((fun (eql 'logand)) args as)
-  (as-infix 'logand args as))
+(defmethod synthesise-sexp ((fun (eql 'logand)) args (context (eql :inexpression)))
+  (as-infix 'logand args context))

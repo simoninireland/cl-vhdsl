@@ -1,6 +1,6 @@
 ;; The compiler passes
 ;;
-;; Copyright (C) 2024 Simon Dobson
+;; Copyright (C) 2024--2025 Simon Dobson
 ;;
 ;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
 ;;
@@ -49,9 +49,7 @@ Return a list consisting of the new form and any declarations floated.")
     (let ((fun (car form))
 	  (args (cdr form)))
       (handler-bind ((error #'(lambda (cond)
-				;;(error 'not-synthesisable :fragment form)
-				(error cond)
-				)))
+				(error 'not-synthesisable :fragment form))))
 	(float-let-blocks-sexp fun args)))))
 
 
@@ -89,15 +87,12 @@ well as PROGNs nested inside other PROGNs.")
     (let ((fun (car form))
 	  (args (cdr form)))
       (handler-bind ((error #'(lambda (cond)
-				;;(error 'not-synthesisable :fragment form)
-				(error cond)
-				)))
+				(error 'not-synthesisable :fragment form))))
 	(simplify-progn-sexp fun args)))))
 
 
 (defgeneric simplify-progn-sexp (fun args)
-  (:documentation "Simplify PROGN blocks in FUN applied to ARGS.")
-  )
+  (:documentation "Simplify PROGN blocks in FUN applied to ARGS."))
 
 
 ;; ---------- Macro expansion ----------
@@ -117,9 +112,7 @@ well as PROGNs nested inside other PROGNs.")
 	  (let ((fun (car form))
 		(args (cdr form)))
 	    (handler-bind ((error #'(lambda (cond)
-				      ;;(error 'not-synthesisable :fragment form)
-				      (error cond)
-				      )))
+				      (error 'not-synthesisable :fragment form))))
 	      (expand-macros-sexp fun args)))))))
 
 
@@ -132,38 +125,50 @@ well as PROGNs nested inside other PROGNs.")
 
 ;; ---------- Synthesis ----------
 
-;; We use the following roles:
+;; In an expression-oriented language like Lisp, any form can
+;; be used wihtin the body or arguments of any other form.
+;; In statement-oriented languages like Verilog, however, there
+;; are more restrictions on what can appear where and often
+;; specific syntax to be used for the same concepts in different
+;; plaes (for example if statements /versus/ conditional expressions).
+;;
+;; To bridge this gap, synthesis occurs in a specific /context/
+;; indicating how the form is being used. The context for synthesising
+;; a sub-form can be set by its parent form, and may be different to
+;; that form's own context.
+;;
+;; We use the following contexts:
 ;;
 ;; - :toplevel -- for top-level items like modules
-;; - :module -- for elements directly within a module
-;; - :statement -- for elements used as statements within a block
-;; - :rvalue -- for expressions
-;; - :declaration -- for declarations
+;; - :inmodule -- for elements directly within a module
+;; - :inblock -- for elements used as statements within a block
+;; - :inexpression -- for expressions
+;; - :indeclaration -- for declarations
+;; - :inassignment -- as the target for an assignment
 
-(defgeneric synthesise (form as)
+(defgeneric synthesise (form context)
   (:documentation "Synthesise the Verilog for FORM.
 
-The form may have a specified role of position indicated by AS.
+The form may have a specified role of position indicated by CONTEXT.
 This may be used to specialise synthesis methods according to
 syntactic classes and the like.
 
 A NOT-SYNTHESISABLE error will be signalled for all underlying
 conditions.")
-  (:method ((form list) as)
+  (:method ((form list) context)
     (let ((fun (car form))
 	  (args (cdr form)))
       (handler-bind ((error #'(lambda (cond)
-				;;(error 'not-synthesisable :fragment form)
-				(error cond)
-				)))
-	(synthesise-sexp fun args as)
+				(error 'not-synthesisable :fragment form))))
+
+	(synthesise-sexp fun args context)
 	t))))
 
 
-(defgeneric synthesise-sexp (fun args as)
+(defgeneric synthesise-sexp (fun args context)
   (:documentation "Write the synthesised Verilog of FUN called with ARGS.
 
-The synthesised code may depend on the role or position AS,
+The synthesised code may depend on the role or position CONTEXT,
 which can be used to specialise the method."))
 
 
@@ -175,9 +180,7 @@ which can be used to specialise the method."))
     (let ((fun (car form))
 	  (args (cdr form)))
       (handler-bind ((error #'(lambda (cond)
-				;;(error 'not-synthesisable :fragment form)
-				(error cond)
-				)))
+				(error 'not-synthesisable :fragment form))))
 	(lispify-sexp fun args env)))))
 
 

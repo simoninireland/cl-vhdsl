@@ -41,19 +41,19 @@
 	     `(progn ,@newbody))))))
 
 
-(defmethod synthesise-sexp ((fun (eql 'progn)) args as)
+(defmethod synthesise-sexp ((fun (eql 'progn)) args (context (eql :inblock)))
   (dolist (form args)
-    (synthesise form :statement)))
+    (synthesise form :inblock)))
 
 
 ;; ---------- Triggered blocks ----------
 
-(defmethod synthesise-sexp ((fun (eql '@)) args (as (eql :module)))
+(defmethod synthesise-sexp ((fun (eql '@)) args (context (eql :inblock)))
   (let ((test (car args))
 	(body (cdr args)))
     (format *synthesis-stream* "always @(")
-    (synthesise test :rvalue)
+    (synthesise test :inexpression)
     (format *synthesis-stream* ")~&")
-    (as-block body :statement
-	      :before "begin" :after "end"
-	      :indented t :newlines t)))
+    (as-body body :inblock)))
+(defmethod synthesise-sexp ((fun (eql '@)) args (context (eql :inmodule)))
+  (synthesise-sexp fun args :inblock))

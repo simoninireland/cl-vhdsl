@@ -50,32 +50,32 @@ constant or an input parameter."
       tyval)))
 
 
-(defmethod synthesise-sexp ((fun (eql 'setf)) args (as (eql :statement)))
+(defmethod synthesise-sexp ((fun (eql 'setf)) args (context (eql :inblock)))
   (destructuring-bind (var val &key (sync nil))
       args
-    (synthesise var :lvalue)
+    (synthesise var :inassignment)
     (if sync
 	(format *synthesis-stream* " = ")
 	(format *synthesis-stream* " <= "))
-    (synthesise val :rvalue)
+    (synthesise val :inexpression)
     (format *synthesis-stream* ";")))
 
 
-(defmethod synthesise-sexp ((fun (eql 'setf)) args (as (eql :module)))
-  (destructuring-bind (var val &key (sync nil))
+(defmethod synthesise-sexp ((fun (eql 'setf)) args (context (eql :inmodule)))
+  (destructuring-bind (var val)
       args
     (format *synthesis-stream* "assign ")
-    (synthesise var :lvalue)
+    (synthesise var :inassignment)
     (format *synthesis-stream* " = ")
-    (synthesise val :rvalue)
+    (synthesise val :inexpression)
     (format *synthesis-stream* ";")))
 
 
 ;; Triggers
 
-(defmethod synthesise-sexp ((fun (eql 'posedge)) args (as (eql :rvalue)))
+(defmethod synthesise-sexp ((fun (eql 'posedge)) args (context (eql :inexpression)))
   (destructuring-bind (pin)
       args
     (format *synthesis-stream* "posedge(")
-    (synthesise pin :rvalue)
+    (synthesise pin :inexpression)
     (format *synthesis-stream* ")")))

@@ -43,8 +43,8 @@ plus the number of other arguments."
   (typecheck-addition args env))
 
 
-(defmethod synthesise-sexp ((fun (eql '+)) args (as (eql :rvalue)))
-  (as-infix '+ args as))
+(defmethod synthesise-sexp ((fun (eql '+)) args (context (eql :inexpression)))
+  (as-infix '+ args context))
 
 
 (defmethod lispify-sexp ((fun (eql '+)) args env)
@@ -60,18 +60,18 @@ plus the number of other arguments."
     `(fixed-width-signed ,(bitwidth ty env))))
 
 
-(defmethod synthesise-sexp ((fun (eql '-)) args (as (eql :rvalue)))
+(defmethod synthesise-sexp ((fun (eql '-)) args (context (eql :inexpression)))
   (if (= (length args) 1)
       ;; unary minus
       (progn
 	(format *synthesis-stream* "(-~a)" (car args)))
 
       ;; application
-      (as-infix '- args as)))
+      (as-infix '- args context)))
 
 
-(defmethod synthesise-sexp ((fun (eql '*)) args (as (eql :rvalue)))
-  (as-infix '* args as))
+(defmethod synthesise-sexp ((fun (eql '*)) args (context (eql :inexpression)))
+  (as-infix '* args context))
 
 
 (defmethod lispify-sexp ((fun (eql '-)) args env)
@@ -105,10 +105,10 @@ plus the number of other arguments."
 				 (1- (round (expt 2 (bitwidth tyoffset env)))))))))
 
 
-(defmethod synthesise-sexp ((fun (eql '<<)) args (as (eql :rvalue)))
+(defmethod synthesise-sexp ((fun (eql '<<)) args (context (eql :inexpression)))
   (destructuring-bind (val offset)
       args
-    (as-infix '<< args as)))
+    (as-infix '<< args context)))
 
 
 (defmethod lispify-sexp ((fun (eql '<<)) args env)
@@ -132,10 +132,10 @@ plus the number of other arguments."
 				 (1- (round (expt 2 (bitwidth tyoffset env)))))))))
 
 
-(defmethod synthesise-sexp ((fun (eql '>>)) args (as (eql :rvalue)))
+(defmethod synthesise-sexp ((fun (eql '>>)) args (context (eql :inexpression)))
   (destructuring-bind (val offset)
       args
-    (as-infix '>> args as)))
+    (as-infix '>> args context)))
 
 
 (defmethod lispify-sexp ((fun (eql '>>)) args env)

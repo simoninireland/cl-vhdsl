@@ -34,7 +34,11 @@
   form)
 
 
-(defmethod synthesise ((form symbol) as)
+(defmethod synthesise ((form symbol) (context (eql :inexpression)))
+  (format *synthesis-stream* "~(~s~)" form))
+(defmethod synthesise ((form symbol) (context (eql :inassignment)))
+  (format *synthesis-stream* "~(~s~)" form))
+(defmethod synthesise ((form symbol) (context (eql :indeclaration)))
   (format *synthesis-stream* "~(~s~)" form))
 
 

@@ -81,7 +81,7 @@ Signal VALUE-MISMATCH as an error if not."
 	    (setq ty type))
 
 	  (if width
-	      (let ((w (typecheck width env)))
+	      (let ((w (eval-in-static-environment width env)))
 		;; if a width is provided, make sure it's enough to
 		;; accommodate the type
 		(ensure-width-can-store w ty env)
@@ -130,7 +130,7 @@ Signal VALUE-MISMATCH as an error if not."
 	    (append decls newdecls)))))
 
 
-(defun synthesise-register (decl as)
+(defun synthesise-register (decl context)
   "Synthesise a register declaration within a LET block.
 
 The register has name N and initial value V, with the optional
@@ -138,15 +138,15 @@ WIDTH defaulting to the system's global width."
   (destructuring-bind  (n v &key (width *default-register-width*))
       decl
     (format *synthesis-stream* "reg [ ")
-    (synthesise width :rvalue)
+    (synthesise width :inexpression)
     (format *synthesis-stream* " - 1 : 0 ] ")
-    (synthesise n :rvalue)
+    (synthesise n :indeclaration)
     (format *synthesis-stream* " = ")
-    (synthesise v :rvalue)
+    (synthesise v :inexpression)
     (format *synthesis-stream* ";")))
 
 
-(defmethod synthesise-sexp ((fun (eql 'let)) args (as (eql :module)))
+(defmethod synthesise-sexp ((fun (eql 'let)) args (context (eql :inmodule)))
   (let ((decls (car args))
 	(body (cdr args)))
 
@@ -155,4 +155,8 @@ WIDTH defaulting to the system's global width."
     (format *synthesis-stream* "~%")
 
     ;; synthesise the body
-    (as-body body :module)))
+    (as-body body :inblock)))
+
+
+(defmethod synthesise-sexp ((fun (eql 'let)) args (context (eql :inblock)))
+  (synthesise-sexp fun args :inmodule))

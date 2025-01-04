@@ -21,13 +21,6 @@
 (declaim (optimize debug))
 
 
-(deftype module (&optional params args)
-  "The type of modules.
-
-PARAMS and ARGS are lists of parameter and argument declarations
-respectively.")
-
-
 (deftype direction ()
   "The type of dataflow directions.
 
@@ -140,8 +133,8 @@ values can't be defined in terms of other parameter values."
 	     (ext (typecheck-module-args args extparams)))
 	(typecheck (cons 'progn body) ext)
 
-
-	`(module ,params ,args)))))
+	;; really need a type for modules...
+	t))))
 
 
 (defmethod float-let-blocks-sexp ((fun (eql 'module)) args)
@@ -180,41 +173,38 @@ values can't be defined in terms of other parameter values."
   "Return the code for argument DECL."
   (destructuring-bind (n &key direction width)
       decl
-    (format *synthesis-stream* "~a ~a~(~a~)"
-	    (case direction
-	      (:in    "input")
-	      (:out   "output")
-	      (:inout "inout"))
-	    (if (and (integerp width)
-		     (= width 1))
-		""
-		(format nil "[ ~(~a~) - 1 : 0 ] " width))
-	    n)))
+    format *synthesis-stream* "~a ~a~(~a~)"
+    (case direction
+      (:in    "input")
+      (:out   "output")
+      (:inout "inout"))
+    (if (and (integerp width)
+	     (= width 1))
+	""
+	(format nil "[ ~(~a~) - 1 : 0 ] " width))
+    n))
 
 
-(defmethod synthesise-sexp ((fun (eql 'module)) args (as (eql :toplevel)))
+(defmethod synthesise-sexp ((fun (eql 'module)) args (context (eql :toplevel)))
   (destructuring-bind (modname decls &rest body)
       args
-    (destructuring-bind (args params)
-	(split-args-params decls)
+    (format *synthesis-stream* "module ")
+    (synthesise modname :inexpression)
 
-      (format *synthesis-stream* "module ")
-      (synthesise modname :rvalue)
+    ;; parameters
+    (if params
+	(as-list params :indeclaration :before " #(" :after ")"
+				       :indented t :newlines t
+				       :process (lambda (form context)
+						  (synthesise-param form))))
 
-      ;; parameters
-      (if params
-	  (as-list params :argument :before " #(" :after ")"
-				    :indented t :newlines t
-				    :process (lambda (form as)
-					       (synthesise-param form))))
-
-      ;; arguments
-      (as-list args :argument :before "(" :after ");"
-			      :indented t :newlines t
-			      :process (lambda (form as)
-					 (synthesise-arg form))))
+    ;; arguments
+    (as-list args :indeclaration :before "(" :after ");"
+				 :indented t :newlines t
+				 :process (lambda (form context)
+					    (synthesise-arg form)))
 
     ;; body
     (with-indentation
-      (as-body body :module))
+      (as-body body :inmodule))
     (format *synthesis-stream* "endmodule // ~(~a~)" modname)))

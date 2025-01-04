@@ -47,6 +47,7 @@
    #:expand-macros-sexp
 
    ;; synthesis
+   #:*synthesis-stream*   ;; will be abstracted later
    #:synthesise
    #:synthesise-sexp
 
@@ -58,7 +59,8 @@
    #:indentation
    #:in-logical-block
 
-   ;; macro lanuage
+   ;; loader
+   #:get-modules-for-synthesis
    #:defmodule
 
    ;; conditions

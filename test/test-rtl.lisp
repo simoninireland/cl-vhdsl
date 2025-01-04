@@ -1,6 +1,6 @@
-;; Tests of synthesisable fragment parsing
+;; Tests of synthesisable fragment passes and synthesis
 ;;
-;; Copyright (C) 2024 Simon Dobson
+;; Copyright (C) 2024--2025 Simon Dobson
 ;;
 ;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
 ;;
@@ -18,7 +18,8 @@
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 (in-package :cl-vhdsl/test)
-(in-suite cl-vhdsl)
+(def-suite cl-vhdsl/rtl)
+(in-suite cl-vhdsl/rtl)
 
 (defvar emptyenv (rtl:empty-environment))
 
@@ -114,7 +115,6 @@
   "Test the range of an unsigned fixed-width integer."
   (is (typep 12 '(rtl::fixed-width-unsigned 8)))
   (is (typep 12 '(rtl::fixed-width-unsigned 16)))
-  (is (typep 128 '(rtl::fixed-width-signed 8)))
 
   (is (typep 512 '(rtl::fixed-width-unsigned 16)))
   (is (not (typep 512 '(rtl::fixed-width-unsigned 8))))
@@ -410,17 +410,18 @@
 		   emptyenv)))
 
 
+;; at the moment we have no type for modules
 (test test-typecheck-module
   "Test we can type-check a module with a variety of features."
   (is (subtypep (rtl:typecheck '(rtl::module test ((clk :width 1 :direction :in)
-						    (a :width 8 :direction :in)
-						    (b :width 4)
-						    :key e (f 45))
-				  (let ((x 0 :width 8)
-					(y 10 :width 8))
-				    (setf x (+ x b) :sync t)))
-				emptyenv)
-		'rtl::module)))
+						   (a :width 8 :direction :in)
+						   (b :width 4)
+						   :key e (f 45))
+				 (let ((x 0 :width 8)
+				       (y 10 :width 8))
+				   (setf x (+ x b) :sync t)))
+			       emptyenv)
+		t)))
 
 
 ;; ---------- Synthesis ----------
@@ -434,42 +435,42 @@
   (dolist (op '(+ - *))
     ;; conventional two-operand
     (is (rtl:synthesise `(,op 1 2)
-			:rvalue))
+			:inexpression))
 
     ;; Lisp-y multi-operand
     (is (rtl:synthesise `(,op 1 2 3)
-			:rvalue)))
+			:inexpression)))
 
   ;; unary minus
   (is (rtl:synthesise `(- 1)
-		      :rvalue))
+		      :inexpression))
 
   ;; nested
   (is (rtl:synthesise `(+ 1 (- (* 2 3 -1)))
-		      :rvalue))
+		      :inexpression))
 
   ;; shifts
   (dolist (op '(rtl::<< rtl::>>))
     ;; conventional two-operand
     (is (rtl:synthesise `(,op 1 2)
-			:rvalue))
+			:inexpression))
 
     ;; only two operands
     (signals (rtl:not-synthesisable)
       (rtl:synthesise `(,op 1)
-		      :rvalue))
+		      :inexpression))
     (signals (rtl:not-synthesisable)
       (rtl:synthesise `(,op 1 2 3)
-		      :rvalue))))
+		      :inexpression))))
 
 
 (test test-synthesise-setf
   "Test we can synthesise assignments."
   ;; as statements
   (is (rtl:synthesise '(setf a 5)
-		      :statement))
+		      :inblock))
   (is (rtl:synthesise '(setf a 5 :sync t)
-		      :statement)))
+		      :inblock)))
 
 
 (test test-synthesise-progn
@@ -477,7 +478,7 @@
   (is (rtl:synthesise '(progn
 			(setf a 5)
 			(setf b 34))
-		      :statement)))
+		      :inblock)))
 
 
 (test test-synthesise-binders
@@ -485,13 +486,13 @@
   ;; as statements
   (is (rtl:synthesise `(let ((a 1 :width 8))
 			 (setf a (+ a 1)))
-		      :statement))
+		      :inblock))
 
   ;; can't return values in statement role
   (signals (rtl:not-synthesisable)
     (rtl:synthesise `(let ((a 1 :width 8))
 		       (+ a 1))
-		    :statement)))
+		    :inblock)))
 
 
 (test test-synthesise-module
@@ -502,7 +503,7 @@
 					  :key e (f 45))
 			(let ((x 0 :width 8)
 			      (y 10 :width 8))
-			  (when (rtl::posedge clk)
+			  (rtl::@ (rtl::posedge clk)
 			    (setf x (+ x b) :sync t))))
 		      :toplevel)))
 
@@ -514,13 +515,29 @@
 			(if (logand 1 1)
 			    (setf a (+ 1 2))
 			    (setf a (+ 1 3))))
-		      :statement))
+		      :inmodule))
+  (is (rtl:synthesise '(let ((a 0 :width 4))
+			(if (logand 1 1)
+			    (setf a (+ 1 2))
+
+			    ;; a two-form else branch
+			    (setf a (+ 1 3))
+			    (setf a 12)))
+		      :inmodule))
+  (is (rtl:synthesise '(let ((a 0 :width 4))
+			(if (logand 1 1)
+			    (progn
+			      ;; a two-form else branch
+			      (setf a (+ 1 2))
+			      (setf a (+ 1 3)))
+			    (setf a 12)))
+		      :inmodule))
 
   ;; no else branch
   (is (rtl:synthesise '(let ((a 0 :width 4))
 			(if (logand 1 1)
 			    (setf a (+ 1 2))))
-		      :statement)))
+		      :inblock)))
 
 
 (test test-blink

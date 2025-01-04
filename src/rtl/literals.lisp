@@ -37,7 +37,7 @@
   form)
 
 
-(defmethod synthesise ((form integer) as)
+(defmethod synthesise ((form integer) (context (eql :inexpression)))
   (format *synthesis-stream* "~s" form))
 
 

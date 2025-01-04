@@ -26,10 +26,9 @@
 
 WIDTH may also be the symbol * if the exact width is unknown.
 If omitted, WIDTH is assumed to be *."
-  (if (or (null width)
-	  (eql width '*))
+  (if (eql width '*)
       '(integer 0 *)
-      `(integer 0 ,(round (1- (expt 2 width))))))
+      `(integer 0 ,(1- (ash 1 width)))))
 
 
 (deftype fixed-width-signed (&optional width)
@@ -37,11 +36,10 @@ If omitted, WIDTH is assumed to be *."
 
 WIDTH may also be the symbol * if the exact width is unknown.
 If omitted, WIDTH is assumed to be *."
-  (if (or (null width)
-	  (eql width '*))
+  (if (eql width '*)
       '(integer * *)
-      `(integer ,(- (round (expt 2 (1- width))))
-		,(round (1- (expt 2 (1- width)))))))
+      `(integer ,(- (ash 1 (1- width)))
+		,(1- (ash 1 (1- width))))))
 
 
 (defun fixed-width-p (ty)

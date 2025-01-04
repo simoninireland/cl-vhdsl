@@ -28,17 +28,17 @@
 	  tythen))))
 
 
-(defmethod synthesise-sexp ((fun (eql 'if)) args (as (eql :statement)))
+(defmethod synthesise-sexp ((fun (eql 'if)) args (context (eql :inblock)))
   (destructuring-bind (condition then &rest else)
       args
     (format *synthesis-stream* "~aif("
 	    (indentation))
-    (synthesise condition :rvalue)
+    (synthesise condition :inexpression)
     (format *synthesis-stream* ") then~&")
-    (in-logical-block (:before "begin" :after "end" :always nil)
-      (synthesise then :statement))
-    (if else
-	(progn
-	  (format *synthesis-stream* "~aelse~&" (indentation))
-	  (in-logical-block (:before "begin" :after "end" :always nil)
-	    (synthesise (cons 'progn else) :statement))))))
+    (as-body (list then) :inblock :before "begin" :after "end")
+    (when else
+      (format *synthesis-stream* "~aelse~&" (indentation))
+      (as-body (if (> (length else) 1)
+		   `((progn ,@else))
+		   else)
+	       :inblock :before "begin" :after "end"))))
