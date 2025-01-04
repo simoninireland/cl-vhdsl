@@ -1,6 +1,6 @@
 ;; Constants
 ;;
-;; Copyright (C) 2024 Simon Dobson
+;; Copyright (C) 2024--2025 Simon Dobson
 ;;
 ;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
 ;;
@@ -21,7 +21,9 @@
 
 ;; ---------- Memory sizes ----------
 
-(defvar KB (floor (expt 2 10))
+(defconstant KB (ash 1 10)
   "A kilobyte in bytes.")
-(defvar MB (* 1024 KB)
+
+
+(defconstant MB (* 1024 KB)
   "A megabyte in bytes.")
