@@ -1,6 +1,6 @@
 ;; Tests of utility functions
 ;;
-;; Copyright (C) 2023 Simon Dobson
+;; Copyright (C) 2023--2025 Simon Dobson
 ;;
 ;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
 ;;
