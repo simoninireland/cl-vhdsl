@@ -120,7 +120,7 @@ check-local-repo-clean:
 
 # Clean up the distribution build and documentation
 clean:
-	$(RM) $(SOURCES_GENERATED) $(SOURCES_GENERATED_EXTRA) $(SOURCES_DOC_BUILD_DIR)
+	$(RM) $(SOURCES_GENERATED) $(SOURCES_GENERATED_EXTRA) $(SOURCES_DOC_BUILD_DIR) $(BINARIES)
 
 # Clean up everything, including the documentation venv
 reallyclean: clean
