@@ -143,3 +143,34 @@ plus the number of other arguments."
 			(lispify arg env))
 		      args)))
     `(ash ,(car vals) (- ,(cadr vals)))))
+
+
+;; Bitwise access to variables
+
+(defmethod typecheck-sexp ((fun (eql 'bits)) args env)
+  (destructuring-bind (var start end)
+      args
+    (let ((tyvar (typecheck var env))
+	  (l (eval-in-static-environment `(+ 1 (- ,start ,end)) env)))
+      (if (<= l (bitwidth tyvar env))
+	  `(fixed-width-unsigned ,l)
+
+	  (error 'not-synthesisable :fragment `(bits ,start ,end))))))
+
+
+(defmethod synthesise-sexp ((fun (eql 'bits)) args (context (eql :inexpression)))
+  (destructuring-bind (var start end)
+      args
+    (synthesise var :inassignment)
+    (format *synthesis-stream* "[ ")
+    (synthesise start :inexpression)
+    (format *synthesis-stream* " : ")
+    (synthesise end :inexpression)
+    (format *synthesis-stream* " ]")))
+
+
+(defmethod lispify-sexp ((fun (eql 'bits)) args env)
+  (destructuring-bind (var start end)
+      args
+    (let ((l l (eval-in-static-environment `(+ 1 (- ,start ,end)) env)))
+      `(logand (ash ,(lispify var) (- ,end)) (1- (ash 1 ,l))))))

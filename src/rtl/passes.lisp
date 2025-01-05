@@ -39,6 +39,13 @@
   (:documentation "Type-check the application of FUN to ARGS in ENV."))
 
 
+(defgeneric typecheck-sexp-setf (selector val env selectorargs &key sync)
+  (:documentation "Type-check a SETF form allowing generalised places.
+
+This matches a form (SETF (SELECTOR SELECTORARGS) VAL) and allows
+different selectors to be used as generalised places."))
+
+
 ;; ---------- Let block coalescence ----------
 
 (defgeneric float-let-blocks (form)

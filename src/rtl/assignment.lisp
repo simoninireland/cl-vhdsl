@@ -18,6 +18,7 @@
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 (in-package :cl-vhdsl/rtl)
+(declaim (optimize debug))
 
 
 (defun writeable-p (n env)
@@ -42,10 +43,30 @@ constant or an input parameter."
 (defmethod typecheck-sexp ((fun (eql 'setf)) args env)
   (destructuring-bind (var val &key sync)
       args
-    (let ((tyvar (typecheck var env))
+    (if (listp var)
+	(typecheck-sexp-setf (car var) val (cdr var) env :sync sync)
+	(typecheck-sexp-setf var val nil env :sync sync))))
+
+
+(defmethod typecheck-sexp-setf ((selector symbol) val selectorargs env &key sync)
+  (let ((tyvar (typecheck selector env))
 	  (tyval (typecheck val env)))
       (ensure-subtype tyval tyvar)
+      (ensure-writeable selector env)
+
+      tyval))
+
+
+(defmethod typecheck-sexp-setf ((selector (eql 'bits)) val selectorargs env &key sync)
+  (destructuring-bind (var start end)
+      selectorargs
+    (let ((tyvar (typecheck var env))
+	  (tyval (typecheck val env))
+	  (l (eval-in-static-environment `(+ 1 (- ,start ,end)) env)))
       (ensure-writeable var env)
+      (ensure-width-can-store l tyval env)
+      (if (> l (bitwidth tyvar env))
+	  (error 'not-synthesisable :fragment `(setf (,selector ,@selectorargs) ,val)))
 
       tyval)))
 
