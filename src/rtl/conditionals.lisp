@@ -24,7 +24,7 @@
       ;; the type of the expression is the widest of the
       ;; types of the two arms
       (if else
-	  (lub-fixed-width tythen tyelse env)
+	  (lub tythen tyelse env)
 	  tythen))))
 
 

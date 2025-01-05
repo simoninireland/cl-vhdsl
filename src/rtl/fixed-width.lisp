@@ -1,6 +1,6 @@
 ;; Fixed-width types
 ;;
-;; Copyright (C) 2024 Simon Dobson
+;; Copyright (C) 2024--2025 Simon Dobson
 ;;
 ;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
 ;;
@@ -64,6 +64,8 @@ If omitted, WIDTH is assumed to be *."
 			  :got ty)))
 
 
+;; ---------- Widening and least upper-bound ----------
+
 (defun widen-fixed-width (ty w)
   "Widen TY to use W bits.
 
@@ -83,7 +85,8 @@ TY is returned if it is already at least as wide as W."
 	      `(,tytag ,(max tyw w)))))))
 
 
-(defun lub-fixed-width (ty1 ty2 env)
+
+(defun lub (ty1 ty2 env)
   "Return the least upper-bound of two types TY1 and TY2."
   (cond ((and (subtypep ty1 '(fixed-width-unsigned))
 	      (subtypep ty2 '(fixed-width-unsigned)))
@@ -105,37 +108,40 @@ TY is returned if it is already at least as wide as W."
 	 (lub-fixed-width ty1 ty1 env))))
 
 
+;; ---------- Width calculations ----------
 
-(defun bitwidth (val env)
-  "Return the number of bits needed to represent VAL in ENV.
+(defgeneric bitwidth (val env)
+  (:documentation "Return the number of bits needed to represent VAL in ENV."))
 
-VAL can be a constant number, a type, or a symbol, the latter having
-their types looked-up in ENV."
+
+(defmethod bitwidth ((val integer) env)
   (flet ((bits-for-integer (val)
 	   (multiple-value-bind (b res)
 	       (ceiling (log val 2))
 	     (let ((bits (if (= res 0.0)
-			     (1+ b) ; add a bit if val is on a power-of-two boundary
+			     ;; add a bit if val is on a
+			     ;; power-of-two boundary
+			     (1+ b)
 			     b)))
 	       bits))))
+     (cond ((= val 0)
+	    0)
 
-    (cond ((and (listp val)
-		(or (eq (car val) 'fixed-width-unsigned)
-		    (eq (car val) 'fixed-width-signed)))
-	   (cadr val))
+	   ((> val 0)
+	    (bits-for-integer val))
 
-	  ((typep val 'integer)
-	   (cond ((= val 0)
-		  0)
+	   (t
+	    (1+ (bits-for-integer (abs val)))))))
 
-		 ((> val 0)
-		  (bits-for-integer val))
 
-		 (t
-		  (1+ (bits-for-integer (abs val))))))
+(defmethod bitwidth ((val symbol) env)
+  (get-width val env))
 
-	  ((symbolp val)
-	   (get-width val env))
 
-	  (t
-	   (error 'not-synthesisable :fragment val)))))
+(defmethod bitwidth ((val list) env)
+  (if (member (car val) '(fixed-width-unsigned
+			  fixed-width-signed))
+      (if (or (= (length val) 0)
+	      (eql (cadr val) '*))
+	  *default-register-width*
+	  (cadr val))))
