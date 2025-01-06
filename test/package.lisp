@@ -25,4 +25,7 @@
   (:import-from :fiveam #:is #:test))
 
 (in-package :cl-vhdsl/test)
-(def-suite cl-vhdsl)
+
+(def-suite cl-vhdsl)       ;; utilities
+(def-suite cl-vhdsl/rtl)   ;; synthesisable fragment
+(def-suite cl-vhdsl/def)   ;; architectural component definitions
