@@ -18,8 +18,9 @@
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 (in-package :cl-vhdsl/test)
-(def-suite cl-vhdsl/rtl)
 (in-suite cl-vhdsl/rtl)
+(declaim (optimize debug))
+
 
 (defvar emptyenv (rtl:empty-environment))
 
@@ -277,6 +278,14 @@
 		'(rtl::fixed-width-unsigned 1))))
 
 
+(test test-width-bits
+  "Test we can extract bits from a value."
+  (is (subtypep (rtl:typecheck '(let ((a #2r10110))
+				 (rtl::bits a 2 1))
+			       emptyenv)
+		'(rtl::fixed-width-unsigned 2))))
+
+
 (test test-let-single
   "Test we can typecheck an expression."
   (is (subtypep (rtl:typecheck '(let ((a 1 :width 5))
@@ -422,6 +431,35 @@
 				   (setf x (+ x b) :sync t)))
 			       emptyenv)
 		t)))
+
+
+;; ---------- Typechecking setf to generalised places ----------
+
+(test test-setf-variable
+  "Test we can setf to a variable."
+  (is (rtl:typecheck '(let ((a 12))
+		       (setf a 14))
+		     emptyenv)))
+
+
+(test test-setf-variable-bits
+  "Test we can setf to bits in a variable."
+  (is (subtypep (rtl:typecheck '(let ((a 12))
+				 (setf (rtl::bits a 1 0) 2))
+			       emptyenv)
+		'(rtl::fixed-width-unsigned 2)))
+
+  ;; fails because default width of a is too small
+  (signals (rtl:not-synthesisable)
+    (rtl:typecheck '(let ((a 12))
+		     (setf (rtl::bits a 6 0) 0))
+		   emptyenv))
+
+  ;; fixed with an explicit width
+  (is (subtypep (rtl:typecheck '(let ((a 12 :width 8))
+				 (setf (rtl::bits a 6 0) 0))
+			       emptyenv)
+		'(rtl::fixed-width-unsigned 2))))
 
 
 ;; ---------- Synthesis ----------
