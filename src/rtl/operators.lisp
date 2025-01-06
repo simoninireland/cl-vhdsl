@@ -172,5 +172,5 @@ plus the number of other arguments."
 (defmethod lispify-sexp ((fun (eql 'bits)) args env)
   (destructuring-bind (var start end)
       args
-    (let ((l l (eval-in-static-environment `(+ 1 (- ,start ,end)) env)))
+    (let ((l (eval-in-static-environment `(+ 1 (- ,start ,end)) env)))
       `(logand (ash ,(lispify var) (- ,end)) (1- (ash 1 ,l))))))
