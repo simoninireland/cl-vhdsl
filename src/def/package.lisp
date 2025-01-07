@@ -24,6 +24,15 @@
   (:import-from :slot-extra-options
 		#:def-extra-options-metaclass
 		#:slot-exists-and-bound-p)
+  (:import-from :closer-mop
+		#:finalize-inheritance
+		#:validate-superclass
+		#:class-slots
+		#:slot-boundp
+		#:slot-definition-name
+		#:slot-definition-type)
+  (:import-from :cl-ppcre
+		#:scan-to-strings)
   (:local-nicknames (:rtl :cl-vhdsl/rtl))
   (:export
    ;; Constants
@@ -31,6 +40,7 @@
    #:MB
 
    ;; components
+   #:synthesisable-component
    #:component
    #:on-startup
    #:pin-interface

@@ -12,6 +12,8 @@
 (declaim (optimize debug))
 
 
+;; ---------- if ----------
+
 (defmethod typecheck-sexp ((fun (eql 'if)) args env)
   (destructuring-bind (condition then &rest else)
       args
@@ -42,3 +44,6 @@
 		   `((progn ,@else))
 		   else)
 	       :inblock :before "begin" :after "end"))))
+
+
+;; ---------- cond ----------

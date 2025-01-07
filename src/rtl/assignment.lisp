@@ -94,9 +94,25 @@ constant or an input parameter."
 
 ;; Triggers
 
+(defmethod typecheck-sexp ((fun (eql 'posedge)) args env)
+  '(fixed-width-unsigned 1))
+
+
 (defmethod synthesise-sexp ((fun (eql 'posedge)) args (context (eql :inexpression)))
   (destructuring-bind (pin)
       args
     (format *synthesis-stream* "posedge(")
+    (synthesise pin :inexpression)
+    (format *synthesis-stream* ")")))
+
+
+(defmethod typecheck-sexp ((fun (eql 'negedge)) args env)
+  '(fixed-width-unsigned 1))
+
+
+(defmethod synthesise-sexp ((fun (eql 'negedge)) args (context (eql :inexpression)))
+  (destructuring-bind (pin)
+      args
+    (format *synthesis-stream* "negedge(")
     (synthesise pin :inexpression)
     (format *synthesis-stream* ")")))
