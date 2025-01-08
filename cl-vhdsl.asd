@@ -24,47 +24,19 @@
   :author "Simon Dobson <simoninireland@gmail.com"
   :version (:read-file-form "version.sexp")
   :license "GPL3"
-  :depends-on ("alexandria" "cl-bitfields"
-	       "cl-ppcre" "cl-interpol" "str"
-	       "closer-mop" "slot-extra-options"
-	       "clast")
+  :depends-on ("alexandria"
+	       "cl-bitfields"
+	       "cl-ppcre"
+	       "closer-mop"
+	       "slot-extra-options")
   :pathname "src/"
   :serial t
   :components ((:file "package")
 	       (:file "utils")
-	       (:module "def"
-		:components ((:file "package")
-			     (:file "types")
-			     (:file "constants")
-			     (:file "conditions")
-			     (:file "arch")
-			     (:file "register")
-			     (:file "addressing")
-			     (:file "instruction")))
-	       (:module "emu"
-		:components ((:file "package")
-			     (:file "arch")
-			     (:file "cached-memory")
-			     (:file "emu")
-			     (:file "conditions")))
-	       (:module "hw"
-		:components ((:file "package")
-			     (:file "arch")
-			     (:file "mop")
-			     (:file "component")
-			     (:file "mixins")
-			     (:file "wiring")
-			     (:file "register")
-			     (:file "alu")
-			     (:file "ram")
-			     (:file "ring-counter")
-			     (:file "microinstruction")
-			     (:file "control")
-			     (:file "debugging")
-			     (:file "conditions")))
 	       (:module "rtl"
 			:components ((:file "package")
 				     (:file "env")
+				     (:file "pretty-printer")
 				     (:file "fixed-width")
 				     (:file "literals")
 				     (:file "references")
@@ -74,33 +46,43 @@
 				     (:file "conditionals")
 				     (:file "binders")
 				     (:file "assignment")
+				     (:file "casting")
 				     (:file "modules")
-				     (:file "pretty-printer")
 				     (:file "passes")
 				     (:file "eval")
+				     (:file "loader")
 				     (:file "embedding")
-				     (:file "conditions"))))
+				     (:file "conditions")))
+	       (:module "def"
+		:components ((:file "package")
+			     (:file "constants")
+			     (:file "mop")
+			     (:file "component")
+			     (:file "mixins")
+			     (:file "synthesis")
+			     (:file "conditions"))))
   :in-order-to ((test-op (test-op "cl-vhdsl/test"))))
 
 
 (asdf:defsystem "cl-vhdsl/test"
   :description "Global tests of VHDSL."
-  :depends-on ("alexandria" "cl-vhdsl" "cl-vhdsl/6502" "fiveam")
+  :depends-on ("alexandria" "cl-vhdsl" "fiveam")
   :pathname "test/"
   :serial t
   :components ((:file "package")
 	       (:file "test-utils")
-	       (:file "test-debugging")
-	       (:file "test-mop")
+	       ;;(:file "test-debugging")
+	       ;;(:file "test-mop")
 	       ;;(:file "test-assembler")
-	       (:file "test-wires")
-	       (:file "test-wiring")
-	       (:file "test-registers")
-	       (:file "test-alu")
-	       (:file "test-datapath")
-	       (:file "test-ring-counters")
+	       ;;(:file "test-wires")
+	       ;;(:file "test-wiring")
+	       ;;(:file "test-registers")
+	       ;;(:file "test-alu")
+	       ;;(:file "test-datapath")
+	       ;;(:file "test-ring-counters")
 	       ;;(:file "test-microinstructions")
 	       (:file "test-rtl")
+	       (:file "test-def-components")
 	       )
   :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))
 
@@ -111,7 +93,7 @@
   :description "Command line tool to transpile VHDSL to Verilog."
   :author "Simon Dobson <simoninireland@gmail.com"
   :license "GPL3"
-  :depends-on ("alexandria" "unix-opts" "cl-vhdsl")
+  :depends-on ("alexandria" "serapeum" "unix-opts" "cl-vhdsl")
   :pathname "src/cli/"
   :serial t
   :components ((:file "package")
@@ -119,56 +101,3 @@
   :build-operation "program-op"
   :build-pathname "../../vhdslc"
   :entry-point "cl-vhdsl/cli:main")
-
-
-;; ---------- 6502 emulator ----------
-
-(asdf:defsystem "cl-vhdsl/6502"
-  :description "A 6502 emulator in software"
-  :author "Simon Dobson <simoninireland@gmail.com"
-  :license "GPL3"
-  :depends-on ("alexandria" "cl-ppcre" "cl-vhdsl")
-  :pathname "systems/6502/"
-  :serial t
-  :components ((:file "package")
-	       (:file "arch")
-	       (:file "addressing")
-	       (:file "instructions")
-	       (:file "assembler")
-	       (:file "emu"))
-  :in-order-to ((test-op (test-op "cl-vhdsl/6502/test"))))
-
-
-(asdf:defsystem "cl-vhdsl/6502/test"
-  :description "Tests of VHDSL 6502 emulator."
-  :depends-on ("cl-vhdsl/6502" "cl-ppcre" "fiveam")
-  :pathname "systems/6502/test/"
-  :serial t
-  :components ((:file "package")
-	       (:file "test-assembler"))
-  :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))
-
-
-;; ---------- SAP-1 emulator ----------
-
-(asdf:defsystem "cl-vhdsl/SAP-1"
-  :description "A SAP-1 emulator in software"
-  :author "Simon Dobson <simoninireland@gmail.com"
-  :license "GPL3"
-  :depends-on ("alexandria" "cl-ppcre" "cl-vhdsl")
-  :pathname "systems/sap-1/"
-  :serial t
-  :components ((:file "package")
-	       (:file "sap-1")
-	       (:file "explicit"))
-  :in-order-to ((test-op (test-op "cl-vhdsl/SAP-1/test"))))
-
-
-(asdf:defsystem "cl-vhdsl/SAP-1/test"
-  :description "Tests of VHDSL SAP-1 emulator."
-  :depends-on ("cl-vhdsl/SAP-1" "cl-ppcre" "fiveam")
-  :pathname "systems/sap-1/test/"
-  :serial t
-  :components ((:file "package")
-	       (:file "test-explicit"))
-  :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))
