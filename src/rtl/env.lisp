@@ -86,7 +86,6 @@ The properties may include:
    - :as -- representation used for this variable
    - :direction -- for arguments to modules, the direction of information
      flow, which should be :in, :out, or :inout
-   - :constant -- T if the value is constant and cannot be re-assigned
    - :parameter -- T if the value is a module parameter"
   (ensure-legal-identifier n)
   (cons (cons n props) env))
@@ -127,7 +126,8 @@ An UNKNOWN-VARIABLE error is signalled if N is undefined."
 
 (defun get-environment-property (n prop env)
   "Return PROP for N in ENV."
-  (cadr (assoc prop (get-environment-properties n env))))
+  (if-let ((p (assoc prop (get-environment-properties n env))))
+    (cadr p)))
 
 
 (defun variable-defined (n env)
@@ -138,6 +138,11 @@ An UNKNOWN-VARIABLE error is signalled if N is undefined."
 (defun get-type (n env)
   "Return the type of N in ENV."
   (get-environment-property n :type env))
+
+
+(defun get-representation (n env)
+  "Return the representation of N in ENV."
+  (get-environment-property n :as env))
 
 
 (defun get-width (n env)
@@ -158,7 +163,8 @@ An UNKNOWN-VARIABLE error is signalled if N is undefined."
 
 (defun get-constant (n env)
   "Return whether N is constant in ENV."
-  (get-environment-property n :constant env))
+  (if-let ((rep (get-representation n env)))
+    (eql rep :constant)))
 
 
 (defun get-direction (n env)

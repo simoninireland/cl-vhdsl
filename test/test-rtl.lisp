@@ -347,7 +347,7 @@
 
 (test test-let-constant
   "Test we admit constant bindings."
-  (is (subtypep (rtl:typecheck '(let ((a 15 :constant t))
+  (is (subtypep (rtl:typecheck '(let ((a 15 :as :constant))
 				 a)
 			       emptyenv)
 		'(rtl::fixed-width-unsigned 4))))
@@ -414,9 +414,17 @@
 (test test-assignment-constant
   "Test we can't assign to a constant variable."
   (signals (rtl:not-synthesisable)
-    (rtl:typecheck '(let ((a 10 :constant t))
+    (rtl:typecheck '(let ((a 10 :as :constant))
 		     (setf a 12))
 		   emptyenv)))
+
+
+(test test-typecheck-constant
+  "Test that a constants typecheck properly."
+  (is (subtypep (rtl:typecheck '(let ((a 23 :as :constant))
+				 a)
+			       emptyenv)
+		'(rtl::fixed-width-unsigned 8))))
 
 
 ;; at the moment we have no type for modules
@@ -561,6 +569,12 @@
 			 (setf a (+ a 1)))
 		      :inblock))
 
+  ;; with constants
+  (is (rtl:synthesise '(let ((a 1 :width 8)
+			     (b 23 :as :constant))
+			(setf c (+ a b)))
+		      :inblock))
+
   ;; can't return values in statement role
   (signals (rtl:not-synthesisable)
     (rtl:synthesise `(let ((a 1 :width 8))
@@ -572,10 +586,11 @@
   "Test we can syntheise a module with a variety of features."
   (is (rtl:synthesise '(rtl::module test ((clk :width 1 :direction :in)
 					  (a :width 8 :direction :in)
-					  (b :width 4)
+					  (b :width 4 :direction :in)
 					  :key e (f 45))
 			(let ((x 0 :width 8)
-			      (y 10 :width 8))
+			      (y 10 :width 8)
+			      (z 44 :as :constant))
 			  (rtl::@ (rtl::posedge clk)
 			    (setf x (+ x b) :sync t))))
 		      :toplevel)))

@@ -26,9 +26,8 @@
 ;;
 ;; - :width -- the width of a value in bits
 ;; - :type -- the type being held by the binding
-;; - :constant -- T is the binding is a constant
 ;; - :direction -- direction of dataflow for module arguments
-;; - :as -- the representation to be used
+;; - :as -- the representation to be used, one of Lregister, :wire, :constant
 ;;
 ;; Default and consistency checks are applied.
 
@@ -46,8 +45,8 @@
 (deftype representation ()
   "The type of variable representations.
 
-Valid representations are :REGISTER, :WIRE, or :VALUE."
-  '(member :register :wire :value))
+Valid representations are :REGISTER, :WIRE, or :constant."
+  '(member :register :wire :constant))
 
 
 (defun representation-p (rep)
@@ -60,7 +59,8 @@ Valid representations are :REGISTER, :WIRE, or :VALUE."
 
 Signal VALUE-MISMATCH as an error if not."
   (unless (representation-p rep)
-    (error 'value-mismatch :expected (list :register :wire :value) :got rep)))
+    (error 'value-mismatch :expected (list :register :wire :constant) :got rep)))
+
 
 ;; the lambda list is the "wrong way round" from "normal" to allow
 ;; this function to be folded across a list of declarations
@@ -68,7 +68,7 @@ Signal VALUE-MISMATCH as an error if not."
   "Typecheck DECL in ENV, returning ENV extended by DECL."
   (if (listp decl)
       ;; full declaration
-      (destructuring-bind (n v &key width type constant (as :register))
+      (destructuring-bind (n v &key width type (as :register))
 	  decl
 	(ensure-representation as)
 
@@ -95,7 +95,6 @@ Signal VALUE-MISMATCH as an error if not."
 	  (extend-environment n `((:initial-value ,v)
 				  (:type ,ty)
 				  (:width ,width)
-				  (:constant ,constant)
 				  (:as ,as))
 			      env)))
 
@@ -112,7 +111,7 @@ Signal VALUE-MISMATCH as an error if not."
   (let ((decls (car args))
 	(body (cdr args)))
     (let ((ext (typecheck-env decls env)))
-      (mapn (rcurry #'typecheck ext) body ))))
+      (mapn (rcurry #'typecheck ext) bod ))))
 
 
 (defmethod float-let-blocks-sexp ((fun (eql 'let)) args)
@@ -146,13 +145,37 @@ WIDTH defaulting to the system's global width."
     (format *synthesis-stream* ";")))
 
 
+(defun synthesise-constant (decl context)
+  "Synthesise a constant declaration DECL within a LET block.
+
+Constants turn into local parameters."
+  (destructuring-bind (n v &key (width *default-register-width*) type as)
+      decl
+    (format *synthesis-stream* "localparam ")
+    (synthesise n :inexpression)
+    (format *synthesis-stream* " = ")
+    (synthesise v :inexpression)
+    (format *synthesis-stream* ";")))
+
+
+(defun synthesise-decl (decl context)
+  "Synthesise DECL in CONTEXT."
+  (destructuring-bind (n v &key width type as)
+      decl
+    (if (eql as :constant)
+	(synthesise-constant decl context)
+	(synthesise-register decl context))))
+
+
 (defmethod synthesise-sexp ((fun (eql 'let)) args (context (eql :inmodule)))
   (let ((decls (car args))
 	(body (cdr args)))
 
-    ;; synthesise the registers
-    (as-body decls :declaration :process #'synthesise-register)
-    (format *synthesis-stream* "~%")
+    ;; synthesise the constants and registers
+    (as-block decls context :newlines t
+			    :process #'synthesise-decl)
+    (if (> (length decls) 0)
+	(format *synthesis-stream* "~%"))
 
     ;; synthesise the body
     (as-body body :inblock)))
