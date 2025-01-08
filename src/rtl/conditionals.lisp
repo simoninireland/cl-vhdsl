@@ -44,6 +44,3 @@
 		   `((progn ,@else))
 		   else)
 	       :inblock :before "begin" :after "end"))))
-
-
-;; ---------- cond ----------

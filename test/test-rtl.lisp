@@ -491,6 +491,12 @@
 		       (the t 0)))))))
 
 
+(test test-no-expand-and
+  "Test we don't expand AND, which is a macro in Common Lisp."
+  (is (equal (rtl::expand-macros '(and a b))
+	     '(and a b))))
+
+
 ;; ---------- Synthesis ----------
 
 ;; It's not generally possible to check the results of synthesis, so
