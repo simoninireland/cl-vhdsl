@@ -173,16 +173,16 @@ values can't be defined in terms of other parameter values."
   "Return the code for argument DECL."
   (destructuring-bind (n &key direction width)
       decl
-    format *synthesis-stream* "~a ~a~(~a~)"
-    (case direction
-      (:in    "input")
-      (:out   "output")
-      (:inout "inout"))
-    (if (and (integerp width)
-	     (= width 1))
-	""
-	(format nil "[ ~(~a~) - 1 : 0 ] " width))
-    n))
+    (format *synthesis-stream* "~a ~a~(~a~)"
+	    (case direction
+	      (:in    "input")
+	      (:out   "output")
+	      (:inout "inout"))
+	    (if (and (integerp width)
+		     (= width 1))
+		""
+		(format nil "[ ~(~a~) - 1 : 0 ] " width))
+	    n)))
 
 
 (defmethod synthesise-sexp ((fun (eql 'module)) args (context (eql :toplevel)))
@@ -191,18 +191,20 @@ values can't be defined in terms of other parameter values."
     (format *synthesis-stream* "module ")
     (synthesise modname :inexpression)
 
-    ;; parameters
-    (if params
-	(as-list params :indeclaration :before " #(" :after ")"
-				       :indented t :newlines t
-				       :process (lambda (form context)
-						  (synthesise-param form))))
+    (destructuring-bind (args params)
+	(split-args-params decls)
+      ;; parameters
+      (if params
+	  (as-list params :indeclaration :before " #(" :after ")"
+					 :indented t :newlines t
+					 :process (lambda (form context)
+						    (synthesise-param form))))
 
-    ;; arguments
-    (as-list args :indeclaration :before "(" :after ");"
-				 :indented t :newlines t
-				 :process (lambda (form context)
-					    (synthesise-arg form)))
+      ;; arguments
+      (as-list args :indeclaration :before "(" :after ");"
+				   :indented t :newlines t
+				   :process (lambda (form context)
+					      (synthesise-arg form))))
 
     ;; body
     (with-indentation
