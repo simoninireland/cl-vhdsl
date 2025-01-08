@@ -104,23 +104,35 @@ well as PROGNs nested inside other PROGNs.")
 
 ;; ---------- Macro expansion ----------
 
+(defvar *macros* '(cond)
+  "List of macros expanded within RTLisp forms.")
+
+
 (defgeneric expand-macros (form)
   (:documentation "Expand macros in FORM.")
   (:method (form)
     form)
   (:method ((form list))
-    (multiple-value-bind (expansion expanded)
-	(macroexpand form)
-      (if expanded
-	  ;; form was expanded by macro, expand the expansion
-	  (expand-macros expansion)
+    (destructuring-bind (fun &rest args)
+	form
+      (flet ((expand-descend (form)
+	       (handler-bind ((error #'(lambda (cond)
+					 (error 'not-synthesisable :fragment form))))
+		 (expand-macros-sexp fun args))))
 
-	  ;; form wasn't expanded, descend into the form
-	  (let ((fun (car form))
-		(args (cdr form)))
-	    (handler-bind ((error #'(lambda (cond)
-				      (error 'not-synthesisable :fragment form))))
-	      (expand-macros-sexp fun args)))))))
+	(if (member fun *macros*)
+	    ;; macro is expandable
+	    (multiple-value-bind (expansion expanded)
+		(macroexpand form)
+	      (if expanded
+		  ;; form was expanded by macro, expand the expansion
+		  (expand-macros expansion)
+
+		  ;; form wasn't expanded, descend into the form
+		  (expand-descend form)))
+
+	    ;; macro is not expandable, descend into the form
+	    (expand-descend form))))))
 
 
 (defgeneric expand-macros-sexp (fun args)
