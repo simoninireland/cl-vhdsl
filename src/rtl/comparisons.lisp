@@ -28,4 +28,4 @@ in many applications."
 
 
 (defmethod synthesise-sexp ((fun (eql 'logand)) args (context (eql :inexpression)))
-  (as-infix 'logand args context))
+  (as-infix 'logand args))
