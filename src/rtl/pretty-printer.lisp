@@ -110,16 +110,16 @@
 	    :process process))
 
 
-(defun as-infix (op args context)
+(defun as-infix (op args)
   "Synthesise ARGS with OP between them.
 
-Each element of ARGS is synthesised in the CONTEXT role."
-  (as-block args context :before "("
-			 :after ")"
-			 :sep (format nil " ~a " op)
-			 :always nil
-			 :indented nil
-			 :newlines nil))
+Every argument is sythresised in the :inexpression context."
+  (as-block args :inexpression :before "("
+			       :after ")"
+			       :sep (format nil " ~a " op)
+			       :always nil
+			       :indented nil
+			       :newlines nil))
 
 
 (defun as-list (args context

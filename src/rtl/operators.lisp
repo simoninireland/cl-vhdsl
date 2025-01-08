@@ -44,7 +44,7 @@ plus the number of other arguments."
 
 
 (defmethod synthesise-sexp ((fun (eql '+)) args (context (eql :inexpression)))
-  (as-infix '+ args context))
+  (as-infix '+ args))
 
 
 (defmethod lispify-sexp ((fun (eql '+)) args env)
@@ -67,11 +67,11 @@ plus the number of other arguments."
 	(format *synthesis-stream* "(-~a)" (car args)))
 
       ;; application
-      (as-infix '- args context)))
+      (as-infix '- args)))
 
 
 (defmethod synthesise-sexp ((fun (eql '*)) args (context (eql :inexpression)))
-  (as-infix '* args context))
+  (as-infix '* args))
 
 
 (defmethod lispify-sexp ((fun (eql '-)) args env)
@@ -108,7 +108,7 @@ plus the number of other arguments."
 (defmethod synthesise-sexp ((fun (eql '<<)) args (context (eql :inexpression)))
   (destructuring-bind (val offset)
       args
-    (as-infix '<< args context)))
+    (as-infix '<< args)))
 
 
 (defmethod lispify-sexp ((fun (eql '<<)) args env)
@@ -135,7 +135,7 @@ plus the number of other arguments."
 (defmethod synthesise-sexp ((fun (eql '>>)) args (context (eql :inexpression)))
   (destructuring-bind (val offset)
       args
-    (as-infix '>> args context)))
+    (as-infix '>> args)))
 
 
 (defmethod lispify-sexp ((fun (eql '>>)) args env)

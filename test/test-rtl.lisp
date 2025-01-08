@@ -613,6 +613,16 @@
 		      :inblock)))
 
 
+(test test-synthesise-cond
+  "Test we can synthesise a COND, which is a macro needing to be expanded first."
+  (is (rtl:synthesise (rtl::expand-macros'(cond ((rtl::<< a 1)
+						 (setf b 1))
+						((rtl::<< a 2)
+						 (setf b 2))
+						(t
+						 (setf b 3))))
+		      :inblock)))
+
 (test test-blink
   "Test we can synthesise the blink application."
   (is (rtl:synthesise '(rtl::module blink
@@ -622,7 +632,7 @@
 			(let ((counter 0 :width (+ bits delay))
 			      (out 0 :width bits))
 			  (rtl::@ (rtl::posedge clk)
-			    (setf counter (+ counter 1))
-			    (setf out (rtl::>> counter delay)))
+				  (setf counter (+ counter 1))
+				  (setf out (rtl::>> counter delay)))
 			  (setf leds out)))
 		      :toplevel)))

@@ -29,7 +29,7 @@
       ty)))
 
 
-(defmethod synthesise-sexp ((fun (eql 'the)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'the)) args context)
   (destructuring-bind (ty val)
       args
-    (synthesise val)))
+    (synthesise val context)))
