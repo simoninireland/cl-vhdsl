@@ -462,6 +462,35 @@
 		'(rtl::fixed-width-unsigned 2))))
 
 
+(test test-the
+  "Test we can typecheck THE."
+  (is (subtypep (rtl:typecheck '(the (rtl::fixed-width-unsigned 8) 12)
+			       emptyenv)
+		'(rtl::fixed-width-unsigned 8)))
+
+  (signals (rtl:type-mismatch)
+    (rtl:typecheck '(the (rtl::fixed-width-unsigned 8) 1230)
+		   emptyenv)))
+
+
+;; ---------- Macro expansion ----------
+
+(test test-expand-cond
+  "Test we can expand the COND macro."
+  (let* ((f '(cond ((= a 12)
+		    (+ a 1))
+	      ((> a 34)
+	       (+ a 67))
+	      (t
+	       0)))
+	 (g (rtl::expand-macros f)))
+    (is (equal g '(if (= a 12)
+		   (+ a 1)
+		   (if (> a 34)
+		       (+ a 67)
+		       (the t 0)))))))
+
+
 ;; ---------- Synthesis ----------
 
 ;; It's not generally possible to check the results of synthesis, so
