@@ -17,7 +17,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
-;; Derived from the Verilog code of Auston Morlan
+;; Derived from the Verilog code of Austin Morlan
 ;;
 ;; https://austinmorlan.com/posts/fpga_computer_sap1/
 ;;
