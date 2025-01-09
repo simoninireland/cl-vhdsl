@@ -38,7 +38,7 @@
     (as-literal ") then" :newline t)
     (as-body (list then) :inblock :before "begin" :after "end")
     (when else
-      (as-literal "else" :newline t)
+      (as-literal "else" :newline t :indented t)
       (as-body else
 	       :inblock :before "begin" :after "end"))))
 

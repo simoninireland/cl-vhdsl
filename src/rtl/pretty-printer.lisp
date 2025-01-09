@@ -116,10 +116,12 @@ SYNTHESISE itself)."
 	    (format *synthesis-stream* "~&"))))))
 
 
-(defun as-literal (s &key newline)
+(defun as-literal (s &key newline indented)
   "Output the given literal value S.
 
 If the NEWLINE key is non-nil a newline is emitted after the literal."
+  (if indented
+      (format *synthesis-stream* "~a" (indentation)))
   (format *synthesis-stream* "~a" s)
   (if newline
       (format *synthesis-stream* "~%")))
