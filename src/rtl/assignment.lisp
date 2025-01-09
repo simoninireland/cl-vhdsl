@@ -50,7 +50,7 @@ constant or an input parameter."
 
 (defmethod typecheck-sexp-setf ((selector symbol) val selectorargs env &key sync)
   (let ((tyvar (typecheck selector env))
-	  (tyval (typecheck val env)))
+	(tyval (typecheck val env)))
       (ensure-subtype tyval tyvar)
       (ensure-writeable selector env)
 
