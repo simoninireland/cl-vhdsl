@@ -249,3 +249,52 @@
 	     (setq (aref ctrl_word sig_a_load) 1))))))
 
     (setq out ctrl_word)))
+
+
+;; ---------- Top ----------
+
+(defmodule top ((clk_in :width 1 :direction :in :as :wire))
+
+  (let ((rst :width 1 :as :wire)
+	(hlt :width 1 :as :wire)
+	(clk :width 1 :as :wire))
+    (make-instance clock :hlt hlt :rst rst :clk_in clk_in :clk_out clk)
+
+    (let ((pc_inc :width 1 :as :wire)
+	  (pc_en :width 1 :as :wire)
+	  (pc_out :width 8 :as :wire))
+      (make-instance pc :clk clk :rst rst :inc pc_inc :out pc_out))
+
+    (let ((mar_load :width 1 :as :wire)
+	  (mem_en :width 1 :as :wire)
+	  (mem_out :width 8  :as :wire))
+      (make-instance memory :clk clk :rst rst
+			    :load mar_load :bus bus :out mem_out))
+
+    (let ((a_load :width 1 :as :wire)
+	  (a_en :width 1 :as :wire)
+	  (a_out :width 8  :as :wire))
+      (make-instance reg_a :clk clk :rst rst
+			   :load a_load :bus bus :out a_out))
+
+    (let ((b_load :width 1 :as :wire)
+	  (b_out :width 8  :as :wire))
+      (make-instance reg_b :clk clk :rst rst
+			   :load b_load :bus bus :out b_out))
+
+    (let ((adder_sub :width 1 :as :wire)
+	  (adder_en :width 1 :as :wire))
+      (make-instance adder :a a_out :b b_out
+			   :sub adder_sub :out adder_out))
+
+    (let ((ir_load :width 1 :as :wire)
+	  (ir_en :width 1 :as :wire)
+	  (ir_out :width 8  :as :wire))
+      (make-instance memory :clk clk :rst rst
+			    :load ir_load :bus bus :out ir_out))
+
+    )
+
+
+
+  )
