@@ -353,6 +353,19 @@
 		'(rtl::fixed-width-unsigned 4))))
 
 
+(test test-setq
+  "Test we can typecheck the SETQ form."
+  (is (subtypep (rtl:typecheck '(let ((a 12))
+				 (setq a 9))
+			       emptyenv)
+		'(rtl::fixed-width-unsigned 8)))
+
+  (signals (rtl:not-synthesisable)
+    (rtl:typecheck '(let ((a 12 :as :constant))
+		     (setq a 9))
+		   emptyenv)))
+
+
 (test test-let-naked
   "Test that we accept "naked" declarations."
   (is (subtypep (rtl:typecheck '(let ((a 10)

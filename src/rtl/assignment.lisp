@@ -27,18 +27,55 @@
 To be writeable a variable must be a register, not a constant,
 not a Lisp-typed value, and not an input argument."
   (and (not (get-constant n env))
-       (not (eql (get-type n env) :lisp))
+       (not (eql (get-representation n env) :constant))
        (not (eql (get-direction n env) :in))))
 
 
 (defun ensure-writeable (n env)
   "Ensure N is writeable in ENV.
 
-Signals NOT-SYNTHESISABLE is an attempt is made to update a
+Signals NOT-SYNTHESISABLE if an attempt is made to update a
 constant or an input parameter."
   (unless (writeable-p n env)
     (error 'not-synthesisable :fragment `(setf ,n))))
 
+
+;; ---------- setq ----------
+
+(defmethod typecheck-sexp ((fun (eql 'setq)) args env)
+  (destructuring-bind (n v &key sync)
+      args
+    (let ((tyvar (typecheck n env))
+	  (tyval (typecheck v env)))
+      (ensure-subtype tyval tyvar)
+      (ensure-writeable n env)
+
+      tyval)))
+
+
+(defmethod synthesise-sexp ((fun (eql 'setq)) args (context (eql :inblock)))
+  (destructuring-bind (var val &key (sync nil))
+      args
+    (synthesise var :inassignment)
+    (if sync
+	(format *synthesis-stream* " = ")
+	(format *synthesis-stream* " <= "))
+    (synthesise val :inexpression)
+    (format *synthesis-stream* ";")))
+
+
+(defmethod synthesise-sexp ((fun (eql 'setq)) args (context (eql :inmodule)))
+  (destructuring-bind (var val)
+      args
+    (format *synthesis-stream* "assign ")
+    (synthesise var :inassignment)
+    (format *synthesis-stream* " = ")
+    (synthesise val :inexpression)
+    (format *synthesis-stream* ";")))
+
+
+
+;; ---------- setf (generalised places) ----------
 
 (defmethod typecheck-sexp ((fun (eql 'setf)) args env)
   (destructuring-bind (var val &key sync)
@@ -71,6 +108,8 @@ constant or an input parameter."
       tyval)))
 
 
+;; Not yet synthesising generalised places
+
 (defmethod synthesise-sexp ((fun (eql 'setf)) args (context (eql :inblock)))
   (destructuring-bind (var val &key (sync nil))
       args
@@ -92,7 +131,7 @@ constant or an input parameter."
     (format *synthesis-stream* ";")))
 
 
-;; Triggers
+;; ---------- Triggers ----------
 
 (defmethod typecheck-sexp ((fun (eql 'posedge)) args env)
   '(fixed-width-unsigned 1))
