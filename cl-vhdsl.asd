@@ -25,6 +25,7 @@
   :version (:read-file-form "version.sexp")
   :license "GPL3"
   :depends-on ("alexandria"
+	       "str"
 	       "cl-bitfields"
 	       "cl-ppcre"
 	       "closer-mop"
