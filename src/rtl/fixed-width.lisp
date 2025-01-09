@@ -87,8 +87,14 @@ TY is returned if it is already at least as wide as W."
 
 
 (defun lub (ty1 ty2 env)
-  "Return the least upper-bound of two types TY1 and TY2."
-  (cond ((and (subtypep ty1 '(fixed-width-unsigned))
+  "Return the least upper-bound of two types TY1 and TY2.
+
+If oneof the types is NIL then the lub is the other."
+  (cond ((null ty1)
+	 ty2)
+	((null ty2)
+	 ty1)
+	((and (subtypep ty1 '(fixed-width-unsigned))
 	      (subtypep ty2 '(fixed-width-unsigned)))
 	 `(fixed-width-unsigned ,(max (bitwidth ty1 env)
 				      (bitwidth ty2 env))))
