@@ -125,30 +125,31 @@ well as PROGNs nested inside other PROGNs.")
   (:method ((form list))
     (destructuring-bind (fun &rest args)
 	form
-      (flet ((expand-descend (form)
-	       (with-rtl-errors-not-synthesisable
-		 (expand-macros-sexp fun args))))
-
-	(if (member fun *macros*)
-	    ;; macro is expandable
-	    (multiple-value-bind (expansion expanded)
-		(macroexpand form)
-	      (if expanded
-		  ;; form was expanded by macro, expand the expansion
-		  (expand-macros expansion)
-
-		  ;; form wasn't expanded, descend into the form
-		  (expand-descend form)))
-
-	    ;; macro is not expandable, descend into the form
-	    (expand-descend form))))))
+      (expand-macros-sexp fun args))))
 
 
 (defgeneric expand-macros-sexp (fun args)
   (:documentation "Expand macros in FUN applied to ARGS.")
   (:method (fun args)
-    `(,fun ,@(mapcar #'expand-macros args))))
+    (with-rtl-errors-not-synthesisable
+      (flet ((expand-descend (fun args)
+	       `(,fun ,@(remove-if #'null (mapcar (lambda (arg)
+						    (unless (null arg)
+						      (expand-macros arg)))
+						  args)))))
+	(if (member fun *macros*)
+	    ;; macro is expandable
+	    (multiple-value-bind (expansion expanded)
+		(macroexpand (cons fun args))
+	      (if expanded
+		  ;; form was expanded by macro, expand the expansion
+		  (expand-macros expansion)
 
+		  ;; form wasn't expanded, descend into the form
+		  (expand-descend fun args)))
+
+	    ;; macro is not expandable, descend into the form
+	    (expand-descend fun args))))))
 
 
 ;; ---------- Synthesis ----------
