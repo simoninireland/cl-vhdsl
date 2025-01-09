@@ -134,15 +134,15 @@ values can't be defined in terms of other parameter values."
       decl
     (ensure-direction direction)
 
-    (let ((w (typecheck width env)))
+    (let ((w (eval-in-static-environment width env)))
       (if type
-	   ;; make sure the argument is wide enough to accommodate
-	   ;; the type
-	   (ensure-width-can-store w type env)
-	   (setq width (bitwidth w env)))
+	  ;; make sure the argument is wide enough to accommodate
+	  ;; the type
+	  (ensure-width-can-store w type env)
+	  (setq width w))
 
 	  ;; no type, use width for a default unsigned
-	  (setq type `(fixed-width-unsigned ,(bitwidth w env))))
+	  (setq type `(fixed-width-unsigned ,w)))
 
     (extend-environment n `((:type ,type)
 			    (:width ,width)
