@@ -23,9 +23,16 @@
 
 ;; ---------- Helper macro ----------
 
-(defmacro with-rtl-conditions-not-synthesisable (&body body)
-  `(handler-bind ((rtl-condition #'(lambda (cond)
-				     (error 'not-synthesisable :fragment form))))
+(defmacro with-rtl-errors-not-synthesisable (&body body)
+  "Run BODY within a handler that makes RTLisp errors non-synthesisable.
+
+Non-error conditions are ignored; non-RTLisp-specific errors are reported
+as-is; RTLisp errors are all converted to NON-SYNTHESISABLE errors."
+  `(handler-bind ((error #'(lambda (cond)
+			     (if (subtypep (type-of cond) 'rtl-condition)
+				 (error 'not-synthesisable :fragment (fragment cond)
+							   :hint (hint cond))
+				 (error cond)))))
      ,@body))
 
 
@@ -36,7 +43,7 @@
   (:method ((form list) env)
     (let ((fun (car form))
 	  (args (cdr form)))
-      (with-rtl-conditions-not-synthesisable
+      (with-rtl-errors-not-synthesisable
 	(typecheck-sexp fun args env)))))
 
 
@@ -60,7 +67,7 @@ Return a list consisting of the new form and any declarations floated.")
   (:method ((form list))
     (let ((fun (car form))
 	  (args (cdr form)))
-      (with-rtl-conditions-not-synthesisable
+      (with-rtl-errors-not-synthesisable
 	(float-let-blocks-sexp fun args)))))
 
 
@@ -97,7 +104,7 @@ well as PROGNs nested inside other PROGNs.")
   (:method ((form list))
     (let ((fun (car form))
 	  (args (cdr form)))
-      (with-rtl-conditions-not-synthesisable
+      (with-rtl-errors-not-synthesisable
 	(simplify-progn-sexp fun args)))))
 
 
@@ -119,7 +126,7 @@ well as PROGNs nested inside other PROGNs.")
     (destructuring-bind (fun &rest args)
 	form
       (flet ((expand-descend (form)
-	       (with-rtl-conditions-not-synthesisable
+	       (with-rtl-errors-not-synthesisable
 		 (expand-macros-sexp fun args))))
 
 	(if (member fun *macros*)
@@ -179,7 +186,7 @@ conditions.")
   (:method ((form list) context)
     (let ((fun (car form))
 	  (args (cdr form)))
-      (with-rtl-conditions-not-synthesisable
+      (with-rtl-errors-not-synthesisable
 	(synthesise-sexp fun args context)
 	t))))
 
@@ -198,7 +205,7 @@ which can be used to specialise the method."))
   (:method ((form list) env)
     (let ((fun (car form))
 	  (args (cdr form)))
-      (with-rtl-conditions-not-synthesisable
+      (with-rtl-errors-not-synthesisable
 	(lispify-sexp fun args env)))))
 
 
