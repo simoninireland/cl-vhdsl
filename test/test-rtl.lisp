@@ -574,6 +574,12 @@
 			(setf c (+ a b)))
 		      :inblock))
 
+  ;; with wires
+  (is (rtl:synthesise '(let ((a 1 :width 8)
+			     (b 0 :width 16 :as :wire))
+			(setf c (+ a b)))
+		      :inblock))
+
   ;; can't return values in statement role
   (signals (rtl:not-synthesisable)
     (rtl:synthesise `(let ((a 1 :width 8))

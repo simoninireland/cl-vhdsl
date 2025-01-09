@@ -134,7 +134,7 @@ Signal VALUE-MISMATCH as an error if not."
 
 The register has name N and initial value V, with the optional
 WIDTH defaulting to the system's global width."
-  (destructuring-bind  (n v &key (width *default-register-width*))
+  (destructuring-bind  (n v &key (width *default-register-width*) &allow-other-keys)
       decl
     (format *synthesis-stream* "reg [ ")
     (synthesise width :inexpression)
@@ -145,11 +145,27 @@ WIDTH defaulting to the system's global width."
     (format *synthesis-stream* ";")))
 
 
+(defun synthesise-wire (decl context)
+  "Synthesise a wire declaration within a LET block.
+
+The wire has name N and (ignored) initial value V, with the optional
+WIDTH defaulting to the system's global width."
+  (destructuring-bind  (n v &key (width *default-register-width*) &allow-other-keys)
+      decl
+    (format *synthesis-stream* "wire ")
+    (when (> width 1)
+      (format *synthesis-stream* "[ ")
+      (synthesise width :inexpression)
+      (format *synthesis-stream* " - 1 : 0 ] "))
+    (synthesise n :indeclaration)
+    (format *synthesis-stream* ";")))
+
+
 (defun synthesise-constant (decl context)
   "Synthesise a constant declaration DECL within a LET block.
 
 Constants turn into local parameters."
-  (destructuring-bind (n v &key (width *default-register-width*) type as)
+  (destructuring-bind (n v &key &allow-other-keys)
       decl
     (format *synthesis-stream* "localparam ")
     (synthesise n :inexpression)
@@ -162,9 +178,15 @@ Constants turn into local parameters."
   "Synthesise DECL in CONTEXT."
   (destructuring-bind (n v &key width type as)
       decl
-    (if (eql as :constant)
-	(synthesise-constant decl context)
-	(synthesise-register decl context))))
+    (case as
+      (:constant
+       (synthesise-constant decl context))
+      (:register
+       (synthesise-register decl context))
+      (:wire
+       (synthesise-wire decl context))
+      (t
+       (synthesise-register decl context)))))
 
 
 (defmethod synthesise-sexp ((fun (eql 'let)) args (context (eql :inmodule)))
