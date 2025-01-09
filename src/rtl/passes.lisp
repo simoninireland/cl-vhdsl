@@ -114,7 +114,7 @@ well as PROGNs nested inside other PROGNs.")
 
 ;; ---------- Macro expansion ----------
 
-(defvar *macros* '(cond)
+(defvar *macros* '(cond when unless)
   "List of macros expanded within RTLisp forms.")
 
 
