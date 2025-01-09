@@ -427,18 +427,17 @@
 		'(rtl::fixed-width-unsigned 8))))
 
 
-;; at the moment we have no type for modules
 (test test-typecheck-module
   "Test we can type-check a module with a variety of features."
-  (is (subtypep (rtl:typecheck '(rtl::module test ((clk :width 1 :direction :in)
-						   (a :width 8 :direction :in)
-						   (b :width 4)
-						   :key e (f 45))
-				 (let ((x 0 :width 8)
-				       (y 10 :width 8))
-				   (setf x (+ x b) :sync t)))
-			       emptyenv)
-		t)))
+  (is (subtypep (type-of (rtl:typecheck '(rtl::module test ((clk :width 1 :direction :in)
+							    (a :width 8 :direction :in)
+							    (b :width 4)
+							    :key e (f 45))
+					  (let ((x 0 :width 8)
+						(y 10 :width 8))
+					    (setf x (+ x b) :sync t)))
+					emptyenv))
+		'rtl::module-interface)))
 
 
 ;; ---------- Typechecking setf to generalised places ----------

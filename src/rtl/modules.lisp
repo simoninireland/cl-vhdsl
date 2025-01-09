@@ -21,6 +21,37 @@
 (declaim (optimize debug))
 
 
+;; ---------- Module interfaces ----------
+
+(defclass module-interface ()
+  ((parameters
+    :initarg :parameters
+    :initform '()
+    :reader parameters)
+   (arguments
+    :initarg :arguments
+    :initform '()
+    :reader arguments))
+  (:documentation "The type of module interfaces."))
+
+
+(defvar *module-interfaces* '()
+  "Mapping of known modules to their interface types.")
+
+
+(defun add-module-interface(modname intf)
+  "Add module MODNAME with given INTF."
+  (append *module-interfaces* (list (list modname intf))))
+
+
+(defun get-module-interface (modname)
+  "Return the module interface type for MODNAME."
+  (if-let ((m (assoc *module-interfaces* modname)))
+    (cadr m)))
+
+
+;; ---------- Modules ----------
+
 (deftype direction ()
   "The type of dataflow directions.
 
@@ -133,8 +164,11 @@ values can't be defined in terms of other parameter values."
 	     (ext (typecheck-module-args args extparams)))
 	(typecheck (cons 'progn body) ext)
 
-	;; really need a type for modules...
-	t))))
+	;; record the interface type and return it
+	(let ((intf (make-instance 'module-interface :parameters params
+						     :arguments args)))
+	  (add-module-interface modname intf)
+	  intf)))))
 
 
 (defmethod float-let-blocks-sexp ((fun (eql 'module)) args)
@@ -144,8 +178,7 @@ values can't be defined in terms of other parameter values."
 	(float-let-blocks `(progn ,@body))
       `((module ,modname ,decls
 		(let ,newdecls
-		  ,@ (cdr newbody)))
-	()))))
+		  ,@ (cdr newbody)))))))
 
 
 (defmethod simplify-progn-sexp ((fun (eql 'module)) args)
@@ -210,3 +243,6 @@ values can't be defined in terms of other parameter values."
     (with-indentation
       (as-body body :inmodule))
     (format *synthesis-stream* "endmodule // ~(~a~)" modname)))
+
+
+;; ---------- Module instanciation ----------
