@@ -366,6 +366,19 @@
 		   emptyenv)))
 
 
+(test test-setf-as-setq
+  "Test we can convert a simple SETF into a SETQ."
+  (is (subtypep (rtl:typecheck '(let ((a 12))
+				 (setf a 9))
+			       emptyenv)
+		'(rtl::fixed-width-unsigned 8)))
+
+  (is (subtypep (rtl:typecheck '(let ((a 12))
+				 (setf a 9 :sync t))
+			       emptyenv)
+		'(rtl::fixed-width-unsigned 8))))
+
+
 (test test-let-naked
   "Test that we accept "naked" declarations."
   (is (subtypep (rtl:typecheck '(let ((a 10)

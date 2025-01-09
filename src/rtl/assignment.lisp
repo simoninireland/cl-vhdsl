@@ -82,7 +82,9 @@ constant or an input parameter."
       args
     (if (listp var)
 	(typecheck-sexp-setf (car var) val (cdr var) env :sync sync)
-	(typecheck-sexp-setf var val nil env :sync sync))))
+
+	;; a SETF to a simple variable is a SETQ
+	(typecheck `(setq ,var ,val :sync ,sync) env))))
 
 
 (defmethod typecheck-sexp-setf ((selector symbol) val selectorargs env &key sync)
