@@ -49,10 +49,10 @@
 ;; ---------- Triggered blocks ----------
 
 (defmethod synthesise-sexp ((fun (eql '@)) args (context (eql :inblock)))
-  (let ((test (car args))
-	(body (cdr args)))
+  (destructuring-bind ((&rest sensitivities) &rest body)
+      args
     (as-literal "always @(")
-    (synthesise test :inexpression)
+    (as-list sensitivities :inexpression)
     (as-literal ")" :newline t)
     (as-body body :inblock
 	     :before "begin" :after "end")
