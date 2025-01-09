@@ -12,7 +12,7 @@
 (declaim (optimize debug))
 
 
-;; ---------- if ----------
+;; ---------- if (statement) ----------
 
 (defmethod typecheck-sexp ((fun (eql 'if)) args env)
   (destructuring-bind (condition then &rest else)
@@ -41,6 +41,19 @@
       (as-literal "else" :newline t)
       (as-body else
 	       :inblock :before "begin" :after "end"))))
+
+
+;; ---------- if (expression) ----------
+
+(defmethod synthesise-sexp ((fun (eql 'if)) args (context (eql :inexpression)))
+  (destructuring-bind (condition then else)
+      args
+    (as-literal "(")
+    (synthesise condition :inexpression)
+    (as-literal " ? ")
+    (synthesise then :inexpression)
+    (as-literal " : ")
+    (synthesise else :inexpression)))
 
 
 ;; ---------- case ----------
