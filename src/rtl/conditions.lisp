@@ -18,6 +18,7 @@
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 (in-package :cl-vhdsl/rtl)
+(declaim (optimize debug))
 
 
 ;; ---------- Base condition ----------
@@ -26,10 +27,16 @@
   ((fragment
     :documentation "The code giving rise to the condition."
     :initarg :fragment
-    :reader fragment))
-  (:documentation "Base class for RTLisp conditions..
+    :reader fragment)
+   (hint
+    :documentation "A hint as to how to fix the condition."
+    :initarg :hint
+    :initform nil
+    :reader hint))
+  (:documentation "Base class for RTLisp conditions.
 
-The fragment is the code that gave rise to the condition."))
+The fragment is the code that gave rise to the condition. A
+hint can be given to suggest how to fix the issue."))
 
 
 (defvar *MAXIMUM-CODE-FRAGMENT-LENGTH* 40
@@ -38,26 +45,31 @@ The fragment is the code that gave rise to the condition."))
 This only changes the printed length: the entire fragment is retained.")
 
 
-(defun format-fragment (code)
-  "Format CODE as a string.
+(defun format-fragment (cond)
+  "Format the fragment of COND  as a string.
 
 The string is cut-off after a length given by
 *MAXIMUM-CODE-FRAGMENT-LENGTH*."
   (shorten *MAXIMUM-CODE-FRAGMENT-LENGTH*
-	   (format nil "~a" code)
-	   :elipsis "..."))
+	   (format nil "~a" (fragment cond))
+	   :ellipsis "..."))
+
+
+(defun format-hint (cond)
+  "If the hint of COND is non-nil, format it for display"
+  (if-let ((hint (hint cond)))
+      (format nil " (Hint: ~a)" hint)
+    ""))
 
 
 ;; ---------- Synthesis ----------
 
-(define-condition not-synthesisable ()
-  ((fragment
-    :documentation "The code that could not be synthesised."
-    :initarg :fragment
-    :reader fragment))
+(define-condition not-synthesisable (rtl-condition)
+  ()
   (:report (lambda (c str)
-	     (format str "Could not synthesise code:~%~a"
-		     (fragment c))))
+	     (format str "Could not synthesise code~a: ~a"
+		     (format-hint c)
+		     (format-fragment c))))
   (:documentation "Condition signalled when code can't be synthesised.
 
 This usually indicates that the Lisp fragment provided is un-parsable because
@@ -67,14 +79,14 @@ synthesiser's code generator."))
 
 ;; ---------- Checking ----------
 
-(define-condition unknown-variable ()
+(define-condition unknown-variable (rtl-condition)
   ((var
     :documentation "The variable(s)."
     :initarg :variable
     :initarg :variables
     :reader variables))
   (:report (lambda (c str)
-	     (format str "Unknown variable(s) ~a"
+	     (format str "Unknown variable(s): ~a"
 		     (variables c))))
   (:documentation "Condition signalled when one or more undeclared variables are encountered.
 
@@ -82,7 +94,7 @@ This is caused either by an undeclared variable or by use of a variable
 that should be declared in the architectural environment, such as a register."))
 
 
-(define-condition value-mismatch ()
+(define-condition value-mismatch (rtl-condition)
   ((expected
     :documentation "The values allowed."
     :initarg :expected
@@ -98,7 +110,7 @@ that should be declared in the architectural environment, such as a register."))
   (:documentation "Condition signalled when a mis-matched value is received."))
 
 
-(define-condition direction-mismatch ()
+(define-condition direction-mismatch (rtl-condition)
   ((expected
     :documentation "The direction(s) allowed."
     :initarg :expected
@@ -116,7 +128,7 @@ that should be declared in the architectural environment, such as a register."))
 This is usually caused by assigning to a module argument denoteed :IN."))
 
 
-(define-condition type-mismatch ()
+(define-condition type-mismatch (rtl-condition)
   ((expected
     :documentation "The expected type."
     :initarg :expected

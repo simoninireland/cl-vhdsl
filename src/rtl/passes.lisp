@@ -21,6 +21,14 @@
 (declaim (optimize debug))
 
 
+;; ---------- Helper macro ----------
+
+(defmacro with-rtl-conditions-not-synthesisable (&body body)
+  `(handler-bind ((rtl-condition #'(lambda (cond)
+				     (error 'not-synthesisable :fragment form))))
+     ,@body))
+
+
 ;; ---------- Type and width checking ----------
 
 (defgeneric typecheck (form env)
@@ -28,10 +36,7 @@
   (:method ((form list) env)
     (let ((fun (car form))
 	  (args (cdr form)))
-      (handler-bind ((error #'(lambda (cond)
-				;;(error 'not-synthesisable :fragment form)
-				(error cond)
-				)))
+      (with-rtl-conditions-not-synthesisable
 	(typecheck-sexp fun args env)))))
 
 
@@ -55,8 +60,7 @@ Return a list consisting of the new form and any declarations floated.")
   (:method ((form list))
     (let ((fun (car form))
 	  (args (cdr form)))
-      (handler-bind ((error #'(lambda (cond)
-				(error 'not-synthesisable :fragment form))))
+      (with-rtl-conditions-not-synthesisable
 	(float-let-blocks-sexp fun args)))))
 
 
@@ -93,8 +97,7 @@ well as PROGNs nested inside other PROGNs.")
   (:method ((form list))
     (let ((fun (car form))
 	  (args (cdr form)))
-      (handler-bind ((error #'(lambda (cond)
-				(error 'not-synthesisable :fragment form))))
+      (with-rtl-conditions-not-synthesisable
 	(simplify-progn-sexp fun args)))))
 
 
@@ -116,8 +119,7 @@ well as PROGNs nested inside other PROGNs.")
     (destructuring-bind (fun &rest args)
 	form
       (flet ((expand-descend (form)
-	       (handler-bind ((error #'(lambda (cond)
-					 (error 'not-synthesisable :fragment form))))
+	       (with-rtl-conditions-not-synthesisable
 		 (expand-macros-sexp fun args))))
 
 	(if (member fun *macros*)
@@ -177,9 +179,7 @@ conditions.")
   (:method ((form list) context)
     (let ((fun (car form))
 	  (args (cdr form)))
-      (handler-bind ((error #'(lambda (cond)
-				(error 'not-synthesisable :fragment form))))
-
+      (with-rtl-conditions-not-synthesisable
 	(synthesise-sexp fun args context)
 	t))))
 
@@ -198,8 +198,7 @@ which can be used to specialise the method."))
   (:method ((form list) env)
     (let ((fun (car form))
 	  (args (cdr form)))
-      (handler-bind ((error #'(lambda (cond)
-				(error 'not-synthesisable :fragment form))))
+      (with-rtl-conditions-not-synthesisable
 	(lispify-sexp fun args env)))))
 
 
