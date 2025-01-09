@@ -58,8 +58,8 @@ constant or an input parameter."
       args
     (synthesise var :inassignment)
     (if sync
-	(format *synthesis-stream* " = ")
-	(format *synthesis-stream* " <= "))
+	(as-literal " = ")
+	(as-literal " <= "))
     (synthesise val :inexpression)
     (format *synthesis-stream* ";")))
 
@@ -67,11 +67,11 @@ constant or an input parameter."
 (defmethod synthesise-sexp ((fun (eql 'setq)) args (context (eql :inmodule)))
   (destructuring-bind (var val)
       args
-    (format *synthesis-stream* "assign ")
+    (as-literal "assign ")
     (synthesise var :inassignment)
-    (format *synthesis-stream* " = ")
+    (as-literal " = ")
     (synthesise val :inexpression)
-    (format *synthesis-stream* ";")))
+    (as-literal ";")))
 
 
 
@@ -117,8 +117,8 @@ constant or an input parameter."
       args
     (synthesise var :inassignment)
     (if sync
-	(format *synthesis-stream* " = ")
-	(format *synthesis-stream* " <= "))
+	(as-literal " = ")
+	(as-literal " <= "))
     (synthesise val :inexpression)
     (format *synthesis-stream* ";")))
 
@@ -126,11 +126,11 @@ constant or an input parameter."
 (defmethod synthesise-sexp ((fun (eql 'setf)) args (context (eql :inmodule)))
   (destructuring-bind (var val)
       args
-    (format *synthesis-stream* "assign ")
+    (as-literal "assign ")
     (synthesise var :inassignment)
-    (format *synthesis-stream* " = ")
+    (as-literal " = ")
     (synthesise val :inexpression)
-    (format *synthesis-stream* ";")))
+    (as-literal ";")))
 
 
 ;; ---------- Triggers ----------
