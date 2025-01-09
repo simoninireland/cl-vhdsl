@@ -379,6 +379,35 @@
 		 '(rtl::fixed-width-unsigned 3))))
 
 
+(test test-case-compatible
+  "Test we can typecheck cases with compatible clauses."
+  (is (subtypep (rtl:typecheck '(let ((a 12)
+				      b)
+				 (case a
+				   (1
+				    (setf b 23))
+				   (2
+				    (setf b 34))
+				   (t
+				    (setf b 0))))
+			       emptyenv)
+		 '(rtl::fixed-width-unsigned 8))))
+
+
+(test test-case-incompatible
+  "Test we catch cases with incompatible clauses."
+  (signals (rtl:type-mismatch)
+    (is (rtl:typecheck '(let ((a 12)
+			      b)
+			 (case a
+			   (1
+			    (setf b 23))
+			   (2456
+			    (setf b 34))))
+		       emptyenv)
+	'(rtl::fixed-width-unsigned 8))))
+
+
 (test test-assignment-same-width
   "Test we can assign."
   (is (subtypep (rtl:typecheck '(let ((a 10))
@@ -642,6 +671,22 @@
 						(t
 						 (setf b 3))))
 		      :inblock)))
+
+
+(test test-synthesise-case
+  "Test we can synthesise a CASE."
+  (is (rtl:synthesise '(let ((a 12)
+			     (b 0))
+			(case a
+			  (1
+			   (setf b 23))
+			  (2
+			   (setf b 34 :sync t)
+			   (setf a 0))
+			  (t
+			   (setf b 0))))
+		      :inblock)))
+
 
 (test test-blink
   "Test we can synthesise the blink application."
