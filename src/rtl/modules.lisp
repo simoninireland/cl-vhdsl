@@ -193,9 +193,9 @@ values can't be defined in terms of other parameter values."
       ;; parameter with an initial value
       (destructuring-bind (n v)
 	  decl
-	(format *synthesis-stream* "parameter ~(~a~) = ~a"
-		n
-		v))
+	(as-literal (format nil "parameter ~(~a~) = ~a"
+			    n
+			    v)))
 
       ;; naked parameter
       (format *synthesis-stream* "parameter ~(~a~)"
@@ -206,22 +206,22 @@ values can't be defined in terms of other parameter values."
   "Return the code for argument DECL."
   (destructuring-bind (n &key direction width)
       decl
-    (format *synthesis-stream* "~a ~a~(~a~)"
-	    (case direction
-	      (:in    "input")
-	      (:out   "output")
-	      (:inout "inout"))
-	    (if (and (integerp width)
-		     (= width 1))
-		""
-		(format nil "[ ~(~a~) - 1 : 0 ] " width))
-	    n)))
+    (as-literal (format nil "~a ~a~(~a~)"
+			(case direction
+			  (:in    "input")
+			  (:out   "output")
+			  (:inout "inout"))
+			(if (and (integerp width)
+				 (= width 1))
+			    ""
+			    (format nil "[ ~(~a~) - 1 : 0 ] " width))
+			n))))
 
 
 (defmethod synthesise-sexp ((fun (eql 'module)) args (context (eql :toplevel)))
   (destructuring-bind (modname decls &rest body)
       args
-    (format *synthesis-stream* "module ")
+    (as-literal "module ")
     (synthesise modname :inexpression)
 
     (destructuring-bind (args params)
@@ -242,7 +242,9 @@ values can't be defined in terms of other parameter values."
     ;; body
     (with-indentation
       (as-body body :inmodule))
-    (format *synthesis-stream* "endmodule // ~(~a~)" modname)))
+
+    (as-literal "endmodule // ")
+    (as-literal (format nil "~(~a~)" modname))))
 
 
 ;; ---------- Module instanciation ----------

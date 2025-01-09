@@ -40,7 +40,7 @@
 
 
 (defmacro with-indentation (&body body)
-  "doc"
+  "Output BODY with an extra level of indentation."
   `(let ((*indentation-level* (1+ *indentation-level*)))
      ,@body))
 
@@ -51,7 +51,21 @@
 				(sep "")
 				(newlines t)
 				(process #'synthesise))
-  "doc"
+  "Output ARGS in CONTEXT within a block.
+
+BEFORE and AFTER specify text to go before and after the block respectively.
+If ALWAYS is NIL they only appear when ARGS has more than one element.
+
+SEP contains a string that is placed between elements. if NEWLINES is T
+a newline is emitted after each element.
+
+If INDENTED is T the indentation level is increased.
+
+PROCESS can be used to specify a function to be applied to each element
+of ARGS in order to emit it. This defaults to SYNTHESISE: if another function
+is provided it should take an argument an the context as arguments, and
+peform the output function (typically by calling the pretty-printer and/or
+SYNTHESISE itself)."
   (let ((n (length args)))
     (labels ((format-arg (arg)
 	       "Format a single ARG along with any terminator string."
@@ -102,8 +116,19 @@
 	    (format *synthesis-stream* "~&"))))))
 
 
+(defun as-literal (s &key newline)
+  "Output the given literal value S.
+
+If the NEWLINE key is non-nil a newline is emitted after the literal."
+  (format *synthesis-stream* "~a" s)
+  (if newline
+      (format *synthesis-stream* "~%")))
+
+
 (defun as-body (args context &key before after always (process #'synthesise))
-  "doc"
+  "Output ARGS in CONTEXT as the body of a construct.
+
+Key arguments are as in AS-BLOCK."
   (as-block args context
 	    :before before :after after
 	    :indented t :newlines t
@@ -130,13 +155,7 @@ Every argument is sythresised in the :inexpression context."
   "Synthesise ARGS as a list.
 
 Each element of ARGS is synthesised in the CONTEXT role.
-
-The list defaults to space-separated, which can be changed using the
-SEP key. If BEFORE and AFTER are given, they bracket the list. If
-INDENT is T (the default) ARGS are output indented. If NEWLINES is T
-(not the default) each element appears on a new line, as do the
-brackets. PROCESS (defaults to SYNTHESISE) is applied to each argument
-before synthesis, passing the argument and role."
+Key arguments are as for AS-BLOCK."
   (as-block args context :before before
 			 :after after
 			 :sep ", "

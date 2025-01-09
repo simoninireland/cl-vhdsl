@@ -20,6 +20,34 @@
 (in-package :cl-vhdsl/rtl)
 
 
+;; ---------- Base condition ----------
+
+(define-condition rtl-condition ()
+  ((fragment
+    :documentation "The code giving rise to the condition."
+    :initarg :fragment
+    :reader fragment))
+  (:documentation "Base class for RTLisp conditions..
+
+The fragment is the code that gave rise to the condition."))
+
+
+(defvar *MAXIMUM-CODE-FRAGMENT-LENGTH* 40
+  "Length of code fragment to be reported in conditions.
+
+This only changes the printed length: the entire fragment is retained.")
+
+
+(defun format-fragment (code)
+  "Format CODE as a string.
+
+The string is cut-off after a length given by
+*MAXIMUM-CODE-FRAGMENT-LENGTH*."
+  (shorten *MAXIMUM-CODE-FRAGMENT-LENGTH*
+	   (format nil "~a" code)
+	   :elipsis "..."))
+
+
 ;; ---------- Synthesis ----------
 
 (define-condition not-synthesisable ()

@@ -63,8 +63,7 @@ plus the number of other arguments."
 (defmethod synthesise-sexp ((fun (eql '-)) args (context (eql :inexpression)))
   (if (= (length args) 1)
       ;; unary minus
-      (progn
-	(format *synthesis-stream* "(-~a)" (car args)))
+      (as-literal) (format nil "(-~a)" (car args))
 
       ;; application
       (as-infix '- args)))
@@ -162,11 +161,11 @@ plus the number of other arguments."
   (destructuring-bind (var start end)
       args
     (synthesise var :inassignment)
-    (format *synthesis-stream* "[ ")
+    (as-literal "[ ")
     (synthesise start :inexpression)
-    (format *synthesis-stream* " : ")
+    (as-literal " : ")
     (synthesise end :inexpression)
-    (format *synthesis-stream* " ]")))
+    (as-literal " ]")))
 
 
 (defmethod lispify-sexp ((fun (eql 'bits)) args env)

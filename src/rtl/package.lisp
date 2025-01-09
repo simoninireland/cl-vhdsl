@@ -23,6 +23,8 @@
   (:use :cl :alexandria
    :cl-vhdsl            ;; for utility functions
    :cl-ppcre)           ;; for specifying identifiers
+  (:import-from :str
+		#:shorten)
 
   (:export
    ;; fixed-width types
@@ -47,7 +49,6 @@
    #:expand-macros-sexp
 
    ;; synthesis
-   #:*synthesis-stream*   ;; will be abstracted later
    #:synthesise
    #:synthesise-sexp
 

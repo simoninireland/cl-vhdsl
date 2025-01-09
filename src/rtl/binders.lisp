@@ -136,13 +136,13 @@ The register has name N and initial value V, with the optional
 WIDTH defaulting to the system's global width."
   (destructuring-bind  (n v &key (width *default-register-width*) &allow-other-keys)
       decl
-    (format *synthesis-stream* "reg [ ")
+    (as-literal "reg [ ")
     (synthesise width :inexpression)
-    (format *synthesis-stream* " - 1 : 0 ] ")
+    (as-literal " - 1 : 0 ] ")
     (synthesise n :indeclaration)
-    (format *synthesis-stream* " = ")
+    (as-literal " = ")
     (synthesise v :inexpression)
-    (format *synthesis-stream* ";")))
+    (as-literal ";")))
 
 
 (defun synthesise-wire (decl context)
@@ -152,13 +152,13 @@ The wire has name N and (ignored) initial value V, with the optional
 WIDTH defaulting to the system's global width."
   (destructuring-bind  (n v &key (width *default-register-width*) &allow-other-keys)
       decl
-    (format *synthesis-stream* "wire ")
+    (as-literal "wire ")
     (when (> width 1)
-      (format *synthesis-stream* "[ ")
+      (as-literal"[ ")
       (synthesise width :inexpression)
-      (format *synthesis-stream* " - 1 : 0 ] "))
+      (as-literal " - 1 : 0 ] "))
     (synthesise n :indeclaration)
-    (format *synthesis-stream* ";")))
+    (as-literal";")))
 
 
 (defun synthesise-constant (decl context)
@@ -167,11 +167,11 @@ WIDTH defaulting to the system's global width."
 Constants turn into local parameters."
   (destructuring-bind (n v &key &allow-other-keys)
       decl
-    (format *synthesis-stream* "localparam ")
+    (as-literal "localparam ")
     (synthesise n :inexpression)
-    (format *synthesis-stream* " = ")
+    (as-literal " = ")
     (synthesise v :inexpression)
-    (format *synthesis-stream* ";")))
+    (as-literal ";")))
 
 
 (defun synthesise-decl (decl context)
@@ -197,7 +197,7 @@ Constants turn into local parameters."
     (as-block decls context :newlines t
 			    :process #'synthesise-decl)
     (if (> (length decls) 0)
-	(format *synthesis-stream* "~%"))
+	(as-literal "" :newline t))
 
     ;; synthesise the body
     (as-body body :inblock)))
