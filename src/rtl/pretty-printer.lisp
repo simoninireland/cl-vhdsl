@@ -102,11 +102,12 @@
 	    (format *synthesis-stream* "~&"))))))
 
 
-(defun as-body (args context &key before after (process #'synthesise))
+(defun as-body (args context &key before after always (process #'synthesise))
   "doc"
   (as-block args context
 	    :before before :after after
 	    :indented t :newlines t
+	    :always always
 	    :process process))
 
 
