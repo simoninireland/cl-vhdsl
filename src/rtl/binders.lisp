@@ -111,7 +111,7 @@ Signal VALUE-MISMATCH as an error if not."
   (let ((decls (car args))
 	(body (cdr args)))
     (let ((ext (typecheck-env decls env)))
-      (mapn (rcurry #'typecheck ext) bod ))))
+      (mapn (rcurry #'typecheck ext) body))))
 
 
 (defmethod float-let-blocks-sexp ((fun (eql 'let)) args)
