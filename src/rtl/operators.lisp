@@ -91,6 +91,9 @@ plus the number of other arguments."
 ;; The result is always unsigned.
 
 (defmethod typecheck-sexp ((fun (eql '<<)) args env)
+  (if (/= (length args) 2)
+      (error 'not-synthesisable :fragment (cons fun args)
+				:hint "Operator needs exactly two arguments"))
   (destructuring-bind (val offset)
       args
     (let ((tyval (typecheck val env))
@@ -118,6 +121,9 @@ plus the number of other arguments."
 
 
 (defmethod typecheck-sexp ((fun (eql '>>)) args env)
+  (if (/= (length args) 2)
+      (error 'not-synthesisable :fragment (cons fun args)
+				:hint "Operator needs exactly two arguments"))
   (destructuring-bind (val offset)
       args
     (let ((tyval (typecheck val env))

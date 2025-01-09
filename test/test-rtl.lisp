@@ -275,7 +275,14 @@
 
   (is (subtypep (rtl:typecheck '(rtl::>> 16 4)
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 1))))
+		'(rtl::fixed-width-unsigned 1)))
+
+  ;; wrong number of arguments
+  (dolist (op '(rtl::<< rtl::>>))
+    (signals (rtl:not-synthesisable)
+      (rtl:typecheck `(,op 1 2 3) emptyenv))
+    (signals (rtl:not-synthesisable)
+      (rtl:typecheck `(,op 3) emptyenv))))
 
 
 (test test-width-bits
@@ -588,15 +595,7 @@
   (dolist (op '(rtl::<< rtl::>>))
     ;; conventional two-operand
     (is (rtl:synthesise `(,op 1 2)
-			:inexpression))
-
-    ;; only two operands
-    (signals (rtl:not-synthesisable)
-      (rtl:synthesise `(,op 1)
-		      :inexpression))
-    (signals (rtl:not-synthesisable)
-      (rtl:synthesise `(,op 1 2 3)
-		      :inexpression))))
+			:inexpression))))
 
 
 (test test-synthesise-setf
@@ -636,7 +635,7 @@
 		      :inblock))
 
   ;; can't return values in statement role
-  (signals (rtl:not-synthesisable)
+  (signals (error)
     (rtl:synthesise `(let ((a 1 :width 8))
 		       (+ a 1))
 		    :inblock)))
