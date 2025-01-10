@@ -23,6 +23,8 @@
 
 ;; ---------- Module interfaces ----------
 
+;; Should probably handle forward definition as well?
+
 (defclass module-interface ()
   ((parameters
     :initarg :parameters
@@ -35,19 +37,29 @@
   (:documentation "The type of module interfaces."))
 
 
-(defvar *module-interfaces* '()
+(defparameter *module-interfaces* '()
   "Mapping of known modules to their interface types.")
 
 
-(defun add-module-interface(modname intf)
+(defun known-module-interface-p (modname)
+  "Test whether MODNAME is known as a module interface."
+  (not (null (assoc modname *module-interfaces*))))
+
+
+(defun add-module-interface (modname intf)
   "Add module MODNAME with given INTF."
-  (append *module-interfaces* (list (list modname intf))))
+  (when (known-module-interface-p modname)
+      (error 'duplicate-module :module modname))
+
+  (appendf *module-interfaces* (list (list modname intf))))
 
 
 (defun get-module-interface (modname)
   "Return the module interface type for MODNAME."
   (if-let ((m (assoc *module-interfaces* modname)))
-    (cadr m)))
+    (cadr m)
+
+    (error 'unknown-module :module modname)))
 
 
 ;; ---------- Modules ----------
@@ -164,10 +176,8 @@ values can't be defined in terms of other parameter values."
 	     (ext (typecheck-module-args args extparams)))
 	(typecheck (cons 'progn body) ext)
 
-	;; record the interface type and return it
 	(let ((intf (make-instance 'module-interface :parameters params
 						     :arguments args)))
-	  (add-module-interface modname intf)
 	  intf)))))
 
 
@@ -248,3 +258,57 @@ values can't be defined in terms of other parameter values."
 
 
 ;; ---------- Module instanciation ----------
+
+(defun argument-for-module-interface-p (a intf)
+  "Test whether A is an argument of INTF."
+  (not (null (assoc a (arguments intf)))))
+
+
+(defun parameter-for-module-interface-p (a intf)
+  "Test whether A is a parameter of INTF."
+  (not (null (assoc a (parameters intf)))))
+
+
+(defun initargs-match-module-interface-p (intf initargs)
+  "Test that INITARGS conform to INTF.
+
+All the arguments in INTF must be provided in INITARGS. All the
+INITARGS must refer to an argument or a parameter of INTF."
+  (and
+   ;; every module argument is accounted for
+   (every (lambda (arg)
+	    (member arg (arguments intf))))
+
+   ;; every arg is a module argument or parameter
+   (every (lambda (arg)
+	    (or (argument-for-module-interface-p arg intf)
+		(parameter-for-module-interface-p arg intf)))
+	  initargs)))
+
+
+(defun keys-to-arguments (initargs)
+  "Extract the keys from INITARGS."
+  (labels ((every-second (l)
+	     "Return a list containing every second element of L."
+	     (cond ((null l)
+		    '())
+		   (t
+		    (cons (car l)
+			  (every-second (cddr l)))))))
+
+    (unless (evenp (length initargs))
+      (error 'not-synthesisable :fragment initargs
+				:hint "Uneven number of initial arguments"))
+
+    (every-second initargs)))
+
+
+(defmethod typecheck-sexp ((fun (eql 'make-instance)) args env)
+  (destructuring-bind (modname &rest initargs)
+      args
+    (let ((intf (get-module-interface modname))))
+
+    )
+
+
+  )

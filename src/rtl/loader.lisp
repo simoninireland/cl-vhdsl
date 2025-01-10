@@ -28,6 +28,18 @@
 
 Modules added here are queued for synthesis.")
 
+(defun synthesising-module-p (modname)
+  "Test whether MODNAME is queued for synthesis."
+  (not (null (assoc modname *module-list*))))
+
+
+(defun add-module-for-synthesis (modname module)
+  "Queue the module MODNAME with code MODULE for synthesis."
+  (when (synthesising-module-p modname)
+      (error 'duplicate-module :module modname))
+
+  (appendf *module-list* (list (list modname module))))
+
 
 (defun get-modules-for-synthesis ()
   "Return an alist consisting of module names and their declarations."
@@ -36,14 +48,27 @@ Modules added here are queued for synthesis.")
 
 ;; ---------- Module declaration ----------
 
-;; should we typecheck here too?
+;; Need to do more passes to expand module fully
 
 (defmacro defmodule (modname decls &body body)
   "Declare a module MODNAME with given DECLS and BODY.
 
-The module is added to the *MODULE-LIST* list for synthesis."
+The module is processed and type-checked, meaning that it will be
+at least minimally syntactically correct after definition.
+
+The module is added to the *MODULE-LIST* list for synthesis. Its
+type is added to *MODULE-INTRFACES* for importing. Duplicate
+module names will cause a DUPLICATE_MODULE error."
   (with-gensyms (module)
     (let* ((code `(module ,modname ,decls
 			  ,@body)))
       `(let ((,module ',code))
-	 (appendf *module-list* (list (list ',modname ,module)))))))
+	 ;; typecheck the module
+	 (let ((intf (typecheck ,module (empty-environment))))
+	   ;; add type to interfaces available for import
+	   (add-module-interface ',modname intf)
+
+	   ;; add code to modules for synthesis
+	   (add-module-for-synthesis ',modname ,module )
+
+	   t)))))

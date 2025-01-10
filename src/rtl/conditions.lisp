@@ -86,12 +86,48 @@ synthesiser's code generator."))
     :initarg :variables
     :reader variables))
   (:report (lambda (c str)
-	     (format str "Unknown variable(s): ~a"
+	     (format str "Unknown variable(s) ~a"
 		     (variables c))))
   (:documentation "Condition signalled when one or more undeclared variables are encountered.
 
 This is caused either by an undeclared variable or by use of a variable
 that should be declared in the architectural environment, such as a register."))
+
+
+(define-condition unknown-module (rtl-condition)
+  ((modname
+    :documentation "The module."
+    :initarg :module
+    :reader module))
+  (:report (lambda (c str)
+	     (format str "Unknown module ~a"
+		     (module c))))
+  (:documentation "Condition signalled when an unnown module is imported.
+
+This means that the required module isn't available, either having not yet
+been defined or not having been imported."))
+
+(define-condition duplicate-variable (rtl-condition)
+  ((var
+    :documentation "The variable(s)."
+    :initarg :variable
+    :initarg :variables
+    :reader variables))
+  (:report (lambda (c str)
+	     (format str "Duplicate variable(s) ~a"
+		     (variables c))))
+  (:documentation "Condition signalled when a variable is re-defined in the same scope."))
+
+
+(define-condition duplicate-module (rtl-condition)
+  ((modname
+    :documentation "The module."
+    :initarg :module
+    :reader module))
+  (:report (lambda (c str)
+	     (format str "Duplicate module ~a"
+		     (module c))))
+  (:documentation "Condition signalled when a module is re-defined."))
 
 
 (define-condition value-mismatch (rtl-condition)

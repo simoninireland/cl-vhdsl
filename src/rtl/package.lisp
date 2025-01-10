@@ -69,6 +69,9 @@
    ;; conditions
    #:not-synthesisable
    #:unknown-variable
+   #:unknown-module
+   #:duplicate-variable
+   #:duplicate-module
    #:value-mismatch
    #:direction-mismatch
    #:type-mismatch
