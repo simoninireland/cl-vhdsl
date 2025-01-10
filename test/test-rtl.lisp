@@ -595,6 +595,39 @@
 	     '(and a b))))
 
 
+;; ---------- Shadowing ----------
+
+(test test-detect-shadowed
+  "Test we can detect a shadowed variable."
+  (signals (rtl:duplicate-variable)
+    (rtl::detect-shadowing '(let ((a 12))
+			     (setq a (+ a 1))
+			     (let ((b 1)
+				   (a 34))
+			       (setq a (+ b a))))
+			   emptyenv))
+
+  ;; no shadowing
+  (is (rtl::detect-shadowing '(let ((a 12))
+			       (setq a (+ a 1))
+			       (let ((b 1)
+				     (c 34))
+				 (setq c (+ b a))))
+			     emptyenv)))
+
+
+(test test-detect-shadowed-module
+  "Test we can detect shadowing in the body of a module."
+  (signals (rtl:duplicate-variable)
+    (rtl::detect-shadowing '(rtl::module test ()
+			     (let ((a 12))
+			       (setq a (+ a 1))
+			       (let ((b 1)
+				     (a 34))
+				 (setq a (+ b a)))))
+			   emptyenv)))
+
+
 ;; ---------- Synthesis ----------
 
 ;; It's not generally possible to check the results of synthesis, so

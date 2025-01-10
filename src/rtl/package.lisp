@@ -43,6 +43,8 @@
    #:typecheck-sexp
 
    ;; transformations
+   #:detect-shadowing
+   #:detect-shadowing-sexp
    #:float-let-blocks
    #:float-let-blocks-sexp
    #:simplify-progn

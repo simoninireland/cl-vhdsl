@@ -177,6 +177,13 @@ values can't be defined in terms of other parameter values."
     `(module ,modname ,decls ,@ (mapcar #'simplify-progn body))))
 
 
+(defmethod detect-shadowing-sexp ((fun (eql 'module)) args env)
+  (destructuring-bind (modname decls &rest body)
+      args
+    (mapc (rcurry #'detect-shadowing env) body)
+    t))
+
+
 (defun synthesise-param (decl)
   "Return the code for parameter DECL."
   (if (listp decl)

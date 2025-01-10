@@ -38,6 +38,34 @@ as NON-SYNTHESISABLE errors."
      ,@body))
 
 
+;; ---------- Variable shadowing ----------
+
+;; For now we disallow shadowing variables in nested scopes
+;; We should actually disallow shadowing in parallel scopes as well,
+;; since the float-let-blocks pass will place them all at the same level
+;; (Don't want to leave detection till then because of macro-expansion.)
+
+(defgeneric detect-shadowing (form env)
+  (:documentation "Check whether FORM shadows variables declared in ENV.
+
+This pass is used to disallow shadowing in all case.")
+  (:method ((form integer) env)
+    '())
+  (:method ((form symbol) env)
+    '())
+  (:method ((form list) env)
+    (destructuring-bind (fun &rest args)
+	form
+      (detect-shadowing-sexp fun args env))))
+
+
+(defgeneric detect-shadowing-sexp (fun args env)
+  (:documentation "Check whether FUN called on ARGS in ENV shadows any variables.")
+  (:method (fun args env)
+    (mapc (rcurry #'detect-shadowing env) args)
+    t))
+
+
 ;; ---------- Type and width checking ----------
 
 (defgeneric typecheck (form env)

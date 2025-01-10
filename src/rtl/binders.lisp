@@ -150,6 +150,20 @@ This is only required if DECL's value is not a constant."
 	      (append basedecls newdecls))))))
 
 
+(defmethod detect-shadowing-sexp ((fun (eql 'let)) args env)
+  (destructuring-bind (decls &rest body)
+      args
+    (let ((vars (mapcar #'car decls)))
+      (dolist (n vars)
+	(if (variable-defined n env)
+	    (error 'duplicate-variable :variable n
+				       :hint "Variable shadows a previous definition"))))
+
+    (let ((ext (typecheck-env decls env)))
+      (mapc (rcurry #'detect-shadowing ext) body)
+      t)))
+
+
 (defun synthesise-register (decl context)
   "Synthesise a register declaration within a LET block.
 
