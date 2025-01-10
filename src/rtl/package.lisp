@@ -21,10 +21,10 @@
 
 (defpackage cl-vhdsl/rtl
   (:use :cl :alexandria
-   :cl-vhdsl            ;; for utility functions
-   :cl-ppcre)           ;; for specifying identifiers
+   :cl-vhdsl                  ;; for utility functions
+   :cl-ppcre)                 ;; for specifying identifiers
   (:import-from :str
-		#:shorten)
+		#:shorten)    ;; for reporting
 
   (:export
    ;; fixed-width types
