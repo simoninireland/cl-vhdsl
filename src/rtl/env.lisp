@@ -114,10 +114,17 @@ Signals NOT-SYNTHESISABLE as an error if not."
 (defun get-environment-properties (n env)
   "Return the key/value list for N in ENV.
 
+N can be a symbol (usually) or a string. In the latter case the
+variable is checked by string equality aginst the symbol name.
+
 An UNKNOWN-VARIABLE error is signalled if N is undefined."
-  (if-let ((kv (assoc n env)))
+  (if-let ((kv (if (symbolp n)
+		   (assoc n env)
+		   (assoc n env :key #'symbol-name :test #'string-equal))))
     (cdr kv)
-    (error 'unknown-variable :variable n)))
+
+    (error 'unknown-variable :variable n
+			     :hint "Make sure the variable is in scope")))
 
 
 (defun get-environment-names (env)
