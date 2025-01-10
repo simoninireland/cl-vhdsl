@@ -114,19 +114,40 @@ Signal VALUE-MISMATCH as an error if not."
       (mapn (rcurry #'typecheck ext) body))))
 
 
+;; These two functions should only re-write non-constant initial values
+
+(defun float-let-blocks-decl (decl)
+  "Decompose DECL into an assignment.
+
+This is only required if DECL's value is not a constant."
+  (destructuring-bind (n v &key &allow-other-keys)
+      decl
+    `(setq ,n ,v)))
+
+
+(defun float-let-blocks-zero (decl)
+  "Re-write DECL to have a zero initial value."
+  (destructuring-bind (n v &rest keys)
+      decl
+    `(,n 0 ,@keys)))
+
+
 (defmethod float-let-blocks-sexp ((fun (eql 'let)) args)
   (declare (optimize debug))
   (destructuring-bind (decls &rest body)
       args
 
-    ;; extract the body and decls of the body
-    (destructuring-bind (newbody newdecls)
-	(float-let-blocks `(progn ,@body))
+    ;; turn initial values into assignments
+    ;; TODO: should ignore 0s
+    (let ((assignments (mapcar #'float-let-blocks-decl decls))
+	  (basedecls (mapcar #'float-let-blocks-zero decls)))
+      ;; extract the body and decls of the body
+      (destructuring-bind (newbody newdecls)
+	  (float-let-blocks `(progn ,@assignments ,@body))
 
-      ;; re-write the block to a PROGN of the body only
-      ;; TODO: handle initialisations of decls
-      (list newbody
-	    (append decls newdecls)))))
+	;; return the re-written body and decls
+	(list newbody
+	      (append basedecls newdecls))))))
 
 
 (defun synthesise-register (decl context)
