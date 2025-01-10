@@ -28,6 +28,40 @@
 
 Modules added here are queued for synthesis.")
 
+
+(defparameter *module-interfaces* '()
+  "Mapping of known modules to their interface types.
+
+This variable contains all the modules that can be imported.")
+
+
+(defun clear-module-registry ()
+  "Clear the module registry of all imported and declared modules."
+  (setq *module-list* '()
+	*module-interfaces* '()))
+
+
+(defun known-module-interface-p (modname)
+  "Test whether MODNAME is known as a module interface."
+  (not (null (assoc modname *module-interfaces*))))
+
+
+(defun add-module-interface (modname intf)
+  "Add module MODNAME with given INTF."
+  (when (known-module-interface-p modname)
+      (error 'duplicate-module :module modname))
+
+  (appendf *module-interfaces* (list (list modname intf))))
+
+
+(defun get-module-interface (modname)
+  "Return the module interface type for MODNAME."
+  (if-let ((m (assoc modname *module-interfaces*)))
+    (cadr m)
+
+    (error 'unknown-module :module modname)))
+
+
 (defun synthesising-module-p (modname)
   "Test whether MODNAME is queued for synthesis."
   (not (null (assoc modname *module-list*))))

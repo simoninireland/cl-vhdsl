@@ -63,6 +63,7 @@
    #:in-logical-block
 
    ;; loader
+   #:clear-module-registry
    #:get-modules-for-synthesis
    #:defmodule
 
