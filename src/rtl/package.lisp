@@ -45,6 +45,8 @@
    ;; transformations
    #:float-let-blocks
    #:float-let-blocks-sexp
+   #:simplify-progn
+   #:simplify-progn-sexp
    #:expand-macros
    #:expand-macros-sexp
 
