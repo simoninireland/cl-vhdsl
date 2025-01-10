@@ -72,6 +72,7 @@
    #:unknown-module
    #:duplicate-variable
    #:duplicate-module
+   #:not-importable
    #:value-mismatch
    #:direction-mismatch
    #:type-mismatch

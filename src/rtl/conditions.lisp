@@ -130,6 +130,21 @@ been defined or not having been imported."))
   (:documentation "Condition signalled when a module is re-defined."))
 
 
+(define-condition not-importable (rtl-condition)
+  ((modname
+    :documentation "The module."
+    :initarg :module
+    :reader module))
+  (:report (lambda (c str)
+	     (format str "Module ~a can't be imported~a"
+		     (module c)
+		     (format-hint c))))
+  (:documentation "Condition signalled when a module can't be imported.
+
+This is usually caused by mismatched arguments, either an unknown argument
+being provided in the import or one that's needed not being provided."))
+
+
 (define-condition value-mismatch (rtl-condition)
   ((expected
     :documentation "The values allowed."

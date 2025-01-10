@@ -56,7 +56,7 @@
 
 (defun get-module-interface (modname)
   "Return the module interface type for MODNAME."
-  (if-let ((m (assoc *module-interfaces* modname)))
+  (if-let ((m (assoc modname *module-interfaces*)))
     (cadr m)
 
     (error 'unknown-module :module modname)))
@@ -162,6 +162,12 @@ values can't be defined in terms of other parameter values."
 			env)))
 
 
+(defun env-from-module-decls (args params)
+  "Create an environment from PARAMS and ARGS declarations of a module interface."
+  (let ((extparams (typecheck-module-params params (empty-environment))))
+    (typecheck-module-args args extparams)))
+
+
 (defun typecheck-module-args (decls env)
   "Type-check the module argument declarations DECLS to extend ENV."
   (foldr #'typecheck-module-arg decls env))
@@ -172,8 +178,7 @@ values can't be defined in terms of other parameter values."
       args
     (destructuring-bind (args params)
 	(split-args-params decls)
-      (let* ((extparams (typecheck-module-params params env))
-	     (ext (typecheck-module-args args extparams)))
+      (let ((ext (env-from-module-decls args params)))
 	(typecheck (cons 'progn body) ext)
 
 	(let ((intf (make-instance 'module-interface :parameters params
@@ -259,56 +264,101 @@ values can't be defined in terms of other parameter values."
 
 ;; ---------- Module instanciation ----------
 
+(defun get-argument-or-parameter (n decls)
+  "Retrieve argument or parameter N from DECLS.
+
+N should be a string, which is matched against DECLS by symbol name."
+  (if-let ((v (assoc n decls :key #'symbol-name :test #'string-equal)))
+    (cdr v)))
+
+
 (defun argument-for-module-interface-p (a intf)
   "Test whether A is an argument of INTF."
-  (not (null (assoc a (arguments intf)))))
+  (not (null (get-argument-or-parameter a (arguments intf)))))
 
 
 (defun parameter-for-module-interface-p (a intf)
   "Test whether A is a parameter of INTF."
-  (not (null (assoc a (parameters intf)))))
+  (not (null (get-argument-or-parameter a (parameters intf)))))
 
 
-(defun initargs-match-module-interface-p (intf initargs)
-  "Test that INITARGS conform to INTF.
+(defun module-arguments-match-interface-p (intf modargs)
+  "Test that MODARGS conform to INTF.
 
-All the arguments in INTF must be provided in INITARGS. All the
-INITARGS must refer to an argument or a parameter of INTF."
+All the arguments in INTF must be provided in MODARGS. All the
+MODARGS must refer to an argument or a parameter of INTF."
   (and
-   ;; every module argument is accounted for
+   ;; every module argument is provided
    (every (lambda (arg)
-	    (member arg (arguments intf))))
+	    (member arg modargs :test #'string-equal))
+	  (mapcar #'symbol-name (mapcar #'car (arguments intf))))
 
-   ;; every arg is a module argument or parameter
+   ;; every modarg is either a module argument or parameter
    (every (lambda (arg)
 	    (or (argument-for-module-interface-p arg intf)
 		(parameter-for-module-interface-p arg intf)))
-	  initargs)))
+	  modargs)))
 
 
-(defun keys-to-arguments (initargs)
-  "Extract the keys from INITARGS."
-  (labels ((every-second (l)
-	     "Return a list containing every second element of L."
+(defun ensure-module-arguments-match-interface (modname intf modargs)
+  "Ensure that MODARGS or module MODNAME match INTF.
+
+This is tested according to MODULE-ARGUMENTS-MATH-INTERFACE-P
+and causes a NOT-IMPORTABLE error if not."
+  (unless (module-arguments-match-interface-p intf modargs)
+    (error 'not-importable :module modname
+			   :hint "Check that arguments in the import match the module type")))
+
+
+(defun keys-to-arguments (modname modargs)
+  "Extract the keys from MODARGS when importing MODNAME."
+  (labels ((every-argument (l)
+	     "Return a list containing every argument element of L."
 	     (cond ((null l)
 		    '())
 		   (t
 		    (cons (car l)
-			  (every-second (cddr l)))))))
+			  (every-argument (cddr l)))))))
 
-    (unless (evenp (length initargs))
-      (error 'not-synthesisable :fragment initargs
-				:hint "Uneven number of initial arguments"))
+    (unless (evenp (length modargs))
+      (error 'not-importable :module modname
+			     :hint "Uneven number of initial arguments"))
 
-    (every-second initargs)))
+    (mapcar #'symbol-name (every-argument modargs))))
+
+
+(defun env-from-module-interface (intf)
+  "Return an environment corresponding to INTF."
+  (env-from-module-decls (arguments intf) (parameters intf)))
 
 
 (defmethod typecheck-sexp ((fun (eql 'make-instance)) args env)
   (destructuring-bind (modname &rest initargs)
       args
-    (let ((intf (get-module-interface modname))))
 
-    )
+    ;; skip over leading quote of module name, for compatability with Common Lisp usage
+    (when (listp modname)
+      (if (eql (car modname) 'quote)
+	  (setq modname (cadr modname))
 
+	  (error 'unknown-module :module modname)))
 
-  )
+    (let ((intf (get-module-interface modname))
+	  (modargs (keys-to-arguments modname initargs)))
+      ;; ensure we have all the arguments we need
+      (ensure-module-arguments-match-interface modname intf modargs)
+
+      ;; typecheck the provided arguments against the interface
+      (let ((modenv (env-from-module-interface intf)))
+	(dolist (arg modargs)
+	  (let ((v (cdr (assoc arg (plist-alist initargs) :key #'symbol-name :test #'string-equal))))
+	    (cond ((argument-for-module-interface-p arg intf)
+		   (let ((tyval (typecheck v env))
+			 (tyarg (get-type arg modenv)))
+		     (ensure-subtype tyval tyarg)))
+		  ((parameter-for-module-interface-p arg intf)
+		   (let ((tyval (typecheck (eval-in-static-environment v env) env))
+			 (tyarg (get-type arg modenv)))
+		     (ensure-subtype tyval tyarg))))))
+
+	intf))))
