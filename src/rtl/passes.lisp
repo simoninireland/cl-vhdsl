@@ -23,16 +23,18 @@
 
 ;; ---------- Helper macro ----------
 
+;; Needs more finesse -- at the moment does nothing useful
+
 (defmacro with-rtl-errors-not-synthesisable (&body body)
   "Run BODY within a handler that makes RTLisp errors non-synthesisable.
 
 Non-error conditions are ignored; non-RTLisp-specific errors are reported
-as-is; RTLisp errors are all converted to NON-SYNTHESISABLE errors."
+as NON-SYNTHESISABLE errors."
   `(handler-bind ((error #'(lambda (cond)
-			     (if (subtypep (type-of cond) 'rtl-condition)
-				 (error 'not-synthesisable :fragment (fragment cond)
-							   :hint (hint cond))
-				 (error cond)))))
+			     (cond ((subtypep (type-of cond) 'rtl-condition)
+				    (error cond))
+				   (t
+				    (error cond))))))
      ,@body))
 
 
