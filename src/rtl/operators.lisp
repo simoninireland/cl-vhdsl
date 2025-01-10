@@ -21,6 +21,19 @@
 (declaim (optimize debug))
 
 
+;; ---------- Helper ----------
+
+(defun ensure-number-of-arguments (fun args n)
+  "Ensure that ARGS has exactly N arguments.
+
+A NOT-SYNTHESISABLE erre is raised if the arguments are wrong."
+   (if (/= (length args) n)
+      (error 'not-synthesisable :fragment (cons fun args)
+				:hint (format nil "Operator needs exactly ~a arguments" n))))
+
+
+;; ---------- Operators ----------
+
 (defun typecheck-addition (args env)
   "Type-check an addition or subtraction of ARGS in ENV.
 
@@ -91,9 +104,8 @@ plus the number of other arguments."
 ;; The result is always unsigned.
 
 (defmethod typecheck-sexp ((fun (eql '<<)) args env)
-  (if (/= (length args) 2)
-      (error 'not-synthesisable :fragment (cons fun args)
-				:hint "Operator needs exactly two arguments"))
+  (ensure-number-of-arguments fun args 2)
+
   (destructuring-bind (val offset)
       args
     (let ((tyval (typecheck val env))
@@ -104,7 +116,7 @@ plus the number of other arguments."
       ;; the width is the width of the value plus the
       ;; maximum number that can be in the offset
       `(fixed-width-unsigned ,(+ (bitwidth tyval env)
-				 (1- (round (expt 2 (bitwidth tyoffset env)))))))))
+				 (1- (ash 1 (bitwidth tyoffset env))))))))
 
 
 (defmethod synthesise-sexp ((fun (eql '<<)) args (context (eql :inexpression)))
@@ -121,9 +133,8 @@ plus the number of other arguments."
 
 
 (defmethod typecheck-sexp ((fun (eql '>>)) args env)
-  (if (/= (length args) 2)
-      (error 'not-synthesisable :fragment (cons fun args)
-				:hint "Operator needs exactly two arguments"))
+  (ensure-number-of-arguments fun args 2)
+
   (destructuring-bind (val offset)
       args
     (let ((tyval (typecheck val env))
@@ -134,7 +145,7 @@ plus the number of other arguments."
       ;; the width is the width of the value minus the
       ;; maximum number that can be in the offset
       `(fixed-width-unsigned ,(- (bitwidth tyval env)
-				 (1- (round (expt 2 (bitwidth tyoffset env)))))))))
+				 (1- (ash 1 (bitwidth tyoffset env))))))))
 
 
 (defmethod synthesise-sexp ((fun (eql '>>)) args (context (eql :inexpression)))
@@ -150,9 +161,11 @@ plus the number of other arguments."
     `(ash ,(car vals) (- ,(cadr vals)))))
 
 
-;; Bitwise access to variables
+;; ---------- Bitwise access to variables ----------
 
 (defmethod typecheck-sexp ((fun (eql 'bits)) args env)
+  (ensure-number-of-arguments fun args 3)
+
   (destructuring-bind (var start end)
       args
     (let ((tyvar (typecheck var env))
