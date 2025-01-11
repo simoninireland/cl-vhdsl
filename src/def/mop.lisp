@@ -81,11 +81,6 @@ These slots are represented as :parameter in the component."
   (:documentation "The metaclass of synthesisable components."))
 
 
-(defmethod validate-superclass ((cl standard-class)
-				(super synthesisable-component))
-  t)
-
-
 (defmethod finalize-inheritance :after ((cl synthesisable-component))
   (break)
   (let* ((slot-defs (class-slots cl))
