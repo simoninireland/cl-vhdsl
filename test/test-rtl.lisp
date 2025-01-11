@@ -489,6 +489,14 @@
 		'(rtl::fixed-width-unsigned 8))))
 
 
+(test test-bit-access
+  "Test we can typecheck a bit access to a variable."
+  (is (subtypep (rtl:typecheck '(let ((a 1 :width 8))
+				 (setf a (+ a (bit a 0))))
+			       emptyenv)
+		'(rtl::fixed-width-unsigned 9))))
+
+
 (test test-typecheck-module
   "Test we can type-check a module with a variety of features."
   (is (subtypep (type-of (rtl:typecheck '(rtl::module test ((clk :width 1 :direction :in)

@@ -76,7 +76,7 @@ plus the number of other arguments."
 (defmethod synthesise-sexp ((fun (eql '-)) args (context (eql :inexpression)))
   (if (= (length args) 1)
       ;; unary minus
-      (as-literal) (format nil "(-~a)" (car args))
+      (as-literal (format nil "(-~a)" (car args)))
 
       ;; application
       (as-infix '- args)))
@@ -159,36 +159,3 @@ plus the number of other arguments."
 			(lispify arg env))
 		      args)))
     `(ash ,(car vals) (- ,(cadr vals)))))
-
-
-;; ---------- Bitwise access to variables ----------
-
-(defmethod typecheck-sexp ((fun (eql 'bits)) args env)
-  (ensure-number-of-arguments fun args 3)
-
-  (destructuring-bind (var start end)
-      args
-    (let ((tyvar (typecheck var env))
-	  (l (eval-in-static-environment `(+ 1 (- ,start ,end)) env)))
-      (if (<= l (bitwidth tyvar env))
-	  `(fixed-width-unsigned ,l)
-
-	  (error 'not-synthesisable :fragment `(bits ,start ,end))))))
-
-
-(defmethod synthesise-sexp ((fun (eql 'bits)) args (context (eql :inexpression)))
-  (destructuring-bind (var start end)
-      args
-    (synthesise var :inassignment)
-    (as-literal "[ ")
-    (synthesise start :inexpression)
-    (as-literal " : ")
-    (synthesise end :inexpression)
-    (as-literal " ]")))
-
-
-(defmethod lispify-sexp ((fun (eql 'bits)) args env)
-  (destructuring-bind (var start end)
-      args
-    (let ((l (eval-in-static-environment `(+ 1 (- ,start ,end)) env)))
-      `(logand (ash ,(lispify var) (- ,end)) (1- (ash 1 ,l))))))
