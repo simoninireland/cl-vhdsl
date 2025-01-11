@@ -66,6 +66,37 @@ This pass is used to disallow shadowing in all case.")
     t))
 
 
+;; ---------- Variable re-writing ----------
+
+(defgeneric rewrite-variables (form rewrite)
+  (:documentation "Re-write free occurrances of variables in FORM.
+
+The re-write rules in REWRITE are an alist mapping variable
+names to their new form. No checks are performed.")
+  (:method ((form integer) rewrite)
+    form)
+  (:method ((form symbol) rewrite)
+    (if-let ((a (assoc form rewrite)))
+      ;; reference to variable, re-write it
+      (let ((w (cadr a)))
+	w)
+
+      ;; not re-writeable
+      form))
+  (:method ((form list) rewrite)
+    (destructuring-bind (fun &rest args)
+	form
+      (rewrite-variables-sexp fun args rewrite))))
+
+
+(defgeneric rewrite-variables-sexp (fun args rewrite)
+  (:documentation "Rewite variables in REWRITE un FUN applied to ARGS.
+
+FUN itself is never re-written.")
+  (:method (fun args rewrite)
+    `(,fun ,@(mapcar (rcurry #'rewrite-variables rewrite) args))))
+
+
 ;; ---------- Type and width checking ----------
 
 (defgeneric typecheck (form env)

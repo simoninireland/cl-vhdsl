@@ -114,6 +114,29 @@ Signal VALUE-MISMATCH as an error if not."
       (mapn (rcurry #'typecheck ext) body))))
 
 
+(defun rewrite-variables-decl (decl rewrite)
+  "Re-write the values of DECL using REWRITE."
+  (destructuring-bind (n v &rest keys)
+      decl
+    `(,n ,(rewrite-variables v rewrite) ,@keys)))
+
+
+(defmethod rewrite-variables-sexp ((fun (eql 'let)) args rewrite)
+  (destructuring-bind (decls &rest body)
+      args
+    (let* ((rwdecls (mapcar (rcurry #'rewrite-variables-decl rewrite) decls))
+
+	   ;; remove any re-writes referring to shadowed variables
+	   (rwenv (typecheck-env rwdecls (empty-environment)))
+	   (rwrewrite (remove-if (rcurry #'variable-defined rwenv)
+				 rewrite :key #'car))
+
+	   ;; re-write the body with these new re-writes
+	   (rwbody (mapcar (rcurry #'rewrite-variables rwrewrite) body)))
+      `(let ,rwdecls
+	 ,@rwbody))))
+
+
 ;; These two functions should only re-write non-constant initial values
 
 (defun float-let-blocks-decl (decl)

@@ -636,6 +636,62 @@
 			   emptyenv)))
 
 
+;; ---------- Re-writing variables ----------
+
+(test test-rewrite-simple
+  "Test simple re-writing cases."
+
+  ;; literals
+  (let ((p 23))
+    (is (equal (rtl::rewrite-variables p '())
+	       p)))
+  (let ((p 23))
+    (is (equal (rtl::rewrite-variables p '((a 24)))
+	       p)))
+
+  ;; symbols (same variable)
+  (is (equal (rtl::rewrite-variables 'a '((a 24)))
+	     24))
+
+  ;; symbols (no or different variables
+  (is (equal (rtl::rewrite-variables 'a '())
+	     'a))
+  (is (equal (rtl::rewrite-variables 'a '((b 24)))
+	     'a))
+
+  ;; operators (normal recursion)
+  (is (equal (rtl::rewrite-variables '(+ 1 2 3) '((a 5)))
+	     '(+ 1 2 3)))
+  (is (equal (rtl::rewrite-variables '(+ 1 2 a) '((a 5)))
+	     '(+ 1 2 5)))
+
+  ;; let (different variables)
+  (let ((p '(let ((b 23))
+	     (setq b 24))))
+    (is (equal (rtl::rewrite-variables p '((a 5)))
+	       p)))
+
+  ;; let (identified variables)
+  (is (equal (rtl::rewrite-variables '(let ((b 1))
+				       (setq b a))
+				     '((a 5)))
+	     '(let ((b 1))
+	       (setq b 5))))
+
+  ;; let (shadowed variables)
+  (is (equal (rtl::rewrite-variables '(let ((b 1))
+				       (setq b a)
+				       (let ((a 45))
+					 (setq b a)
+					 (setq a c)))
+				     '((a 5) (c 10)))
+	     '(let ((b 1))
+	       (setq b 5)
+	       (let ((a 45))
+		 (setq b a)
+		 (setq a 10))))))
+
+
 ;; ---------- Synthesis ----------
 
 ;; It's not generally possible to check the results of synthesis, so
