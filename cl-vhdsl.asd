@@ -44,6 +44,7 @@
 				     (:file "references")
 				     (:file "operators")
 				     (:file "comparisons")
+				     (:file "bits")
 				     (:file "control-flow")
 				     (:file "conditionals")
 				     (:file "binders")
