@@ -48,9 +48,14 @@
 ;; ---------- Multi-bit access ----------
 
 (defmethod typecheck-sexp ((fun (eql 'bits)) args env)
-  (destructuring-bind (var start :key end width)
+  (destructuring-bind (var start &key end width)
       args
     (let ((tyvar (typecheck var env))
+
+;; TBD
+
+
+
 	  (l (eval-in-static-environment `(+ 1 (- ,start ,end)) env)))
       (if (<= l (bitwidth tyvar env))
 	  `(fixed-width-unsigned ,l)
