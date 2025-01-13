@@ -24,6 +24,7 @@
    :cl-vhdsl                  ;; for utility functions
    :cl-ppcre)                 ;; for specifying identifiers
   (:import-from :str
+		#:concat      ;; for macros
 		#:shorten)    ;; for reporting
 
   (:export
@@ -79,4 +80,5 @@
    #:value-mismatch
    #:direction-mismatch
    #:type-mismatch
+   #:bitfield-mismatch
    ))

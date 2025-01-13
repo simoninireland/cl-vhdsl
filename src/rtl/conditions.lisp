@@ -199,3 +199,17 @@ variable that is too narrow to accommodate all its possible values.
 This is usually signalled as a warning, as there is a
 sometimes-acceptable default action to risk the loss of precision
 caused by the assignment."))
+
+
+(define-condition bitfield-mismatch (rtl-condition)
+  ((pattern
+    :documentation "The bitfield pattern."
+    :initarg :pattern
+    :reader pattern))
+  (:report (lambda (c str)
+	     (format str "Can't interpret bitfield pattern~a: ~a"
+		     (format-hint c)
+		     (pattern c))))
+  (:documentation "Condition signalled when a bitfield pattern can't be parsed.
+
+This is usually caused by non-consecutive uses of variables in the pattern."))

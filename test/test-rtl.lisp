@@ -603,6 +603,42 @@
 	     '(and a b))))
 
 
+(test test-extract-runs
+  "Test we can extract runs of symbols from a list."
+  (is (null (rtl::extract-runs '())))
+  (is (equal (rtl::extract-runs '(a))
+	     '((a 0 0))))
+  (is (equal (rtl::extract-runs '(a a a))
+	     '((a 2 0))))
+  (is (equal (rtl::extract-runs '(a a a b b b))
+	     '((a 5 3) (b 2 0))))
+  (is (equal (rtl::extract-runs '(a a a b a a))
+	     '((a 5 3) (b 2 2) (a 1 0))))
+  (is (equal (rtl::extract-runs '(a a a b a a c))
+	     '((a 6 4) (b 3 3) (a 2 1) (c 0 0)))))
+
+
+;; Should this function be in utils?
+(test test-duplicate-keys
+  "Test we can detect duplicate keys in alists."
+  (is (rtl::duplicate-keys-p '((a 12) (b 13) (a 1))))
+  (is (rtl::duplicate-keys-p '((a 12) (a 13))))
+
+  (is (not (rtl::duplicate-keys-p '())))
+  (is (not (rtl::duplicate-keys-p '((a 12)))))
+  (is (not (rtl::duplicate-keys-p '((a 12) '(b 12))))))
+
+
+(test test-extract-bitfields
+  "Test we can extract bitfields from patterns."
+  (is (equal (rtl::extract-bitfields '(a))
+	     '((a 0 0))))
+  (is (equal (rtl::extract-bitfields '(1 a))
+	     '((1 1 1) (a 0 0))))
+  (signals (rtl:bitfield-mismatch)
+    (rtl::extract-bitfields '(1 a 1 a))))
+
+
 ;; ---------- Shadowing ----------
 
 (test test-detect-shadowed
@@ -664,6 +700,8 @@
 	     '(+ 1 2 3)))
   (is (equal (rtl::rewrite-variables '(+ 1 2 a) '((a 5)))
 	     '(+ 1 2 5)))
+  (is (equal (rtl::rewrite-variables '(+ 1 2 b) '((a 5)))
+	     '(+ 1 2 b)))
 
   ;; let (different variables)
   (let ((p '(let ((b 23))
