@@ -50,17 +50,30 @@
 (defmethod typecheck-sexp ((fun (eql 'bits)) args env)
   (destructuring-bind (var start &key end width)
       args
-    (let ((tyvar (typecheck var env))
+    (let ((tyvar (typecheck var env)))
+      (if (null end)
+	  (if width
+	      ;; no end set, extract from width if present
+	      (progn
+		(setq end (1+ (- start width)))
+		(when (< end 0)
+		  (error 'not-synthesisable :fragment `(bits ,args)
+					    :hint "Width greater than the number of remaining bits")))
 
-;; TBD
+	      ;; default is to the end of the pattern
+	      (setq end 0))
 
+	  (if width
+	      ;; if both are set, width and end must agree
+	      (when (/= width (1+ (- start end)))
+		(error 'not-synthesisable :fragment `(bits ,@args)
+					  :hint "Explicit width does not agree with start and end positions"))))
 
-
-	  (l (eval-in-static-environment `(+ 1 (- ,start ,end)) env)))
-      (if (<= l (bitwidth tyvar env))
-	  `(fixed-width-unsigned ,l)
-
-	  (error 'not-synthesisable :fragment `(bits ,start ,end))))))
+      (let ((l (1+ (- start end))))
+	(when (> l (bitwidth tyvar env))
+	  (error 'not-synthesisable :fragment `(bits ,@args)
+				    :hint "Width greater than base variable"))
+	`(fixed-width-unsigned ,l)))))
 
 
 (defmethod synthesise-sexp ((fun (eql 'bits)) args (context (eql :inexpression)))
