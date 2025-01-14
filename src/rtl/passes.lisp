@@ -175,7 +175,7 @@ well as PROGNs nested inside other PROGNs.")
 
 ;; ---------- Macro expansion ----------
 
-(defvar *macros* '(cond when unless)
+(defparameter *macros* '(cond when unless cond with-bitfields)
   "List of macros expanded within RTLisp forms.")
 
 
