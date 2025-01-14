@@ -47,27 +47,34 @@
 
 ;; ---------- Multi-bit access ----------
 
+(defun compute-end-bit (start end width)
+  "Compute the end bit given START, END, and WIDTH."
+  (if (null end)
+      (if width
+	  ;; no end set, extract from width if present
+	  (progn
+	    (setq end (1+ (- start width)))
+	    (when (< end 0)
+	      (error 'not-synthesisable :fragment `(bits ,args)
+					:hint "Width greater than the number of remaining bits")))
+
+	  ;; default is to the end of the pattern
+	  0)
+
+      (if width
+	  ;; if both are set, width and end must agree
+	  (when (/= width (1+ (- start end)))
+	    (error 'not-synthesisable :fragment `(bits ,@args)
+				      :hint "Explicit width does not agree with start and end positions"))
+
+	  end)))
+
+
 (defmethod typecheck-sexp ((fun (eql 'bits)) args env)
   (destructuring-bind (var start &key end width)
       args
     (let ((tyvar (typecheck var env)))
-      (if (null end)
-	  (if width
-	      ;; no end set, extract from width if present
-	      (progn
-		(setq end (1+ (- start width)))
-		(when (< end 0)
-		  (error 'not-synthesisable :fragment `(bits ,args)
-					    :hint "Width greater than the number of remaining bits")))
-
-	      ;; default is to the end of the pattern
-	      (setq end 0))
-
-	  (if width
-	      ;; if both are set, width and end must agree
-	      (when (/= width (1+ (- start end)))
-		(error 'not-synthesisable :fragment `(bits ,@args)
-					  :hint "Explicit width does not agree with start and end positions"))))
+      (setq end (compute-end-bit start end width))
 
       (let ((l (1+ (- start end))))
 	(when (> l (bitwidth tyvar env))
@@ -77,8 +84,10 @@
 
 
 (defmethod synthesise-sexp ((fun (eql 'bits)) args (context (eql :inexpression)))
-  (destructuring-bind (var start end)
+  (destructuring-bind (var start &key end width)
       args
+    (setq end (compute-end-bit start end width))
+
     (synthesise var :inassignment)
     (as-literal "[ ")
     (synthesise start :inexpression)

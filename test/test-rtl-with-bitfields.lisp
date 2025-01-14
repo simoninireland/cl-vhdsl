@@ -56,3 +56,16 @@
 	     '((1 1 1) (a 0 0))))
   (signals (rtl:bitfield-mismatch)
     (rtl::extract-bitfields '(1 a 1 a))))
+
+
+(test test-with-bitfields-simple
+  "Test we can extract bitfields."
+  (let ((p '(let ((a #2r1001011010))
+	     (rtl::with-bitfields (a a a b b b c)
+		 a
+	       (setf a (+ b c))))))
+    (rtl:typecheck (rtl:expand-macros p)
+		   emptyenv)
+    )
+
+  )

@@ -113,18 +113,18 @@
 (test test-setf-variable-bits
   "Test we can setf to bits in a variable."
   (is (subtypep (rtl:typecheck '(let ((a 12))
-				 (setf (rtl::bits a 1 0) 2))
+				 (setf (rtl::bits a 1 :end 0) 2))
 			       emptyenv)
 		'(rtl::fixed-width-unsigned 2)))
 
   ;; fails because default width of a is too small
   (signals (rtl:not-synthesisable)
     (rtl:typecheck '(let ((a 12))
-		     (setf (rtl::bits a 6 0) 0))
+		     (setf (rtl::bits a 6 :end 0) 0))
 		   emptyenv))
 
   ;; fixed with an explicit width
   (is (subtypep (rtl:typecheck '(let ((a 12 :width 8))
-				 (setf (rtl::bits a 6 0) 0))
+				 (setf (rtl::bits a 6 :end 0) 0))
 			       emptyenv)
 		'(rtl::fixed-width-unsigned 2))))
