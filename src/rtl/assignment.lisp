@@ -88,26 +88,12 @@ constant or an input parameter."
 
 
 (defmethod typecheck-sexp-setf ((selector symbol) val selectorargs env &key sync)
-  (let ((tyvar (typecheck selector env))
+  (let ((tyvar (typecheck `(,selector ,@selectorargs) env))
 	(tyval (typecheck val env)))
       (ensure-subtype tyval tyvar)
-      (ensure-writeable selector env)
+      ;;(ensure-writeable selector env)
 
       tyval))
-
-
-(defmethod typecheck-sexp-setf ((selector (eql 'bits)) val selectorargs env &key sync)
-  (destructuring-bind (var start end)
-      selectorargs
-    (let ((tyvar (typecheck var env))
-	  (tyval (typecheck val env))
-	  (l (eval-in-static-environment `(+ 1 (- ,start ,end)) env)))
-      (ensure-writeable var env)
-      (ensure-width-can-store l tyval env)
-      (if (> l (bitwidth tyvar env))
-	  (error 'not-synthesisable :fragment `(setf (,selector ,@selectorargs) ,val)))
-
-      tyval)))
 
 
 ;; Not yet synthesising generalised places
@@ -136,24 +122,32 @@ constant or an input parameter."
 ;; ---------- Triggers ----------
 
 (defmethod typecheck-sexp ((fun (eql 'posedge)) args env)
-  '(fixed-width-unsigned 1))
+  (destructuring-bind (pin)
+      args
+    (let ((ty (typecheck pin env)))
+      (ensure-subtype ty '(fixed-width-unsigned 1))
+      ty)))
 
 
 (defmethod synthesise-sexp ((fun (eql 'posedge)) args (context (eql :inexpression)))
   (destructuring-bind (pin)
       args
-    (format *synthesis-stream* "posedge(")
+    (as-literal"posedge(")
     (synthesise pin :inexpression)
-    (format *synthesis-stream* ")")))
+    (as-literal ")")))
 
 
 (defmethod typecheck-sexp ((fun (eql 'negedge)) args env)
-  '(fixed-width-unsigned 1))
+  (destructuring-bind (pin)
+      args
+    (let ((ty (typecheck pin env)))
+      (ensure-subtype ty '(fixed-width-unsigned 1))
+      ty)))
 
 
 (defmethod synthesise-sexp ((fun (eql 'negedge)) args (context (eql :inexpression)))
   (destructuring-bind (pin)
       args
-    (format *synthesis-stream* "negedge(")
+    (as-literal "negedge(")
     (synthesise pin :inexpression)
-    (format *synthesis-stream* ")")))
+    (as-literal")")))
