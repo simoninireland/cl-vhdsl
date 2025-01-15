@@ -82,6 +82,7 @@ bin: $(BINARIES)
 	--eval '(ql:quickload :cl-ppcre)' \
 	--eval '(ql:quickload :slot-extra-options)' \
 	--eval '(ql:quickload :unix-opts)' \
+	--eval '(ql:quickload :cl-vhdsl)' \
 	--eval '(ql:quickload :cl-vhdsl/cli)' \
 	--eval '(asdf:make :cl-vhdsl/cli)' \
 	--eval '(quit)'
