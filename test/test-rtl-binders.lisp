@@ -30,6 +30,14 @@
 		'(rtl::fixed-width-unsigned 6))))
 
 
+(test test-let-at-least-one
+  "Test that a variable gets at least a width of one bit."
+  (is (equal '(rtl::fixed-width-unsigned 1)
+	     (rtl:typecheck '(let ((a 0))
+			      a)
+			    emptyenv))))
+
+
 (test test-let-single-infer-width
   "Test we can infer a width."
   (is (subtypep (rtl:typecheck '(let ((a 1))
