@@ -31,6 +31,6 @@
 			(let ((x 0 :width 8)
 			      (y 10 :width 8)
 			      (z 44 :as :constant))
-			  (rtl::@ (rtl::posedge clk)
+			  (rtl::@ ((rtl::posedge clk))
 			    (setf x (+ x b) :sync t))))
 		      :toplevel)))
