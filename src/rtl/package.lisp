@@ -1,6 +1,6 @@
 ;; Package for RTLisp, a synthesisable fragment of Lisp
 ;;
-;; Copyright (C) 2024 Simon Dobson
+;; Copyright (C) 2024--2025 Simon Dobson
 ;;
 ;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
 ;;
@@ -20,9 +20,10 @@
 (in-package :common-lisp-user)
 
 (defpackage cl-vhdsl/rtl
+  (:documentation "RTLisp, the synthesisiable fraction of Common Lisp, as an embedded DSL")
   (:use :cl :alexandria
-   :cl-vhdsl                  ;; for utility functions
-   :cl-ppcre)                 ;; for specifying identifiers
+	:cl-vhdsl             ;; for utility functions
+	:cl-ppcre)            ;; for specifying identifiers
   (:import-from :str
 		#:concat      ;; for macros
 		#:shorten)    ;; for reporting
@@ -39,31 +40,28 @@
    #:get-environment-names
    #:get-environment-properties
 
+   ;; extra RTLisp functions and macros
+   #:@
+   #:posedge
+   #:negedge
+   #:bit
+   #:bits
+   #:with-bitfieldds
+
    ;; validation
    #:typecheck
-   #:typecheck-sexp
 
    ;; transformations
    #:detect-shadowing
-   #:detect-shadowing-sexp
    #:float-let-blocks
-   #:float-let-blocks-sexp
    #:simplify-progn
-   #:simplify-progn-sexp
    #:expand-macros
-   #:expand-macros-sexp
 
    ;; synthesis
    #:synthesise
-   #:synthesise-sexp
 
    ;; Lispification
    #:lispify
-   #:lispify-sexp
-
-   ;; pretty-printing
-   #:indentation
-   #:in-logical-block
 
    ;; loader
    #:clear-module-registry
