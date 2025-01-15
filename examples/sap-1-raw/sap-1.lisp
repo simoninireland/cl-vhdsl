@@ -178,7 +178,7 @@
 
     (@ ((negedge clk) (posedge rst))
        (cond (rst
-	      (setf stage 0))
+	      (setq stage 0))
 	     ((= stage 5)
 	      (setq stage 0)
 	      (incf stage))))
@@ -188,46 +188,46 @@
 
        (case stage
 	 (0
-	  (setq (aref ctrl_word sig_pc_en) 1)
-	  (setq (aref ctrl_word sig_mem_load) 1))
+	  (setf (aref ctrl_word sig_pc_en) 1)
+	  (setf (aref ctrl_word sig_mem_load) 1))
 	 (1
-	  (setq (aref ctrl_word sig_pc_inc) 1))
+	  (setf (aref ctrl_word sig_pc_inc) 1))
 	 (2
-	  (setq (aref ctrl_word sig_mem_en) 1)
-	  (setq (aref ctrl_word sig_ir_load) 1))
+	  (setf (aref ctrl_word sig_mem_en) 1)
+	  (setf (aref ctrl_word sig_ir_load) 1))
 	 (3
 	  (case opcode
 	    (op_lda
-	     (setq (aref ctrl_word sig_ir_en) 1)
-	     (setq (aref ctrl_word sig_mem_load) 1))
+	     (setf (aref ctrl_word sig_ir_en) 1)
+	     (setf (aref ctrl_word sig_mem_load) 1))
 	    (op_add
-	     (setq (aref ctrl_word sig_ir_en) 1)
-	     (setq (aref ctrl_word sig_mem_load) 1))
+	     (setf (aref ctrl_word sig_ir_en) 1)
+	     (setf (aref ctrl_word sig_mem_load) 1))
 	    (op_sub
-	     (setq (aref ctrl_word sig_ir_en) 1)
-	     (setq (aref ctrl_word sig_mem_load) 1))
+	     (setf (aref ctrl_word sig_ir_en) 1)
+	     (setf (aref ctrl_word sig_mem_load) 1))
 	    (op_hlt
-	     (setq (aref ctrl_word sig_hlt) 1))))
+	     (setf (aref ctrl_word sig_hlt) 1))))
 	 (4
 	  (case opcode
 	    (op_lda
-	     (setq (aref ctrl_word sig_mem_en) 1)
-	     (setq (aref ctrl_word sig_a_load) 1))
+	     (setf (aref ctrl_word sig_mem_en) 1)
+	     (setf (aref ctrl_word sig_a_load) 1))
 	    (op_add
-	     (setq (aref ctrl_word sig_mem_en) 1)
-	     (setq (aref ctrl_word sig_b_load) 1))
+	     (setf (aref ctrl_word sig_mem_en) 1)
+	     (setf (aref ctrl_word sig_b_load) 1))
 	    (op_sub
-	     (setq (aref ctrl_word sig_mem_en) 1)
-	     (setq (aref ctrl_word sig_b_load) 1))))
+	     (setf (aref ctrl_word sig_mem_en) 1)
+	     (setf (aref ctrl_word sig_b_load) 1))))
 	 (5
 	  (case opcode
 	    (op_add
-	     (setq (aref ctrl_word sig_adder_en) 1)
-	     (setq (aref ctrl_word sig_a_load) 1))
+	     (setf (aref ctrl_word sig_adder_en) 1)
+	     (setf (aref ctrl_word sig_a_load) 1))
 	    (op_sub
-	     (setq (aref ctrl_word sig_adder_sub) 1)
-	     (setq (aref ctrl_word sig_adder_en) 1)
-	     (setq (aref ctrl_word sig_a_load) 1))))))
+	     (setf (aref ctrl_word sig_adder_sub) 1)
+	     (setf (aref ctrl_word sig_adder_en) 1)
+	     (setf (aref ctrl_word sig_a_load) 1))))))
 
     (setq out ctrl_word)))
 
