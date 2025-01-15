@@ -64,8 +64,6 @@
 	     (rtl::with-bitfields (a a a b b b c)
 		 a
 	       (setf a (+ b c))))))
-    (rtl:typecheck (rtl:expand-macros p)
-		   emptyenv)
-    )
-
-  )
+    (is (subtypep (rtl:typecheck (rtl:expand-macros p)
+				 emptyenv)
+		  '(rtl::fixed-width-unsigned 4)))))
