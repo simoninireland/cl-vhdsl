@@ -228,6 +228,9 @@ WIDTH defaulting to the system's global width."
       (synthesise width :inexpression)
       (as-literal " - 1 : 0 ] "))
     (synthesise n :indeclaration)
+    (when (array-value-p v)
+      ;; synthesise the array constructor
+      (synthesise v :indeclaration))
     (as-literal";")))
 
 
