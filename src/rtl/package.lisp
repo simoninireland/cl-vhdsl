@@ -41,12 +41,14 @@
    #:get-environment-properties
 
    ;; extra RTLisp functions and macros
+   #:<<
+   #:>>
    #:@
    #:posedge
    #:negedge
-   #:bit
    #:bits
    #:with-bitfieldds
+   #:defmodule
 
    ;; validation
    #:typecheck
