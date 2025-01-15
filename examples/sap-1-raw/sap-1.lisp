@@ -44,6 +44,7 @@
 
 (defmodule pc ((hlt :width 1 :direction :in)
 	       (clk :width 1 :direction :in)
+	       (rst :width 1 :direction :in)
 	       (inc :width 1 :direction :in)
 	       (out :width 8 :direction :out))
 
