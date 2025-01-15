@@ -124,14 +124,15 @@ If oneof the types is NIL then the lub is the other."
   (flet ((bits-for-integer (val)
 	   (multiple-value-bind (b res)
 	       (ceiling (log val 2))
-	     (let ((bits (if (= res 0.0)
-			     ;; add a bit if val is on a
-			     ;; power-of-two boundary
-			     (1+ b)
-			     b)))
+	     (let ((bits (max (if (= res 0.0)
+				  ;; add a bit if val is on a
+				  ;; power-of-two boundary
+				  (1+ b)
+				  b)
+			      1)))   ; always need at least one bit
 	       bits))))
      (cond ((= val 0)
-	    0)
+	    1)
 
 	   ((> val 0)
 	    (bits-for-integer val))

@@ -57,7 +57,7 @@
 
 (test test-bitwidths-integer-constants
   "Test we can extract bit widths of integer constants."
-  (is (= (rtl::bitwidth 0 ()) 0))
+  (is (= (rtl::bitwidth 0 ()) 1))
   (is (= (rtl::bitwidth 1 ()) 1))
   (is (= (rtl::bitwidth 2 ()) 2))
   (is (= (rtl::bitwidth 127 ()) 7))

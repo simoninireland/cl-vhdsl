@@ -73,12 +73,13 @@ Signal VALUE-MISMATCH as an error if not."
 	(ensure-representation as)
 
 	(let ((ty (typecheck v env)))
-	  (when type
-	    ;; if a type is provided, make sure the initial
-	    ;; value fits in it and then use that as the type
-	    ;; for the binding
-	    (ensure-subtype ty type)
-	    (setq ty type))
+	  (if type
+	      ;; if a type is provided, make sure the initial
+	      ;; value fits in it and then use that as the type
+	      ;; for the binding
+	      (progn
+		(ensure-subtype ty type)
+		(setq ty type)))
 
 	  (if width
 	      (let ((w (eval-in-static-environment width env)))
@@ -87,17 +88,15 @@ Signal VALUE-MISMATCH as an error if not."
 		(ensure-width-can-store w ty env)
 
 		;; widen the type to match the width
-		(setq ty (widen-fixed-width ty width)))
-
-	      ;; if none was provided, the width is that of the type
-	      (setq width (bitwidth ty env)))
+		(setq ty (widen-fixed-width ty width))))
 
 	  (extend-environment n `((:initial-value ,v)
 				  (:type ,ty)
-				  (:width ,width)
+				  ,(if width
+				       `(:width ,width))
+				  ;;(:width ,width)
 				  (:as ,as))
 			      env)))
-
       ;; otherwise we have a naked name, so apply the defaults
       (typecheck-decl env `(,decl 0 :width ,*default-register-width*))))
 
