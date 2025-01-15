@@ -20,13 +20,13 @@ include ../icestick.mk
 # ---------- Target code ----------
 
 # Bitstream
-TARGET = blink.bin
+TARGET = sap-1.bin
 TOPMODULE =
 
 # Sources
 SOURCES = \
-	blink.v
+	sap-1-raw.v
 SOURCES_COMMON = \
 	package.lisp
 CONFIG = \
-	blink.pcf
+	sap-1-raw.pcf
