@@ -24,8 +24,8 @@
 (defun writeable-p (n env)
   "Test whether N is writeable in ENV.
 
-To be writeable a variable must be a register, not a constant,
-not a Lisp-typed value, and not an input argument."
+To be writeable a variable must be a register or wire, not a constant,
+and not an input argument."
   (and (not (get-constant n env))
        (not (eql (get-representation n env) :constant))
        (not (eql (get-direction n env) :in))))
@@ -77,6 +77,42 @@ constant or an input parameter."
 
 ;; ---------- setf (generalised places) ----------
 
+(defgeneric generalised-place-p (form ENV)
+  (:documentation "Test whether FORM is a generalised place in ENV.
+
+Generalised places can appear as the target of SETF forms. (In other
+languages they are sometimes referred to as /lvalues/.) This is
+separate, but related to, their type: a generalised place has a type,
+but is also SETF-able.
+
+By default forms are /not/ generalised places.")
+  (:method ((form integer) env)
+    nil)
+  (:method ((form symbol) env)
+    (not (get-constant form env)))
+  (:method ((form list) env)
+    (destructuring-bind (fun &rest args)
+	form
+      (generalised-place-sexp-p fun args env))))
+
+
+;; No need to dive into the args in most cases, just the selector
+
+(defgeneric generalised-place-sexp-p (fun args env)
+  (:documentation "Test whether FUN applied to ARGS identifies a generalised place in ENV.
+
+The default is for a form /not/ to be a generalised place.")
+  (:method (fun args env)
+    nil))
+
+
+(defun ensure-generalised-place (form env)
+  "Ensure FORM is a generalised place in ENV."
+  (unless (generalised-place-p form env)
+    (error 'not-synthesisable :fragment form
+			      :hint "Make sure the code identifies a generalised, SETF-able, place")))
+
+
 (defmethod typecheck-sexp ((fun (eql 'setf)) args env)
   (destructuring-bind (var val &key sync)
       args
@@ -88,12 +124,13 @@ constant or an input parameter."
 
 
 (defmethod typecheck-sexp-setf ((selector symbol) val selectorargs env &key sync)
-  (let ((tyvar (typecheck `(,selector ,@selectorargs) env))
+  (let* ((place `(,selector ,@selectorargs))
+	 (tyvar (typecheck place env))
 	(tyval (typecheck val env)))
-      (ensure-subtype tyval tyvar)
-      ;;(ensure-writeable selector env)
+    (ensure-subtype tyval tyvar)
+    (ensure-generalised-place place env)
 
-      tyval))
+    tyval))
 
 
 ;; Not yet synthesising generalised places
@@ -117,37 +154,3 @@ constant or an input parameter."
     (as-literal " = ")
     (synthesise val :inexpression)
     (as-literal ";")))
-
-
-;; ---------- Triggers ----------
-
-(defmethod typecheck-sexp ((fun (eql 'posedge)) args env)
-  (destructuring-bind (pin)
-      args
-    (let ((ty (typecheck pin env)))
-      (ensure-subtype ty '(fixed-width-unsigned 1))
-      ty)))
-
-
-(defmethod synthesise-sexp ((fun (eql 'posedge)) args (context (eql :inexpression)))
-  (destructuring-bind (pin)
-      args
-    (as-literal"posedge(")
-    (synthesise pin :inexpression)
-    (as-literal ")")))
-
-
-(defmethod typecheck-sexp ((fun (eql 'negedge)) args env)
-  (destructuring-bind (pin)
-      args
-    (let ((ty (typecheck pin env)))
-      (ensure-subtype ty '(fixed-width-unsigned 1))
-      ty)))
-
-
-(defmethod synthesise-sexp ((fun (eql 'negedge)) args (context (eql :inexpression)))
-  (destructuring-bind (pin)
-      args
-    (as-literal "negedge(")
-    (synthesise pin :inexpression)
-    (as-literal")")))

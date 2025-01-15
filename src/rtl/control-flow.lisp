@@ -59,3 +59,37 @@
     (as-literal "" :newline t)))
 (defmethod synthesise-sexp ((fun (eql '@)) args (context (eql :inmodule)))
   (synthesise-sexp fun args :inblock))
+
+
+;; ---------- Triggers ----------
+
+(defmethod typecheck-sexp ((fun (eql 'posedge)) args env)
+  (destructuring-bind (pin)
+      args
+    (let ((ty (typecheck pin env)))
+      (ensure-subtype ty '(fixed-width-unsigned 1))
+      ty)))
+
+
+(defmethod synthesise-sexp ((fun (eql 'posedge)) args (context (eql :inexpression)))
+  (destructuring-bind (pin)
+      args
+    (as-literal"posedge(")
+    (synthesise pin :inexpression)
+    (as-literal ")")))
+
+
+(defmethod typecheck-sexp ((fun (eql 'negedge)) args env)
+  (destructuring-bind (pin)
+      args
+    (let ((ty (typecheck pin env)))
+      (ensure-subtype ty '(fixed-width-unsigned 1))
+      ty)))
+
+
+(defmethod synthesise-sexp ((fun (eql 'negedge)) args (context (eql :inexpression)))
+  (destructuring-bind (pin)
+      args
+    (as-literal "negedge(")
+    (synthesise pin :inexpression)
+    (as-literal")")))

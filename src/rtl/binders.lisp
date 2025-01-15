@@ -187,6 +187,12 @@ This is only required if DECL's value is not a constant."
       t)))
 
 
+(defun array-value-p (form)
+  "Test whether FORM is an array constructor."
+  (and (listp form)
+       (eql (car form) 'make-array)))
+
+
 (defun synthesise-register (decl context)
   "Synthesise a register declaration within a LET block.
 
@@ -198,8 +204,14 @@ WIDTH defaulting to the system's global width."
     (synthesise width :inexpression)
     (as-literal " - 1 : 0 ] ")
     (synthesise n :indeclaration)
-    (as-literal " = ")
-    (synthesise v :inexpression)
+    (if (array-value-p v)
+	;; synthesise the array constructor
+	(synthesise v :indeclaration)
+
+	;; synthesise an initial value
+	(progn
+	  (as-literal " = ")
+	  (synthesise v :inexpression)))
     (as-literal ";")))
 
 

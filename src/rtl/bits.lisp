@@ -29,6 +29,10 @@
     '(fixed-width-unsigned 1)))
 
 
+(defmethod generalised-place-sexp-p ((fun (eql 'bit)) args env)
+  t)
+
+
 (defmethod synthesise-sexp ((fun (eql 'bit)) args context)
   (destructuring-bind (var bit)
       args
@@ -54,20 +58,27 @@
 	  ;; no end set, extract from width if present
 	  (progn
 	    (setq end (1+ (- start width)))
-	    (when (< end 0)
-	      (error 'not-synthesisable :fragment `(bits ,args)
-					:hint "Width greater than the number of remaining bits")))
+	    (if (< end 0)
+		(error 'not-synthesisable :fragment `(bits)
+					  :hint "Width greater than the number of remaining bits")
+		end))
 
 	  ;; default is to the end of the pattern
 	  0)
 
       (if width
 	  ;; if both are set, width and end must agree
-	  (when (/= width (1+ (- start end)))
-	    (error 'not-synthesisable :fragment `(bits ,@args)
-				      :hint "Explicit width does not agree with start and end positions"))
+	  (if (/= width (1+ (- start end)))
+	      (error 'not-synthesisable :fragment `(bits)
+					:hint "Explicit width does not agree with start and end positions")
+	      end)
 
+	  ;; otherwise just use the given end
 	  end)))
+
+
+(defmethod generalised-place-sexp-p ((fun (eql 'bits)) args env)
+  t)
 
 
 (defmethod typecheck-sexp ((fun (eql 'bits)) args env)

@@ -59,8 +59,7 @@
 		'(rtl::fixed-width-unsigned 8)))
 
   ;; too many bits for argument (because its width is inferred)
-  (signals (rtl:not-synthesisable
-	    )
+  (signals (rtl:not-synthesisable)
     (rtl:typecheck '(let ((a #2r10110))
 		     (rtl::bits a 7))
 		   emptyenv))
