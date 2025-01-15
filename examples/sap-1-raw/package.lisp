@@ -26,8 +26,11 @@
 		#:module
 		#:<<
 		#:>>
+		#:bits
 		#:@
+		#:with-bitfields
 		#:posedge
+		#:negedge
 		#:typecheck
 		#:synthesise
 		#:empty-environment))
