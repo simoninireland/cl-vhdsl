@@ -48,6 +48,17 @@
 
 ;; ---------- Triggered blocks ----------
 
+(defmethod typecheck-sexp ((fun (eql '@)) args env)
+  (destructuring-bind (sensitivities &rest body)
+      args
+    ;; check all sensitivities are single bits
+    (dolist (s sensitivities)
+      (ensure-subtype (typecheck s env) '(fixed-width-unsigned 1)))
+
+    ;; check the body in the outer environment
+    (mapn (rcurry #'typecheck env) body)))
+
+
 (defmethod synthesise-sexp ((fun (eql '@)) args (context (eql :inblock)))
   (destructuring-bind ((&rest sensitivities) &rest body)
       args
