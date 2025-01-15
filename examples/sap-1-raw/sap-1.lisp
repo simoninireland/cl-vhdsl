@@ -49,7 +49,7 @@
 
   (let ((pc 0 :width 3))
 
-    (q@ ((posedge clk) (posedge rst))
+    (@ ((posedge clk) (posedge rst))
        (cond (rst
 	      (setq pc #2r0))
 	     (inc
@@ -235,53 +235,59 @@
 ;; ---------- Top ----------
 
 (defmodule top ((clk_in :width 1 :direction :in :as :wire))
-
   (let ((rst :width 1 :as :wire)
-	(hlt :width 1 :as :wire)
 	(clk :width 1 :as :wire)
+
+	;; control word
+	(ctrl :width 13 :as :wire)
+
+	;; bus
 	(bus :width 8 :as :wire)
-	(ctrl :width 13 :as :wire))
+
+	;; bus feeder lines
+	(pc_out :width 8 :as :wire)
+	(mem_out :width 8 :as :wire)
+	(a_out :width 8 :as :wire)
+	(b_out :width 8 :as :wire)
+	(ir_out :width 8 :as :wire))
+
     (with-bitfields (hlt pc_inc pc_en mar_load mem_en ir_load
-		     ir_en a_load a_en b_load adder_sub adder_en))
+		     ir_en a_load a_en b_load adder_sub adder_en)
+	ctrl
 
-    (make-instance 'clock :hlt hlt :rst rst :clk_in clk_in :clk_out clk)
+      (make-instance 'clock :hlt hlt :rst rst :clk_in clk_in :clk_out clk)
 
-    (let ((pc_out :width 8 :as :wire))
-      (make-instance 'pc :clk clk :rst rst :inc pc_inc :out pc_out))
+      (make-instance 'pc :clk clk :rst rst :inc pc_inc :out pc_out)
 
-    (let ((mem_out :width 8  :as :wire))
       (make-instance 'memory :clk clk :rst rst
-			     :load mar_load :bus bus :out mem_out))
+			     :load mar_load :bus bus :out mem_out)
 
-    (let ((a_out :width 8  :as :wire))
       (make-instance 'reg_a :clk clk :rst rst
-			    :load a_load :bus bus :out a_out))
+			    :load a_load :bus bus :out a_out)
 
-    (let ((b_out :width 8  :as :wire))
       (make-instance 'reg_b :clk clk :rst rst
-			    :load b_load :bus bus :out b_out))
+			    :load b_load :bus bus :out b_out)
 
-    (make-instance 'adder :a a_out :b b_out
-			  :sub adder_sub :out adder_out)
+      (make-instance 'adder :a a_out :b b_out
+			    :sub adder_sub :out adder_out)
 
-    (let ((ir_out :width 8  :as :wire))
       (make-instance 'memory :clk clk :rst rst
-			     :load ir_load :bus bus :out ir_out))
+			     :load ir_load :bus bus :out ir_out)
 
-    (make-instance 'controller :clk clk :rst rst
-			       :opcode (bits ir_out 7 4)
-			       :out ctrl)
+      (make-instance 'controller :clk clk :rst rst
+				 :opcode (bits ir_out 7 4)
+				 :out ctrl)
 
-    (@ (ir_en addr_en a_en mem_en pc_en)
-       (cond (ir_en
-	      (setq bus ir_out))
-	     (addr_en
-	      (setq bus addr_out))
-	     (a_en
-	      (setq bus a_out))
-	     (mem_en
-	      (setq bus mem_out))
-	     (pc_en
-	      (setq bus pc_out))
-	     (t
-	      (setq bus 0))))))
+      (@ (ir_en addr_en a_en mem_en pc_en)
+	 (cond (ir_en
+		(setq bus ir_out))
+	       (addr_en
+		(setq bus addr_out))
+	       (a_en
+		(setq bus a_out))
+	       (mem_en
+		(setq bus mem_out))
+	       (pc_en
+		(setq bus pc_out))
+	       (t
+		(setq bus 0)))))))
