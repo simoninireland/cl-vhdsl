@@ -42,8 +42,7 @@
 
 ;; ---------- Program counter ----------
 
-(defmodule pc ((hlt :width 1 :direction :in)
-	       (clk :width 1 :direction :in)
+(defmodule pc ((clk :width 1 :direction :in)
 	       (rst :width 1 :direction :in)
 	       (inc :width 1 :direction :in)
 	       (out :width 8 :direction :out))
@@ -61,8 +60,7 @@
 
 ;; ---------- Registers ----------
 
-(defmodule reg_a ((hlt :width 1 :direction :in)
-		  (clk :width 1 :direction :in)
+(defmodule reg_a ((clk :width 1 :direction :in)
 		  (rst :width 1 :direction :in)
 		  (load :width 1 :direction :in)
 		  (bus :width 8 :direction :in)
@@ -79,8 +77,7 @@
     (setq out reg_a)))
 
 
-(defmodule reg_b ((hlt :width 1 :direction :in)
-		  (clk :width 1 :direction :in)
+(defmodule reg_b ((clk :width 1 :direction :in)
 		  (rst :width 1 :direction :in)
 		  (load :width 1 :direction :in)
 		  (bus :width 8 :direction :in)
@@ -112,8 +109,7 @@
 
 ;; ---------- Memory ----------
 
-(defmodule memory ((hlt :width 1 :direction :in)
-		   (clk :width 1 :direction :in)
+(defmodule memory ((clk :width 1 :direction :in)
 		   (rst :width 1 :direction :in)
 		   (load :width 1 :direction :in)
 		   (bus :width 8 :direction :in)
@@ -121,8 +117,7 @@
 
   (let ((mar 0 :width 4)
 	(ram (make-array '(16)
-			 :element-type '(fixed-width-unsigned 8))
-	     ))
+			 :element-type '(fixed-width-unsigned 8))))
 
     (@ ((posedge clk) (posedge rst))
        (cond (rst
@@ -135,8 +130,7 @@
 
 ;; ---------- Instruction register----------
 
-(defmodule ir ((hlt :width 1 :direction :in)
-	       (clk :width 1 :direction :in)
+(defmodule ir ((clk :width 1 :direction :in)
 	       (rst :width 1 :direction :in)
 	       (load :width 1 :direction :in)
 	       (bus :width 8 :direction :in)
@@ -240,29 +234,34 @@
 ;; ---------- Top ----------
 
 (defmodule top ((clk_in :width 1 :direction :in :as :wire))
-  (let ((rst :width 1 :as :wire)
-	(clk :width 1 :as :wire)
+  (let ((rst 0 :width 1 :as :wire)
+	(clk 0 :width 1 :as :wire)
 
 	;; control word
-	(ctrl :width 13 :as :wire)
+	(ctrl 0 :width 13 :as :wire)
 
 	;; bus
-	(bus :width 8 :as :wire)
+	(bus 0 :width 8 :as :wire)
 
 	;; bus feeder lines
-	(pc_out :width 8 :as :wire)
-	(mem_out :width 8 :as :wire)
-	(a_out :width 8 :as :wire)
-	(b_out :width 8 :as :wire)
-	(ir_out :width 8 :as :wire))
+	(pc_out    0 :width 8 :as :wire)
+	(mem_out   0 :width 8 :as :wire)
+	(addr_out  0 :width 8 :as :wire)
+	(a_out     0 :width 8 :as :wire)
+	(b_out     0 :width 8 :as :wire)
+	(adder_out 0 :width 8 :as :wire)
+	(ir_out    0 :width 8 :as :wire))
 
     (with-bitfields (hlt pc_inc pc_en mar_load mem_en ir_load
-		     ir_en a_load a_en b_load adder_sub adder_en)
+		     ir_en a_load a_en b_load adder_sub addr_en)
 	ctrl
 
-      (make-instance 'clock :hlt hlt :rst rst :clk_in clk_in :clk_out clk)
+      (make-instance 'clock :hlt hlt :clk_in clk_in :clk_out clk)
 
       (make-instance 'pc :clk clk :rst rst :inc pc_inc :out pc_out)
+
+      (make-instance 'ir :clk clk :rst rst
+			 :load ir_load :bus bus :out ir_out)
 
       (make-instance 'memory :clk clk :rst rst
 			     :load mar_load :bus bus :out mem_out)
@@ -280,7 +279,7 @@
 			     :load ir_load :bus bus :out ir_out)
 
       (make-instance 'controller :clk clk :rst rst
-				 :opcode (bits ir_out 7 4)
+				 :opcode (bits ir_out 7 :width 4)
 				 :out ctrl)
 
       (@ (ir_en addr_en a_en mem_en pc_en)
