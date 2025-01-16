@@ -107,12 +107,12 @@ a .v (Verilog) extension."
   (load fn :if-does-not-exist t))
 
 
-(defun synthesise-module (m fn)
-  "Synthesise module M into FN."
+(defun compile-and-save-module (m fn)
+  "Compile module M into FN."
   (with-open-file (str fn :direction :output
 			  :if-exists :supersede)
     (let ((*synthesis-stream* str))
-      (synthesise m :toplevel))))
+      (compile-module m))))
 
 
 ;; ---------- Main function ----------
@@ -155,14 +155,15 @@ a .v (Verilog) extension."
 		m
 	      (let ((fn (filename-for-module modname)))
 		(when (> *verbosity* 0)
-		  (format *standard-output* "Synthesiing ~a to ~a~%"
+		  (format *standard-output* "Compiling ~a to ~a~%"
 			  modname fn))
-		(synthesise-module module fn)))
+		(compile-and-save-module module fn)))
 
 	  (ignore-file-with-errors () nil))))
 
     ;; report errors if there were any
-    (when (> *verbosity* 0)
+    (when (and (> *verbosity* 0)
+	       (> *errors* 0))
       (format *standard-output* "~a errors~%" *errors*))
 
     ;; exit
