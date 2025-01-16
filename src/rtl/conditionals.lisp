@@ -20,7 +20,7 @@
     (let ((tycond (typecheck condition env))
 	  (tythen (typecheck then env))
 	  (tyelse (if else
-		      (typecheck (cons 'progn else) env))))
+		      (typecheck `(progn ,@else) env))))
       (ensure-boolean tycond env)
 
       ;; the type of the expression is the widest of the

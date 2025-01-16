@@ -41,28 +41,24 @@
    #:get-environment-properties
 
    ;; extra RTLisp functions and macros
+   #:fixed-width-unsigned
+   #:fixed-width-signed
    #:<<
    #:>>
    #:@
    #:posedge
    #:negedge
    #:bits
-   #:with-bitfieldds
+   #:with-bitfields
    #:defmodule
 
-   ;; validation
+   ;; compiler nanopasses
    #:typecheck
-
-   ;; transformations
    #:detect-shadowing
    #:float-let-blocks
    #:simplify-progn
    #:expand-macros
-
-   ;; synthesis
    #:synthesise
-
-   ;; Lispification
    #:lispify
 
    ;; loader

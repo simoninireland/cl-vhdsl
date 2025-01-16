@@ -117,7 +117,7 @@ values can't be defined in terms of other parameter values."
 
 (defun typecheck-module-arg (env decl)
   "Type-check a module argument declaration DECL in ENV."
-  (destructuring-bind (n &key (width 1) type (direction :in))
+  (destructuring-bind (n &key (width 1) type (direction :in) (as :wire))
       decl
     (ensure-direction direction)
 
@@ -318,12 +318,9 @@ and causes a NOT-IMPORTABLE error if not."
   (destructuring-bind (modname &rest initargs)
       args
 
-    ;; skip over leading quote of module name, for compatability with Common Lisp usage
-    (when (listp modname)
-      (if (eql (car modname) 'quote)
-	  (setq modname (cadr modname))
-
-	  (error 'unknown-module :module modname)))
+    ;; skip over leading quote of module name,
+    ;; for compatability with Common Lisp usage
+    (unquote modname)
 
     (let ((intf (get-module-interface modname))
 	  (modargs (keys-to-arguments modname initargs)))

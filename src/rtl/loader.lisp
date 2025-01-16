@@ -82,8 +82,6 @@ This variable contains all the modules that can be imported.")
 
 ;; ---------- Module declaration ----------
 
-;; Need to do more passes to expand module fully
-
 (defmacro defmodule (modname decls &body body)
   "Declare a module MODNAME with given DECLS and BODY.
 
@@ -97,8 +95,11 @@ module names will cause a DUPLICATE_MODULE error."
     (let* ((code `(module ,modname ,decls
 			  ,@body)))
       `(let ((,module ',code))
-	 ;; typecheck the module
-	 (let ((intf (typecheck ,module (empty-environment))))
+	 ;; expand and typecheck the module
+	 (let ((intf (funcall (compose (rcurry #'typecheck (empty-environment))
+				       #'expand-macros)
+			      ,module)))
+
 	   ;; add type to interfaces available for import
 	   (add-module-interface ',modname intf)
 

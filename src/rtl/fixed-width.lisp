@@ -120,6 +120,10 @@ If oneof the types is NIL then the lub is the other."
   (:documentation "Return the number of bits needed to represent VAL in ENV."))
 
 
+(defgeneric bitwidth-type (ty args env)
+  (:documentation "Return  the number of bits needed to represent a value of type TY given ARGS. "))
+
+
 (defmethod bitwidth ((val integer) env)
   (flet ((bits-for-integer (val)
 	   (multiple-value-bind (b res)
@@ -129,16 +133,16 @@ If oneof the types is NIL then the lub is the other."
 				  ;; power-of-two boundary
 				  (1+ b)
 				  b)
-			      1)))   ; always need at least one bit
+			      1)))	; always need at least one bit
 	       bits))))
-     (cond ((= val 0)
-	    1)
+    (cond ((= val 0)
+	   1)
 
-	   ((> val 0)
-	    (bits-for-integer val))
+	  ((> val 0)
+	   (bits-for-integer val))
 
-	   (t
-	    (1+ (bits-for-integer (abs val)))))))
+	  (t
+	   (1+ (bits-for-integer (abs val)))))))
 
 
 (defmethod bitwidth ((val symbol) env)
@@ -146,9 +150,25 @@ If oneof the types is NIL then the lub is the other."
 
 
 (defmethod bitwidth ((val list) env)
-  (if (member (car val) '(fixed-width-unsigned
-			  fixed-width-signed))
-      (if (or (= (length val) 0)
-	      (eql (cadr val) '*))
-	  *default-register-width*
-	  (cadr val))))
+  (destructuring-bind (ty &rest args)
+      val
+    (bitwidth-type ty args env)))
+
+
+(defmethod bitwidth-type ((fun (eql 'fixed-width-unsigned)) args env)
+  (if (or (= (length args) 0)
+	  (eql (car args) '*))
+      *default-register-width*
+      (car args)))
+
+
+(defmethod bitwidth-type ((fun (eql 'fixed-width-signed)) args env)
+  (if (or (= (length args) 0)
+	  (eql (car args) '*))
+      *default-register-width*
+      (car args)))
+
+
+;; for arrays we return the size of an element
+(defmethod bitwidth-type ((fun (eql 'array)) args env)
+  (bitwidth (car args) env))

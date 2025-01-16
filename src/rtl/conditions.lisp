@@ -25,41 +25,56 @@
 
 (define-condition rtl-condition ()
   ((fragment
-    :documentation "The code giving rise to the condition."
+    :documentation "The code giving rise to the condition.
+
+This is extracted automatically from the current function
+form queue, or can be provided explicitly using the :FRAGMENT key."
+    :initform (current-form)
     :initarg :fragment
     :reader fragment)
    (hint
     :documentation "A hint as to how to fix the condition."
     :initarg :hint
     :initform nil
-    :reader hint))
+    :reader hint)
+   (underlying-condition
+    :documentation "Any underlying condition that was converted to this.
+
+This allows RTL-CONDITION to be used to mask other, typically
+implementation-specific, conditions encountered during processing."
+    :initform nil
+    :initarg :underlying-condition
+    :reader underlying-condition))
   (:documentation "Base class for RTLisp conditions.
 
 The fragment is the code that gave rise to the condition. A
 hint can be given to suggest how to fix the issue."))
 
 
-(defvar *MAXIMUM-CODE-FRAGMENT-LENGTH* 40
+(defvar *maximum-code-fragment-length* 40
   "Length of code fragment to be reported in conditions.
 
 This only changes the printed length: the entire fragment is retained.")
 
 
-(defun format-fragment (cond)
-  "Format the fragment of COND  as a string.
+(defun format-condition-context (detail c str)
+  "Format the hint and code context of C on STR
 
-The string is cut-off after a length given by
-*MAXIMUM-CODE-FRAGMENT-LENGTH*."
-  (shorten *MAXIMUM-CODE-FRAGMENT-LENGTH*
-	   (format nil "~a" (fragment cond))
-	   :ellipsis "..."))
+DETAIL should be the detailed description of the condition. This
+will be followed by a hint (if available) and the code context
+(if available)."
+  (format str "~a" detail)
 
+  ;; add hint if present
+  (if-let ((hint (hint c)))
+    (format str " (~a)" hint))
 
-(defun format-hint (cond)
-  "If the hint of COND is non-nil, format it for display"
-  (if-let ((hint (hint cond)))
-      (format nil " (Hint: ~a)" hint)
-    ""))
+  ;; add context if known
+  (if-let ((code (fragment c)))
+    (format str "~%Context: ~a" (shorten *maximum-code-fragment-length*
+					 (format nil "~a" code)
+					 :ellipsis "..."))))
+
 
 
 ;; ---------- Synthesis ----------
@@ -67,9 +82,8 @@ The string is cut-off after a length given by
 (define-condition not-synthesisable (rtl-condition)
   ()
   (:report (lambda (c str)
-	     (format str "Could not synthesise code~a: ~a"
-		     (format-hint c)
-		     (format-fragment c))))
+	     (format-condition-context "Could not synthesise code"
+				       c str)))
   (:documentation "Condition signalled when code can't be synthesised.
 
 This usually indicates that the Lisp fragment provided is un-parsable because
@@ -86,8 +100,9 @@ synthesiser's code generator."))
     :initarg :variables
     :reader variables))
   (:report (lambda (c str)
-	     (format str "Unknown variable(s) ~a"
-		     (variables c))))
+	     (format-condition-context (format nil "Unknown variable(s) ~a"
+					       (variables c))
+				       c str)))
   (:documentation "Condition signalled when one or more undeclared variables are encountered.
 
 This is caused either by an undeclared variable or by use of a variable
@@ -100,12 +115,14 @@ that should be declared in the architectural environment, such as a register."))
     :initarg :module
     :reader module))
   (:report (lambda (c str)
-	     (format str "Unknown module ~a"
-		     (module c))))
+	     (format-condition-context (format nil "Unknown module ~a"
+					       (module c))
+				       c str)))
   (:documentation "Condition signalled when an unnown module is imported.
 
 This means that the required module isn't available, either having not yet
 been defined or not having been imported."))
+
 
 (define-condition duplicate-variable (rtl-condition)
   ((var
@@ -114,8 +131,9 @@ been defined or not having been imported."))
     :initarg :variables
     :reader variables))
   (:report (lambda (c str)
-	     (format str "Duplicate variable(s) ~a"
-		     (variables c))))
+	     (format-condition-context (format nil "Duplicate variable(s) ~a"
+					       (variables c))
+				       c str)))
   (:documentation "Condition signalled when a variable is re-defined in the same scope."))
 
 
@@ -125,8 +143,9 @@ been defined or not having been imported."))
     :initarg :module
     :reader module))
   (:report (lambda (c str)
-	     (format str "Duplicate module ~a"
-		     (module c))))
+	     (format-condition-context (format nil "Duplicate module ~a"
+					       (module c))
+				       c str)))
   (:documentation "Condition signalled when a module is re-defined."))
 
 
@@ -136,9 +155,9 @@ been defined or not having been imported."))
     :initarg :module
     :reader module))
   (:report (lambda (c str)
-	     (format str "Module ~a can't be imported~a"
-		     (module c)
-		     (format-hint c))))
+	     (format-condition-context (format nil "Module ~a can't be imported"
+					       (module c))
+				       c str)))
   (:documentation "Condition signalled when a module can't be imported.
 
 This is usually caused by mismatched arguments, either an unknown argument
@@ -155,9 +174,10 @@ being provided in the import or one that's needed not being provided."))
     :initarg :got
     :reader received-value))
   (:report (lambda (c str)
-	     (format str "Expected a value that is one of ~s, got ~s"
-		     (expected-values c)
-		     (received-value c))))
+	     (format-condition-context (format nil "Expected a value that is one of ~s, got ~s"
+					       (expected-values c)
+					       (received-value c))
+				       c str)))
   (:documentation "Condition signalled when a mis-matched value is received."))
 
 
@@ -171,9 +191,10 @@ being provided in the import or one that's needed not being provided."))
     :initarg :got
     :reader received-value))
   (:report (lambda (c str)
-	     (format str "Expected a direction that is one of ~s, got ~s"
-		     (expected-values c)
-		     (received-value c))))
+	     (format-condition-context (format nil "Expected a direction that is one of ~s, got ~s"
+					       (expected-values c)
+					       (received-value c))
+				       c str)))
   (:documentation "Condition signalled when a mis-matched direction is received.
 
 This is usually caused by assigning to a module argument denoteed :IN."))
@@ -189,9 +210,10 @@ This is usually caused by assigning to a module argument denoteed :IN."))
     :initarg :got
     :reader received-type))
   (:report (lambda (c str)
-	     (format str "Expected a value of type ~a, got one of type ~a"
-		     (expected-type c)
-		     (received-type c))))
+	     (format-condition-context (format nil "Expected a value of type ~a, got one of type ~a"
+					       (expected-type c)
+					       (received-type c))
+				       c str)))
   (:documentation "Condition signalled when types don't match.
 
 The most common case is making an assignment of an expression to a
@@ -207,9 +229,10 @@ caused by the assignment."))
     :initarg :pattern
     :reader pattern))
   (:report (lambda (c str)
-	     (format str "Can't interpret bitfield pattern~a: ~a"
-		     (format-hint c)
-		     (pattern c))))
+	     (format-condition-context (format nil "Can't interpret bitfield pattern~a: ~a"
+					       (format-hint c)
+					       (pattern c))
+				       c str)))
   (:documentation "Condition signalled when a bitfield pattern can't be parsed.
 
 This is usually caused by non-consecutive uses of variables in the pattern."))

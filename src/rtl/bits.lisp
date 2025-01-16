@@ -59,8 +59,7 @@
 	  (progn
 	    (setq end (1+ (- start width)))
 	    (if (< end 0)
-		(error 'not-synthesisable :fragment `(bits)
-					  :hint "Width greater than the number of remaining bits")
+		(error 'not-synthesisable :hint "Width greater than the number of remaining bits")
 		end))
 
 	  ;; default is to the end of the pattern
@@ -69,8 +68,7 @@
       (if width
 	  ;; if both are set, width and end must agree
 	  (if (/= width (1+ (- start end)))
-	      (error 'not-synthesisable :fragment `(bits)
-					:hint "Explicit width does not agree with start and end positions")
+	      (error 'not-synthesisable :hint "Explicit width does not agree with start and end positions")
 	      end)
 
 	  ;; otherwise just use the given end
@@ -89,8 +87,7 @@
 
       (let ((l (1+ (- start end))))
 	(when (> l (bitwidth tyvar env))
-	  (error 'not-synthesisable :fragment `(bits ,@args)
-				    :hint "Width greater than base variable"))
+	  (error 'not-synthesisable :hint "Width greater than base variable"))
 	`(fixed-width-unsigned ,l)))))
 
 
@@ -237,8 +234,7 @@ the lowest-order bit being 0.
 If the fixed bits do not match, BODY is not evaluated."
   (let ((runs (extract-bitfields pattern)))
     (if (bitfield-contains-fixed-bits-p runs)
-	(error 'not-synthesisable :fragment pattern
-				  :hint "Fixed bits not yet implemented")
+	(error 'not-synthesisable :hint "Fixed bits not yet implemented")
 
 	;; no fixed bits, don't synthesise tests
 	(let* ((decls (mapcar (curry #'run-to-decl arg) runs))

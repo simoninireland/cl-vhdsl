@@ -19,13 +19,31 @@
 
 (in-package :cl-vhdsl/rtl)
 
-(defun ensure-boolean (form env)
-  "Ensure FORM is a boolean (bit) in ENV.
+(defun ensure-boolean (ty env)
+  "Ensure TY is a boolean (bit) in ENV.
 
-Signals TYPE-MISMATCH if FORM isn't boolean, which may be ignored
+Signals TYPE-MISMATCH if TY isn't boolean, which may be ignored
 in many applications."
-  (ensure-subtype form 'bit))
+  (ensure-subtype ty 'bit))
 
 
-(defmethod synthesise-sexp ((fun (eql 'logand)) args (context (eql :inexpression)))
-  (as-infix '& args))
+
+;; ---------- Comparisons ----------
+
+(defmethod typecheck-sexp ((fun (eql '=)) args env)
+  (destructuring-bind (l r)
+      args
+    (ensure-boolean (typecheck l env) env)
+    (ensure-boolean (typecheck r env) env)
+
+    '(fixed-width-unsigned 1)))
+
+
+(defmethod synthesise-sexp ((fun (eql '=)) args (context (eql :inexpression)))
+  (destructuring-bind (l r)
+      args
+    (as-literal "(")
+    (synthesise l :inexpression)
+    (as-literal " == ")
+    (synthesise r :inexpression)
+    (as-literal ")")))

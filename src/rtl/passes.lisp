@@ -21,7 +21,7 @@
 (declaim (optimize debug))
 
 
-;; ---------- Helper macro ----------
+;; ---------- Helper macros ----------
 
 ;; Needs more finesse -- at the moment does nothing useful
 
@@ -36,6 +36,31 @@ as NON-SYNTHESISABLE errors."
 				   (t
 				    (error cond))))))
      ,@body))
+
+
+(defparameter *current-form-queue* nil
+  "The current form being evaluated.
+
+This is a stack of forms being evaluated, used to contextualise
+conditions.")
+
+
+(defmacro with-current-form (form &body body)
+  "Execute BODY within the current FORM.
+
+Any conditions reported in BODY will be pointed as FORM as the current
+form."
+  `(unwind-protect
+	(progn
+	  (push ,form *current-form-queue*)
+	  ,@body)
+
+     (pop *current-form-queue*)))
+
+
+(defun current-form ()
+  "Return the current form."
+  (car *current-form-queue*))
 
 
 ;; ---------- Variable shadowing ----------
@@ -105,7 +130,20 @@ FUN itself is never re-written.")
     (let ((fun (car form))
 	  (args (cdr form)))
       (with-rtl-errors-not-synthesisable
-	(typecheck-sexp fun args env)))))
+	(with-current-form (cons fun args)
+	    (typecheck-sexp fun args env))))))
+
+
+;; Wrap an error catcher around the function to convert parsing
+;; issues (which signal implementation-specific conditions)
+;; into not-synthesisable conditions
+
+(defmethod typecheck :around (form env)
+  (handler-bind
+      ((error (lambda (cond)
+		(error 'not-synthesisable :underlying-condition cond
+					  :hint "Syntax error"))))
+    (call-next-method)))
 
 
 (defgeneric typecheck-sexp (fun args env)

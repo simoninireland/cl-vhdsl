@@ -37,7 +37,7 @@ and not an input argument."
 Signals NOT-SYNTHESISABLE if an attempt is made to update a
 constant or an input parameter."
   (unless (writeable-p n env)
-    (error 'not-synthesisable :fragment `(setf ,n))))
+    (error 'not-synthesisable :hint "Ensure target is writeable")))
 
 
 ;; ---------- setq ----------
@@ -98,6 +98,9 @@ By default forms are /not/ generalised places.")
 
 ;; No need to dive into the args in most cases, just the selector
 
+;; There might be a better approach to tis using reference types
+;; to differentiate between l- and r-value instances
+
 (defgeneric generalised-place-sexp-p (fun args env)
   (:documentation "Test whether FUN applied to ARGS identifies a generalised place in ENV.
 
@@ -109,8 +112,7 @@ The default is for a form /not/ to be a generalised place.")
 (defun ensure-generalised-place (form env)
   "Ensure FORM is a generalised place in ENV."
   (unless (generalised-place-p form env)
-    (error 'not-synthesisable :fragment form
-			      :hint "Make sure the code identifies a generalised, SETF-able, place")))
+    (error 'not-synthesisable :hint "Make sure the code identifies a generalised, SETF-able, place")))
 
 
 (defmethod typecheck-sexp ((fun (eql 'setf)) args env)

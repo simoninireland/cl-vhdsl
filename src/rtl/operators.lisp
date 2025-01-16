@@ -28,11 +28,10 @@
 
 A NOT-SYNTHESISABLE erre is raised if the arguments are wrong."
    (if (/= (length args) n)
-      (error 'not-synthesisable :fragment (cons fun args)
-				:hint (format nil "Operator needs exactly ~a arguments" n))))
+      (error 'not-synthesisable :hint (format nil "Operator needs exactly ~a arguments" n))))
 
 
-;; ---------- Operators ----------
+;; ---------- Maths ----------
 
 (defun typecheck-addition (args env)
   "Type-check an addition or subtraction of ARGS in ENV.
@@ -92,6 +91,8 @@ plus the number of other arguments."
 		      args)))
     `(- ,@vals)))
 
+
+;; ---------- Shifts ----------
 
 ;; Verilog provides left and right shift operators; Common Lisp uses ash
 ;; and switches depending on the sign of the shift (negative for right).
@@ -159,3 +160,9 @@ plus the number of other arguments."
 			(lispify arg env))
 		      args)))
     `(ash ,(car vals) (- ,(cadr vals)))))
+
+
+;; ---------- Logical operators ----------
+
+(defmethod synthesise-sexp ((fun (eql 'logand)) args (context (eql :inexpression)))
+  (as-infix '& args))
