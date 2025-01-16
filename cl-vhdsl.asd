@@ -118,5 +118,5 @@
   :components ((:file "package")
 	       (:file "vhdslc"))
   :build-operation "program-op"
-  :build-pathname "../../vhdslc"
+  :build-pathname "../../bin/vhdslc"
   :entry-point "cl-vhdsl/cli:main")

@@ -35,6 +35,7 @@ SOURCES_DOC_BUILD_DIR = doc/_build
 
 BINARIES = \
 	vhdslc
+BINARIES_BUILD_DIR = bin
 
 
 # ----- Tools -----
@@ -49,6 +50,7 @@ ACTIVATE = . $(VENV)/bin/activate
 ETAGS = etags
 CHDIR = cd
 RM = rm -fr
+MKDIR = mkdir -p
 
 # Files that are locally changed vs the remote repo
 # (See https://unix.stackexchange.com/questions/155046/determine-if-git-working-directory-is-clean-from-a-script)
@@ -76,14 +78,8 @@ help:
 
 # Build the output binaries
 bin: $(BINARIES)
+	$(MKDIR) $(BINARIES_BUILD_DIR)
 	$(LISP) $(LISPOPTS) \
-	--eval '(ql:quickload :alexandria)' \
-	--eval '(ql:quickload :closer-mop)' \
-	--eval '(ql:quickload :cl-ppcre)' \
-	--eval '(ql:quickload :slot-extra-options)' \
-	--eval '(ql:quickload :unix-opts)' \
-	--eval '(ql:quickload :cl-vhdsl)' \
-	--eval '(ql:quickload :cl-vhdsl/cli)' \
 	--eval '(asdf:make :cl-vhdsl/cli)' \
 	--eval '(quit)'
 
