@@ -54,7 +54,7 @@
        (cond (rst
 	      (setq pc #2r0))
 	     (inc
-	      (incf pc))))
+	      (setq pc (+ pc 1)))))
 
     (setf out pc)))
 
@@ -63,6 +63,7 @@
 
 (defmodule reg_a ((hlt :width 1 :direction :in)
 		  (clk :width 1 :direction :in)
+		  (rst :width 1 :direction :in)
 		  (load :width 1 :direction :in)
 		  (bus :width 8 :direction :in)
 		  (out :width 8 :direction :out))
@@ -80,6 +81,7 @@
 
 (defmodule reg_b ((hlt :width 1 :direction :in)
 		  (clk :width 1 :direction :in)
+		  (rst :width 1 :direction :in)
 		  (load :width 1 :direction :in)
 		  (bus :width 8 :direction :in)
 		  (out :width 8 :direction :out))
@@ -112,6 +114,7 @@
 
 (defmodule memory ((hlt :width 1 :direction :in)
 		   (clk :width 1 :direction :in)
+		   (rst :width 1 :direction :in)
 		   (load :width 1 :direction :in)
 		   (bus :width 8 :direction :in)
 		   (out :width 8 :direction :out))
@@ -119,13 +122,13 @@
   (let ((mar 0 :width 4)
 	(ram (make-array '(16)
 			 :element-type '(fixed-width-unsigned 8))
-	     :width 8))
+	     ))
 
     (@ ((posedge clk) (posedge rst))
        (cond (rst
 	      (setq mar #2r0))
 	     (load
-	      (setf mar (bitwidth bus 3)))))
+	      (setf mar (bits bus 3)))))
 
     (setq out (aref ram mar))))
 
@@ -134,6 +137,7 @@
 
 (defmodule ir ((hlt :width 1 :direction :in)
 	       (clk :width 1 :direction :in)
+	       (rst :width 1 :direction :in)
 	       (load :width 1 :direction :in)
 	       (bus :width 8 :direction :in)
 	       (out :width 8 :direction :out))
@@ -142,7 +146,7 @@
 
     (@ ((posedge clk) (posedge rst))
        (cond (rst
-	      (setq pc #2r0))
+	      (setq ir #2r0))
 	     (load
 	      (setq ir bus))))
 
@@ -182,53 +186,53 @@
 	      (setq stage 0))
 	     ((= stage 5)
 	      (setq stage 0)
-	      (incf stage))))
+	      (setq stage (+ 1 stage)))))
 
     (@ (stage)
        (setq ctrl_word 0 :sync t)
 
        (case stage
 	 (0
-	  (setf (aref ctrl_word sig_pc_en) 1)
-	  (setf (aref ctrl_word sig_mem_load) 1))
+	  (setf (bit ctrl_word sig_pc_en) 1)
+	  (setf (bit ctrl_word sig_mem_load) 1))
 	 (1
-	  (setf (aref ctrl_word sig_pc_inc) 1))
+	  (setf (bit ctrl_word sig_pc_inc) 1))
 	 (2
-	  (setf (aref ctrl_word sig_mem_en) 1)
-	  (setf (aref ctrl_word sig_ir_load) 1))
+	  (setf (bit ctrl_word sig_mem_en) 1)
+	  (setf (bit ctrl_word sig_ir_load) 1))
 	 (3
 	  (case opcode
 	    (op_lda
-	     (setf (aref ctrl_word sig_ir_en) 1)
-	     (setf (aref ctrl_word sig_mem_load) 1))
+	     (setf (bit ctrl_word sig_ir_en) 1)
+	     (setf (bit ctrl_word sig_mem_load) 1))
 	    (op_add
-	     (setf (aref ctrl_word sig_ir_en) 1)
-	     (setf (aref ctrl_word sig_mem_load) 1))
+	     (setf (bit ctrl_word sig_ir_en) 1)
+	     (setf (bit ctrl_word sig_mem_load) 1))
 	    (op_sub
-	     (setf (aref ctrl_word sig_ir_en) 1)
-	     (setf (aref ctrl_word sig_mem_load) 1))
+	     (setf (bit ctrl_word sig_ir_en) 1)
+	     (setf (bit ctrl_word sig_mem_load) 1))
 	    (op_hlt
-	     (setf (aref ctrl_word sig_hlt) 1))))
+	     (setf (bit ctrl_word sig_hlt) 1))))
 	 (4
 	  (case opcode
 	    (op_lda
-	     (setf (aref ctrl_word sig_mem_en) 1)
-	     (setf (aref ctrl_word sig_a_load) 1))
+	     (setf (bit ctrl_word sig_mem_en) 1)
+	     (setf (bit ctrl_word sig_a_load) 1))
 	    (op_add
-	     (setf (aref ctrl_word sig_mem_en) 1)
-	     (setf (aref ctrl_word sig_b_load) 1))
+	     (setf (bit ctrl_word sig_mem_en) 1)
+	     (setf (bit ctrl_word sig_b_load) 1))
 	    (op_sub
-	     (setf (aref ctrl_word sig_mem_en) 1)
-	     (setf (aref ctrl_word sig_b_load) 1))))
+	     (setf (bit ctrl_word sig_mem_en) 1)
+	     (setf (bit ctrl_word sig_b_load) 1))))
 	 (5
 	  (case opcode
 	    (op_add
-	     (setf (aref ctrl_word sig_adder_en) 1)
-	     (setf (aref ctrl_word sig_a_load) 1))
+	     (setf (bit ctrl_word sig_adder_en) 1)
+	     (setf (bit ctrl_word sig_a_load) 1))
 	    (op_sub
-	     (setf (aref ctrl_word sig_adder_sub) 1)
-	     (setf (aref ctrl_word sig_adder_en) 1)
-	     (setf (aref ctrl_word sig_a_load) 1))))))
+	     (setf (bit ctrl_word sig_adder_sub) 1)
+	     (setf (bit ctrl_word sig_adder_en) 1)
+	     (setf (bit ctrl_word sig_a_load) 1))))))
 
     (setq out ctrl_word)))
 
