@@ -21,11 +21,10 @@
 FPGA_DEVICE = hx1k
 FPGA_PACKAGE = tq144
 
-
 # ---------- Tools ----------
 
 # Tools
-VHDSLC = ../../vhdslc
+VHDSLC = ../../bin/vhdslc
 SYNTH = yosys
 PNR = nextpnr-ice40
 PACK = icepack
@@ -48,27 +47,6 @@ GENERATED_STEMS = $(foreach fn,$(SOURCES), $(shell basename $(fn) .v))
 GENERATED = $(foreach stem,$(GENERATED_STEMS),$(stem).asc $(stem).bin $(stem).json)
 
 
-# ---------- Top-level targets ----------
-
-# Build the target bitstream
-$(TARGET): $(SOURCES) $(CONFIG)
-
-
-# Upload the target bitstream to the device
-upload: $(TARGET)
-	$(PROGRAM) $(PROGRAM_OPTS) $<
-
-
-# Clean-up the build directory
-clean:
-	$(RM) $(GENERATED)
-
-
-# Print a help message
-help:
-	@make usage
-
-
 # ---------- Implicit rules ----------
 
 %.v: %.lisp
@@ -82,18 +60,3 @@ help:
 
 %.bin: %.asc
 	$(PACK) $< $*.bin
-
-
-# ----- Usage -----
-
-define HELP_MESSAGE
-Available targets:
-   make              make the target
-   make upload       upload the bitstream to the FPGA
-   make clean        clean-up the build directory
-
-endef
-export HELP_MESSAGE
-
-usage:
-	@echo "$$HELP_MESSAGE"
