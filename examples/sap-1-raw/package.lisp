@@ -20,17 +20,4 @@
 (in-package :common-lisp-user)
 
 (defpackage cl-vhdsl/examples/sap-1-raw
-  (:use :cl)
-  (:import-from :cl-vhdsl/rtl
-		#:defmodule
-		#:module
-		#:<<
-		#:>>
-		#:bits
-		#:@
-		#:with-bitfields
-		#:posedge
-		#:negedge
-		#:typecheck
-		#:synthesise
-		#:empty-environment))
+  (:use :cl :cl-vhdsl/rtl))
