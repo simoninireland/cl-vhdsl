@@ -148,9 +148,9 @@ L can be a list or a pair."
 
 If the lists are empty, the result is NIL.
 
-The name MAPN is supposed to invoke the behaviour of PROGN."
+The name MAPN is supposed to bring to mind the behaviour of PROGN."
   (let ((res (apply #'mapcar (cons fun lists))))
-    (if (listp res)
+    (if (not (null res))
 	(car (last res)))))
 
 
