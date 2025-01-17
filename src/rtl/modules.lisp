@@ -346,6 +346,20 @@ and causes a NOT-IMPORTABLE error if not."
 	intf))))
 
 
+(defmethod rewrite-variables-sexp ((fun (eql 'make-instance)) args rewrites)
+  (labels ((rewrite-args (l)
+	     (if (null l)
+		 l
+		 (append (list (car l)
+			     (rewrite-variables (cadr l) rewrites))
+			 (rewrite-args (cddr l))))))
+    (destructuring-bind (modname &rest initargs)
+	args
+      `(,fun ,modname ,@(rewrite-args initargs))
+
+      ))
+  )
+
 (defun synthesise-arg-binding (decl context args)
   "Synthesise the binding of DECL from ARGS."
   (destructuring-bind (n &key &allow-other-keys)
