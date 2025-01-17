@@ -141,17 +141,36 @@ Signal VALUE-MISMATCH as an error if not."
 (defun float-let-blocks-decl (decl)
   "Decompose DECL into an assignment.
 
-This is only required if DECL's value is not a constant."
+This is only required if DECL's value is not a constant,
+and where there is a sensible initialiser."
   (destructuring-bind (n v &key &allow-other-keys)
       decl
-    `(setq ,n ,v)))
+    (if (array-value-p v)
+	nil
+
+	;; set the initial value
+	(if (= v 0)
+	    nil
+	    `(setq ,n ,v)))))
 
 
 (defun float-let-blocks-zero (decl)
-  "Re-write DECL to have a zero initial value."
+  "Re-write DECL to have a zero initial value.
+
+If the initial value is an array, handle it differently."
   (destructuring-bind (n v &rest keys)
       decl
-    `(,n 0 ,@keys)))
+    (if (array-value-p v)
+	;; array values stay declared as such
+	`(,n ,v ,@keys)
+
+	;; non-arrays are zeroed
+	`(,n 0 ,@keys))))
+
+
+(defun remove-nulls (l)
+  "Remove all sub-lists of L that are nil."
+  (remove-if #'null l))
 
 
 (defmethod float-let-blocks-sexp ((fun (eql 'let)) args)
@@ -161,8 +180,8 @@ This is only required if DECL's value is not a constant."
 
     ;; turn initial values into assignments
     ;; TODO: should ignore 0s
-    (let ((assignments (mapcar #'float-let-blocks-decl decls))
-	  (basedecls (mapcar #'float-let-blocks-zero decls)))
+    (let ((assignments (remove-nulls (mapcar #'float-let-blocks-decl decls)))
+	  (basedecls (remove-nulls (mapcar #'float-let-blocks-zero decls))))
       ;; extract the body and decls of the body
       (destructuring-bind (newbody newdecls)
 	  (float-let-blocks `(progn ,@assignments ,@body))
@@ -205,12 +224,7 @@ WIDTH defaulting to the system's global width."
     (synthesise n :indeclaration)
     (if (array-value-p v)
 	;; synthesise the array constructor
-	(synthesise v :indeclaration)
-
-	;; synthesise an initial value
-	(progn
-	  (as-literal " = ")
-	  (synthesise v :inexpression)))
+	(synthesise v :indeclaration))
     (as-literal ";")))
 
 
