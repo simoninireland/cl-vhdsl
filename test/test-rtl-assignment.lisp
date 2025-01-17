@@ -86,6 +86,13 @@
 		      :inblock)))
 
 
+(test test-typecheck-setq-generalised-place
+  "Test we catch the common mistake of using SETQ when we mean SETF."
+  (signals (rtl:not-synthesisable)
+    (rtl:typecheck '(let ((a 0 :width 4))
+		     (setq (bit a 0) 1))
+		   emptyenv)))
+
 
 ;; ---------- Generalised places (SETF) ----------
 
@@ -100,7 +107,6 @@
 				 (setf a 9 :sync t))
 			       emptyenv)
 		'(rtl::fixed-width-unsigned 8))))
-
 
 
 (test test-setf-variable

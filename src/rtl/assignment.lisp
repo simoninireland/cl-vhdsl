@@ -45,6 +45,10 @@ constant or an input parameter."
 (defmethod typecheck-sexp ((fun (eql 'setq)) args env)
   (destructuring-bind (n v &key sync)
       args
+    ;; catch the common mistake of using SETQ when we need SETF
+    (unless (symbolp n)
+      (error 'not-synthesisable :hint "Do you need SETF instead of SETQ?"))
+
     (let ((tyvar (typecheck n env))
 	  (tyval (typecheck v env)))
       (ensure-subtype tyval tyvar)
