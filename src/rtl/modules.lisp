@@ -343,7 +343,7 @@ and causes a NOT-IMPORTABLE error if not."
 			 (tyarg (get-type arg modenv)))
 		     (ensure-subtype tyval tyarg))))))
 
-	intf))))
+	(type-of intf)))))
 
 
 (defmethod rewrite-variables-sexp ((fun (eql 'make-instance)) args rewrites)
