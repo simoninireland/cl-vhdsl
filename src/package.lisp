@@ -1,6 +1,6 @@
-;; Package definition
+;; Package definition for utilities
 ;;
-;; Copyright (C) 2023 Simon Dobson
+;; Copyright (C) 2023--2025 Simon Dobson
 ;;
 ;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
 ;;
@@ -32,10 +32,8 @@
    #:foldl
    #:foldr
    #:mapn
-
-   ;; predicate combinators
-   #:any-of-p
-   #:all-of-p
+   #:n-copies
+   #:filter-by-predicate
 
    ;; data structure manipulations
    #:safe-cadr

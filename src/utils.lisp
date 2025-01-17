@@ -78,46 +78,37 @@ If either element is null, the pair is omitted."
 	      (zip-without-null (cdr xs) (cdr ys))))))
 
 
-;; ---------- Predicate combinators ----------
+;; ---------- Repetition ----------
 
-(defun generate-predicate-clause (p c)
-  "Geerate the predicate clause P testing variable C."
-  (cond ((symbolp p)
-	 `(,p ,c))
-	((consp p)
-	 (equal (symbol-name (car p)) "lambda")
-	 `(funcall ,p ,c))
-	(t
-	 (error "Can't parser disjunct ~a" p))))
+(defun n-copies (l n)
+  "Return a list consisting of N copies of L.
 
-
-(defun generate-predicate-clauses (preds c)
-  "Generate clauses for PREDS testing variable C."
-  (mapcar #'(lambda (p)
-	      (generate-predicate-clause p c))
-	  preds))
+L may be an atom or a list, including NIL."
+  (mapcar (lambda (i)
+	    (declare (ignore i))
+	    (if (listp l)
+		(copy-list l)
+		l))
+	  (iota n)))
 
 
-(defmacro any-of-p (&rest preds)
-  "Generate an inline lambda predicate matching any of PREDS.
+;; ---------- Filtering on multiplepredicates ----------
 
-Each element of PREDS can be a symbol representing a function (predicate)
-or an inline function (lambda-expression)."
-  (with-gensyms (c)
-    (let ((pred-clauses (generate-predicate-clauses preds c)))
-      `#'(lambda (,c)
-	   (or ,@pred-clauses)))))
+(defun filter-by-predicates (l &rest predicates)
+  "Return sub-lists of L matching PREDICATES.
 
+The return value is a list of sub-lists, one per predicate.
+Each sub-list consists of all the elements of L that match
+the corresponding predicate.
 
-(defmacro all-of-p (&rest preds)
-  "Generate an inline lambda predicate matching all of PREDS.
-
-Each element of PREDS can be a symbol representing a function (predicate)
-or an inline function (lambda-expression)."
-  (with-gensyms (c)
-    (let ((pred-clauses (generate-predicate-clauses preds c)))
-      `#'(lambda (,c)
-	   (and ,@pred-clauses)))))
+If an element of L satisfies several of PREDICATES it
+will appear several times, in each list. If elekents of L
+are duplicated, each suplicate will appear."
+  (mapcar (lambda (pred)
+	    (remove-if (lambda (v)
+			 (not (funcall pred v)))
+		       l))
+	  predicates))
 
 
 ;; ---------- Second element of pair or list ----------
@@ -125,7 +116,7 @@ or an inline function (lambda-expression)."
 ;; Neither of `elt' or `cadr' ar safe when applied to pairs.
 
 (defun safe-cadr (l)
-  "Return  the second element of L.
+  "Return the second element of L.
 
 L can be a list or a pair."
   (if (consp (cdr l))
