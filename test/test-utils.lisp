@@ -194,3 +194,71 @@
   "Test we can extract the last value of mapping over two lists."
   (is (= (mapn #'+ '(1 2 3) '(4 5 6))
 	 9)))
+
+
+;; ---------- Repetition ----------
+
+(test test-n-copies-atom
+  "Test we can replicate atoms."
+  (is (equal (n-copies 5 3)
+	     '(5 5 5)))
+  (is (equal (n-copies 'var 3)
+	     '(var var var)))
+  (is (equal (n-copies "bish" 5)
+	     '("bish" "bish" "bish" "bish" "bish"))))
+
+
+(test test-n-copies-list
+  "Test we can replicate lists, and they're independent."
+  (let ((l '(1 2 3)))
+    (is (equal (n-copies l 3)
+	       '((1 2 3) (1 2 3) (1 2 3))))
+
+    (is (equal (n-copies nil 4)
+	       '(() () () ())))
+
+    (let ((rep (n-copies l 3)))
+      ;; changing the original doesn't change the replicas
+      (setf (car l) 4)
+      (is (equal rep
+		 '((1 2 3) (1 2 3) (1 2 3))))
+
+      ;; changing one of the replicas doesn't change the others
+      (setf (car (car rep)) 4)
+      (is (equal rep
+		 '((4 2 3) (1 2 3) (1 2 3))))
+
+      ;; adding an element to a list doesn't change the others
+      (appendf (car rep) (list 5 6))
+      (is (equal rep
+		 '((4 2 3 5 6) (1 2 3) (1 2 3))))
+
+      ;; we can add an element to one repeated nil
+      (let ((repnil (n-copies nil 5)))
+	(appendf (cadr repnil) (list 1 2))
+	(is (equal repnil
+		   '(() (1 2) () () ())))))))
+
+
+;; ---------- Filtering by predicates ----------
+
+(test test-filter
+  "Test we can filter by predicates."
+  (is (equal (filter-by-predicates '(1 2 3 4 5 6 7)
+				   #'oddp #'evenp)
+	     '((1 3 5 7) (2 4 6))))
+
+  ;; repetition
+  (is (equal (filter-by-predicates '(1 2 3 4 1 5 6 7)
+				   #'oddp #'evenp)
+	     '((1 3 1 5 7) (2 4 6))))
+
+  ;; one predicate never satisfied
+  (is (equal (filter-by-predicates '(1 3 5 7)
+				   #'oddp #'evenp)
+	     '((1 3 5 7) ())))
+
+  ;; one value satisfying multiple predicates (0 is even and zero)
+  (is (equal (filter-by-predicates '(1 3 0 5 7)
+				   #'oddp #'evenp #'zerop)
+	     '((1 3 5 7) (0) (0)))))
