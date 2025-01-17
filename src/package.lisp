@@ -29,6 +29,7 @@
    #:listify
    #:delistify
    #:zip-without-null
+   #:remove-nulls
    #:foldl
    #:foldr
    #:mapn

@@ -78,6 +78,13 @@ If either element is null, the pair is omitted."
 	      (zip-without-null (cdr xs) (cdr ys))))))
 
 
+;; ---------- Filtering nulls ----------
+
+(defun remove-nulls (l)
+  "Remove all sub-lists of L that are nil."
+  (remove-if #'null l))
+
+
 ;; ---------- Repetition ----------
 
 (defun n-copies (l n)
