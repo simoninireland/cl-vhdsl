@@ -43,6 +43,7 @@
    ;; extra RTLisp functions and macros
    #:fixed-width-unsigned
    #:fixed-width-signed
+   #:module
    #:<<
    #:>>
    #:@
@@ -65,6 +66,7 @@
    #:clear-module-registry
    #:get-modules-for-synthesis
    #:defmodule
+   #:synthesise-module
 
    ;; conditions
    #:not-synthesisable

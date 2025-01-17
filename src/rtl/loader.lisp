@@ -85,20 +85,20 @@ This variable contains all the modules that can be imported.")
 (defmacro defmodule (modname decls &body body)
   "Declare a module MODNAME with given DECLS and BODY.
 
-The module is processed and type-checked, meaning that it will be
-at least minimally syntactically correct after definition.
+The module is loaded, macro-expanded, and type-checked, meaning that
+it will be at least minimally syntactically correct after definition.
 
 The module is added to the *MODULE-LIST* list for synthesis. Its
-type is added to *MODULE-INTRFACES* for importing. Duplicate
-module names will cause a DUPLICATE_MODULE error."
-  (with-gensyms (module)
+type is added to *MODULE-INTERFACES* for importing. Duplicate
+module names will cause a DUPLICATE-MODULE error."
+  (with-gensyms (module expanded)
     (let* ((code `(module ,modname ,decls
 			  ,@body)))
-      `(let ((,module ',code))
-	 ;; expand and typecheck the module
-	 (let ((intf (funcall (compose (rcurry #'typecheck (empty-environment))
-				       #'expand-macros)
-			      ,module)))
+      `(let* ((,module ',code)
+	      (,expanded (expand-macros ,module)))
+
+	 ;; typecheck the module
+	 (let ((intf (typecheck ,expanded (empty-environment))))
 
 	   ;; add type to interfaces available for import
 	   (add-module-interface ',modname intf)
@@ -107,3 +107,13 @@ module names will cause a DUPLICATE_MODULE error."
 	   (add-module-for-synthesis ',modname ,module )
 
 	   t)))))
+
+
+;; ---------- Module synthesis ----------
+
+(defun synthesise-module (m str)
+  "Synthesise module M to STR."
+  (with-synthesis-to-stream str
+      (funcall (compose (rcurry #'synthesise :toplevel)
+			(compose #'car #'float-let-blocks))
+	       m)))
