@@ -40,7 +40,7 @@
 
 
 (defmacro with-synthesis-to-stream (str &body body)
-  "Send all synthesise in BODY forms to STR."
+  "Send all code synthesised in the BODY forms to STR."
   `(let ((*synthesis-stream* str))
     ,@body))
 
