@@ -104,11 +104,11 @@ names to their new form. No checks are performed.")
     (if-let ((a (assoc form rewrite
 		       :key #'symbol-name
 		       :test #'string-equal)))
-      ;; reference to variable, re-write it
+      ;; reference to rewriteable variable, re-write it
       (let ((w (cadr a)))
 	w)
 
-      ;; not re-writeable
+      ;; leave alone
       form))
   (:method ((form list) rewrite)
     (destructuring-bind (fun &rest args)
@@ -119,9 +119,14 @@ names to their new form. No checks are performed.")
 (defgeneric rewrite-variables-sexp (fun args rewrite)
   (:documentation "Rewite variables in REWRITE in FUN applied to ARGS.
 
-FUN itself is never re-written.")
+Note that /everything/ gets re-written by default, including FUN.
+(This is the only consistent way to deal with, for example, macros
+that haven't yet been expanded in the body of a macro that needs to
+re-write variables, wuch as WITH-BITFIELDS.) Override the default
+method to change this behaviour.")
   (:method (fun args rewrite)
-    `(,fun ,@(mapcar (rcurry #'rewrite-variables rewrite) args))))
+    (mapcar (rcurry #'rewrite-variables rewrite)
+	    `(,fun ,@args))))
 
 
 ;; ---------- Type and width checking ----------
