@@ -201,7 +201,7 @@ values can't be defined in terms of other parameter values."
 
 (defun synthesise-arg (decl)
   "Return the code for argument DECL."
-  (destructuring-bind (n &key direction width)
+  (destructuring-bind (n &key direction width (as :wire))
       decl
     (as-literal (format nil "~a ~a~(~a~)"
 			(case direction
@@ -304,7 +304,7 @@ and causes a NOT-IMPORTABLE error if not."
 
     (unless (evenp (length modargs))
       (error 'not-importable :module modname
-			     :hint "Uneven number of initial arguments"))
+			     :hint "Uneven number of module arguments"))
 
     (mapcar #'symbol-name (every-argument modargs))))
 
@@ -328,9 +328,12 @@ and causes a NOT-IMPORTABLE error if not."
       (ensure-module-arguments-match-interface modname intf modargs)
 
       ;; typecheck the provided arguments against the interface
-      (let ((modenv (env-from-module-interface intf)))
+      (let ((modenv (env-from-module-interface intf))
+	    (initargs-plist (plist-alist initargs)))
 	(dolist (arg modargs)
-	  (let ((v (cdr (assoc arg (plist-alist initargs) :key #'symbol-name :test #'string-equal))))
+	  (let ((v (cdr (assoc arg initargs-plist
+			       :key #'symbol-name
+			       :test #'string-equal))))
 	    (cond ((argument-for-module-interface-p arg intf)
 		   (let ((tyval (typecheck v env))
 			 (tyarg (get-type arg modenv)))
@@ -341,3 +344,50 @@ and causes a NOT-IMPORTABLE error if not."
 		     (ensure-subtype tyval tyarg))))))
 
 	intf))))
+
+
+(defun synthesise-arg-binding (decl context args)
+  "Synthesise the binding of DECL from ARGS."
+  (destructuring-bind (n &key &allow-other-keys)
+      decl
+    (let ((v (cadr (assoc n args
+			  :key #'symbol-name
+			  :test #'string-equal
+			  ))))
+      (as-literal ".")
+      (synthesise n :indeclaration)
+      (as-literal "(")
+      (synthesise v :inexpression)
+      (as-literal ")"))))
+
+
+(defmethod synthesise-sexp ((fun (eql 'make-instance)) args (context (eql :inmodule)))
+  (labels ((args-to-alist (plist)
+	     "Convert a plist of arguments to an alist, respecting sub-lists. "
+	     (if (null plist)
+		 plist
+		 (cons (list (car plist) (cadr plist))
+		       (args-to-alist (cddr plist))))))
+
+    (destructuring-bind (modname &rest initargs)
+	args
+
+      ;; skip over leading quote of module name,
+      ;; for compatability with Common Lisp usage
+      (unquote modname)
+
+      (let ((intf (get-module-interface modname))
+	    (modargs (keys-to-arguments modname initargs))
+	    (modvar (gensym)))
+
+	(synthesise modvar :indeclaration)
+	(as-literal " ")
+	(synthesise modname :indeclaration)
+	(as-literal "(" :newline t)
+	;; arguments
+	(as-list (arguments intf) :indeclaration :indented t :newlines t
+						 :process (rcurry #'synthesise-arg-binding (args-to-alist initargs)))
+	(as-literal ");" :newline t)))))
+
+(defmethod synthesise-sexp ((fun (eql 'make-instance)) args (context (eql :inblock)))
+  (synthesise-sexp fun args :inmodule))
