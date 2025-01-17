@@ -151,13 +151,17 @@ values can't be defined in terms of other parameter values."
 (defmethod typecheck-sexp ((fun (eql 'module)) args env)
   (destructuring-bind (modname decls &rest body)
       args
-    (destructuring-bind (args params)
+    (destructuring-bind (modargs modparams)
 	(split-args-params decls)
-      (let ((ext (env-from-module-decls args params)))
+      ;; catch modules with no wires or registers
+      (unless (> (length modargs) 0)
+	(error 'not-synthesisable :hint "Module must import at least one wire or register"))
+
+      (let ((ext (env-from-module-decls modargs modparams)))
 	(typecheck (cons 'progn body) ext)
 
-	(let ((intf (make-instance 'module-interface :parameters params
-						     :arguments args)))
+	(let ((intf (make-instance 'module-interface :parameters modparams
+						     :arguments modargs)))
 	  intf)))))
 
 

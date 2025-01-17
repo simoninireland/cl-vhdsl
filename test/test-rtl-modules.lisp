@@ -22,6 +22,25 @@
 (declaim (optimize debug))
 
 
+(test test-typecheck-module
+  "Test we can typecheck a module definition."
+  (is (equal (type-of (rtl:typecheck '(rtl:module test ((clk :width 1 :direction :in)
+							:key (p 1))
+				       (let ((a 1))
+					 (setq a 0)))
+				     emptyenv))
+	     'rtl::module-interface)))
+
+
+(test test-module-no-wires
+  "Test modules always need a wire."
+  (signals (rtl:not-synthesisable)
+    (rtl:typecheck '(rtl:module test (:key (p 1))
+		     (let ((a 0))
+		       (setq a 1)))
+		   emptyenv)))
+
+
 (test test-synthesise-module
   "Test we can syntheise a module with a variety of features."
   (is (rtl:synthesise '(rtl::module test ((clk :width 1 :direction :in)
@@ -32,5 +51,5 @@
 			      (y 10 :width 8)
 			      (z 44 :as :constant))
 			  (rtl::@ ((rtl::posedge clk))
-			    (setf x (+ x b) :sync t))))
+				  (setf x (+ x b) :sync t))))
 		      :toplevel)))
