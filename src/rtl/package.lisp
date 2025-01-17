@@ -40,7 +40,7 @@
    #:get-environment-names
    #:get-environment-properties
 
-   ;; extra RTLisp functions and macros
+   ;; extra RTLisp functions and macros not in Common Lisp
    #:fixed-width-unsigned
    #:fixed-width-signed
    #:module
@@ -51,7 +51,6 @@
    #:negedge
    #:bits
    #:with-bitfields
-   #:defmodule
 
    ;; compiler nanopasses
    #:typecheck
@@ -64,6 +63,8 @@
 
    ;; loader
    #:clear-module-registry
+   #:get-module
+   #:get-module-interface
    #:get-modules-for-synthesis
    #:defmodule
    #:synthesise-module

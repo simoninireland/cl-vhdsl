@@ -75,6 +75,17 @@ This variable contains all the modules that can be imported.")
   (appendf *module-list* (list (list modname module))))
 
 
+(defun get-module (modname)
+  "Return the module code for MODNAME.
+
+This will typically have been set by DEFMODULE and so will have been
+type-checked, macro-expanded, and possibly had other passes applied."
+  (if-let ((m (assoc modname *module-list*)))
+    (cadr m)
+
+    (error 'unknown-module :module modname)))
+
+
 (defun get-modules-for-synthesis ()
   "Return an alist consisting of module names and their declarations."
   *module-list*)
