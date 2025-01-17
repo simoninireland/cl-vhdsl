@@ -149,7 +149,7 @@ and where there is a sensible initialiser."
 	nil
 
 	;; set the initial value
-	(if (= v 0)
+	(if (= v 0) ;; should compute to see if expression is constantly 0
 	    nil
 	    `(setq ,n ,v)))))
 
@@ -168,18 +168,12 @@ If the initial value is an array, handle it differently."
 	`(,n 0 ,@keys))))
 
 
-(defun remove-nulls (l)
-  "Remove all sub-lists of L that are nil."
-  (remove-if #'null l))
-
-
 (defmethod float-let-blocks-sexp ((fun (eql 'let)) args)
   (declare (optimize debug))
   (destructuring-bind (decls &rest body)
       args
 
     ;; turn initial values into assignments
-    ;; TODO: should ignore 0s
     (let ((assignments (remove-nulls (mapcar #'float-let-blocks-decl decls)))
 	  (basedecls (remove-nulls (mapcar #'float-let-blocks-zero decls))))
       ;; extract the body and decls of the body
