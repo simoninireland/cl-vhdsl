@@ -1,6 +1,6 @@
 ;; Synthesisable control flow
 ;;
-;; Copyright (C) 2024 Simon Dobson
+;; Copyright (C) 2024--2025 Simon Dobson
 ;;
 ;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
 ;;
@@ -53,7 +53,7 @@
       args
     ;; check all sensitivities are single bits
     (dolist (s sensitivities)
-      (ensure-subtype (typecheck s env) '(fixed-width-unsigned 1)))
+      (ensure-subtype (typecheck s env) 'fixed-width-unsigned))
 
     ;; check the body in the outer environment
     (mapn (rcurry #'typecheck env) body)))
