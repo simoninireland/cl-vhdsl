@@ -213,7 +213,7 @@ Fixed bits are constant 0s or 1s."
   "Create variables matching the bitfield PATTERN applied to ARG in BODY.
 
 The pattern consists of a list of variable names, with each
-entry corresponding to a bit position. Thr rightmost bit is
+entry corresponding to a bit position. The rightmost bit is
 bit zero, then bit one to its left, and so forth. If several
 consecutive positions have the same variable name, the variable
 takes multiple bits.
@@ -232,6 +232,12 @@ extracted from bits 7 to 5 and 4 to 1 respectively, and
 the lowest-order bit being 0.
 
 If the fixed bits do not match, BODY is not evaluated."
+
+  ;; catch the common error of forgetting the value
+  ;; to match against with a one-form body
+  (when (< (length body) 1)
+    (error 'not-synthesisable :hint "No value to match against?"))
+
   (let ((runs (extract-bitfields pattern)))
     (if (bitfield-contains-fixed-bits-p runs)
 	(error 'not-synthesisable :hint "Fixed bits not yet implemented")

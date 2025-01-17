@@ -67,3 +67,26 @@
     (is (subtypep (rtl:typecheck (rtl:expand-macros p)
 				 emptyenv)
 		  '(rtl::fixed-width-unsigned 4)))))
+
+
+(test test-with-bitfields-typo
+  "Test we catch the typo of forgetting the matching value."
+  (signals (rtl:not-synthesisable)
+    (rtl:expand-macros '(rtl:with-bitfields (a b c)
+			 ;; no argument to match against,
+			 ;; just a one-form body
+			 (setq a b)))))
+
+
+(test test-with-bitfields-extensive
+  "Test a more extensive example of with-bitfields."
+  (let ((p `(rtl:module test ((clk :width 1 :direction :in))
+			(let ((ctrl 0 :width 6)
+			      (a 0 :width 1))
+			  (rtl:with-bitfields (a b c
+						 d e f)
+			      ctrl
+			    (setf a d))))))
+    (is (equal (type-of (rtl:typecheck (rtl:expand-macros p)
+				       emptyenv))
+	       'rtl::module-interface))))
