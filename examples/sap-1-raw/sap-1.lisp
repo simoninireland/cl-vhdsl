@@ -238,10 +238,10 @@
 	(clk 0 :width 1 :as :wire)
 
 	;; control word
-	(ctrl 0 :width 13 :as :wire)
+	(ctrl 0 :width 13)
 
 	;; bus
-	(bus 0 :width 8 :as :wire)
+	(bus 0 :width 8)
 
 	;; bus feeder lines
 	(pc_out    0 :width 8 :as :wire)
