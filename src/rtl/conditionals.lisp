@@ -53,7 +53,8 @@
     (as-literal " ? ")
     (synthesise then :inexpression)
     (as-literal " : ")
-    (synthesise else :inexpression)))
+    (synthesise else :inexpression)
+    (as-literal ")")))
 
 
 ;; ---------- case ----------
