@@ -96,8 +96,7 @@ module names will cause a DUPLICATE-MODULE error."
 			  ,@body)))
       `(let* ((,module ',code)
 	      (,expanded (expand-macros ,module)))
-
-	 ;; typecheck the module
+	 ;; typecheck the expanded module
 	 (let ((intf (typecheck ,expanded (empty-environment))))
 
 	   ;; add type to interfaces available for import
