@@ -102,8 +102,8 @@ module names will cause a DUPLICATE-MODULE error."
 	   ;; add type to interfaces available for import
 	   (add-module-interface ',modname intf)
 
-	   ;; add code to modules for synthesis
-	   (add-module-for-synthesis ',modname ,module )
+	   ;; add expanded code to modules for synthesis
+	   (add-module-for-synthesis ',modname ,expanded)
 
 	   t)))))
 
