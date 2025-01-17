@@ -39,7 +39,7 @@
     (synthesise var :indeclaration)
     (as-literal "[ ")
     (synthesise bit :inexpression)
-    (as-literal "]")))
+    (as-literal " ]")))
 
 
 (defmethod lispify-sexp ((fun (eql 'bit)) args env)
@@ -239,5 +239,4 @@ If the fixed bits do not match, BODY is not evaluated."
 	;; no fixed bits, don't synthesise tests
 	(let* ((decls (mapcar (curry #'run-to-decl arg) runs))
 	       (newbody (rewrite-variables `(progn ,@body) decls)))
-	  `(let ,decls
-	     ,newbody)))))
+	  newbody))))
