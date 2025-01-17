@@ -35,7 +35,7 @@
 
 
 (defmethod synthesise ((form symbol) (context (eql :inexpression)))
-  (as-literal (symbol-name form)))
+  (as-literal (format nil "~(~a~)" (symbol-name form))))
 
 (defmethod synthesise ((form symbol) (context (eql :inassignment)))
   (synthesise form :inexpression))
