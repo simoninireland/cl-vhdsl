@@ -101,7 +101,9 @@ names to their new form. No checks are performed.")
   (:method ((form integer) rewrite)
     form)
   (:method ((form symbol) rewrite)
-    (if-let ((a (assoc form rewrite)))
+    (if-let ((a (assoc form rewrite
+		       :key #'symbol-name
+		       :test #'string-equal)))
       ;; reference to variable, re-write it
       (let ((w (cadr a)))
 	w)
@@ -115,7 +117,7 @@ names to their new form. No checks are performed.")
 
 
 (defgeneric rewrite-variables-sexp (fun args rewrite)
-  (:documentation "Rewite variables in REWRITE un FUN applied to ARGS.
+  (:documentation "Rewite variables in REWRITE in FUN applied to ARGS.
 
 FUN itself is never re-written.")
   (:method (fun args rewrite)
