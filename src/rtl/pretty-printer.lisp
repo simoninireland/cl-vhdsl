@@ -39,6 +39,12 @@
 		       *indentation*)))
 
 
+(defmacro with-synthesis-to-stream (str &body body)
+  "Send all synthesise in BODY forms to STR."
+  `(let ((*synthesis-stream* str))
+    ,@body))
+
+
 (defmacro with-indentation (&body body)
   "Output BODY with an extra level of indentation."
   `(let ((*indentation-level* (1+ *indentation-level*)))
