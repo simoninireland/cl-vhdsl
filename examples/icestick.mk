@@ -21,6 +21,7 @@
 FPGA_DEVICE = hx1k
 FPGA_PACKAGE = tq144
 
+
 # ---------- Tools ----------
 
 # Tools
@@ -32,7 +33,7 @@ PROGRAM = iceprog
 RM = rm -fr
 
 # Tool options
-VHDSLC_OPTS = $(SOURCES_COMMON)
+VHDSLC_OPTS =
 SYNTH_OPTS = -q
 PNR_OPTS = -q
 PROGRAM_OPTS =
@@ -50,7 +51,7 @@ GENERATED = $(foreach stem,$(GENERATED_STEMS),$(stem).asc $(stem).bin $(stem).js
 # ---------- Implicit rules ----------
 
 %.v: %.lisp
-	$(VHDSLC) $(VHDSLC_OPTS) $*.lisp
+	$(VHDSLC) $(VHDSLC_OPTS) -o $(OBJECT) %.lisp
 
 %.json: %.v
 	$(SYNTH) $(SYNTH_OPTS) -p "synth_ice40 -top $(TOPMODULE) -json $*.json" $<
