@@ -1,4 +1,4 @@
-# Makefile for blink
+# Makefile for SAP-1 processor in close-to-Verilog RTLisp
 #
 # Copyright (C) 2024--2025, Simon Dobson
 #
@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this software. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
-include ../verilog.mk
 include ../icestick.mk
 
 
@@ -23,12 +22,50 @@ include ../icestick.mk
 
 # Bitstream
 TARGET = sap-1.bin
-TOPMODULE =
+TOPMODULE = top
 
 # Sources
-SOURCES = \
-	sap-1-raw.v
-SOURCES_COMMON = \
-	package.lisp
-CONFIG = \
-	sap-1-raw.pcf
+SOURCES = package.lisp sap-1-raw.lisp
+CONFIG = sap-1.pcf
+OBJECT = sap-1.v
+
+
+# ---------- Tools ----------
+
+# Tools
+RM = rm -fr
+
+# ---------- Top-level targets ----------
+
+# Build the target bitstream
+$(TARGET): $(SOURCES) $(CONFIG)
+
+
+# Upload the target bitstream to the device
+upload: $(TARGET)
+	$(PROGRAM) $(PROGRAM_OPTS) $<
+
+
+# Clean-up the build directory
+clean:
+	$(RM) $(GENERATED)
+
+
+# Print a help message
+help:
+	@make usage
+
+
+# ----- Usage -----
+
+define HELP_MESSAGE
+Available targets:
+   make              make the target
+   make upload       upload the bitstream to the FPGA
+   make clean        clean-up the build directory
+
+endef
+export HELP_MESSAGE
+
+usage:
+	@echo "$$HELP_MESSAGE"
