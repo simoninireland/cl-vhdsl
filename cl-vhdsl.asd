@@ -95,6 +95,7 @@
 	       (:file "test-rtl-control-flow")
 	       (:file "test-rtl-conditionals")
 	       (:file "test-rtl-modules")
+	       (:file "test-rtl-eval")
 	       (:file "test-rtl-macros")
 	       (:file "test-rtl-float-let")
 	       (:file "test-rtl-shadowing")

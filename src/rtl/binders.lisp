@@ -145,37 +145,33 @@ This is only required if DECL's value is not a constant,
 and where there is a sensible initialiser."
   (destructuring-bind (n v &key &allow-other-keys)
       decl
-    (if (array-value-p v)
-	nil
 
-	;; set the initial value
-	(if (= v 0) ;; should compute to see if expression is constantly 0
-	    nil
-	    `(setq ,n ,v)))))
+    (if (or (array-value-p v)
+	    (null (eval-if-static v (empty-environment))))  ; this is too strong
+	`(setq ,n ,v))))
 
 
-(defun float-let-blocks-zero (decl)
-  "Re-write DECL to have a zero initial value.
-
-If the initial value is an array, handle it differently."
+(defun float-let-blocks-init (decl)
+  "Generate a SETF to fige DECL an appropriate initial value."
   (destructuring-bind (n v &rest keys)
       decl
-    (if (array-value-p v)
-	;; array values stay declared as such
-	`(,n ,v ,@keys)
+    `(,n ,(if (array-value-p v)
+	      ;; arrays are retained
+	      v
 
-	;; non-arrays are zeroed
-	`(,n 0 ,@keys))))
+	      ;; non-arrays, check for constant
+	      (let ((sv (eval-if-static v (empty-environment)))) ; this is too strong
+		(or sv 0)))
+	 ,@keys)))
 
 
 (defmethod float-let-blocks-sexp ((fun (eql 'let)) args)
-  (declare (optimize debug))
   (destructuring-bind (decls &rest body)
       args
 
     ;; turn initial values into assignments
     (let ((assignments (remove-nulls (mapcar #'float-let-blocks-decl decls)))
-	  (basedecls (remove-nulls (mapcar #'float-let-blocks-zero decls))))
+	  (basedecls (remove-nulls (mapcar #'float-let-blocks-init decls))))
       ;; extract the body and decls of the body
       (destructuring-bind (newbody newdecls)
 	  (float-let-blocks `(progn ,@assignments ,@body))

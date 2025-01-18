@@ -76,6 +76,7 @@
    #:duplicate-variable
    #:duplicate-module
    #:not-importable
+   #:not-static
    #:value-mismatch
    #:direction-mismatch
    #:type-mismatch

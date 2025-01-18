@@ -164,6 +164,16 @@ This is usually caused by mismatched arguments, either an unknown argument
 being provided in the import or one that's needed not being provided."))
 
 
+(define-condition not-static (rtl-condition)
+  ()
+  (:report (lambda (c str)
+	     (format-condition-context "Expression is not static" c str)))
+  (:documentation "Condition signalled when an expression isn't static.
+
+Some prts of a program need to be known at compile-time, and so can't
+include terms that are only known at run-time."))
+
+
 (define-condition value-mismatch (rtl-condition)
   ((expected
     :documentation "The values allowed."

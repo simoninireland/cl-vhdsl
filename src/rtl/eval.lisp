@@ -40,17 +40,27 @@ body of this LET form."
 	     ,lispform)))))
 
 
+(defun static-constant-p (form env)
+  "Test whether FORM is a static constant in ENV.
+
+Static constants include literal constants and variables that
+are module parameters or declared as constant."
+  (or (integerp form)
+      (and (symbolp form)
+	   (variable-defined-p form env)
+	   (member (get-representation form env) '(:parameter
+						   :constant)))))
+
+
 (defun close-form-in-static-environment (form env)
   "Close the RTLisp FORM as Lisp in the static part of environment ENV.
 
 ENV is filtered to include only the static elements of the
-environment, consisting of package parameters. In other words, the
-form is placed into an environment that is known at compile time."
-  (flet ((parameter-p (n env)
-	   (get-environment-property n :parameter env)))
-
-    (let ((staticenv (filter-environment #'parameter-p env)))
-      (close-form-in-environment form staticenv))))
+environment, consisting of package parameters and declared constants.
+In other words, the form is placed into an environment that is known
+at compile time."
+  (let ((staticenv (filter-environment #'static-constant-p env)))
+    (close-form-in-environment form staticenv)))
 
 
 (defun eval-in-static-environment (form env)
@@ -64,3 +74,25 @@ compile time.
 The resulting form is evaluated as Lisp, and so will signal
 standard Lisp conditions."
   (eval (close-form-in-static-environment form env)))
+
+
+(defun ensure-static (form env)
+  "Evaluate FORM in the static environment of ENV, returning its value.
+
+A NOT-STATIC error condition is signalled if FORM does not
+evaluate to a constant."
+  (with-current-form form
+    (handler-bind
+	((error (lambda (c)
+		  (error 'not-static :underlying-condition c
+				     :hint "Make sure expression is a constant known at compile-time"))))
+      (eval-in-static-environment form env))))
+
+
+(defun eval-if-static (form env)
+  "Evauate FORM in the static environment of ENV, returning its value.
+
+If the form isn't statically constant, return NIL."
+  (handler-case
+      (eval-in-static-environment form env)
+    (error () nil)))

@@ -137,7 +137,7 @@ An UNKNOWN-VARIABLE error is signalled if N is undefined."
     (cadr p)))
 
 
-(defun variable-defined (n env)
+(defun variable-defined-p (n env)
   "Test whether N is defined in ENV."
   (not (null (assoc n env))))
 
