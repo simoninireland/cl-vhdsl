@@ -245,7 +245,8 @@ values can't be defined in terms of other parameter values."
       (as-body body :inmodule))
 
     (as-literal "endmodule // ")
-    (as-literal (format nil "~(~a~)" modname))))
+    (as-literal (format nil "~(~a~)" modname) :newline t)
+    (as-literal "" :newline t)))
 
 
 ;; ---------- Module instanciation ----------
@@ -357,12 +358,11 @@ and causes a NOT-IMPORTABLE error if not."
 		 (append (list (car l)
 			     (rewrite-variables (cadr l) rewrites))
 			 (rewrite-args (cddr l))))))
+
     (destructuring-bind (modname &rest initargs)
 	args
-      `(,fun ,modname ,@(rewrite-args initargs))
+      `(,fun ,modname ,@(rewrite-args initargs)))))
 
-      ))
-  )
 
 (defun synthesise-arg-binding (decl context args)
   "Synthesise the binding of DECL from ARGS."
