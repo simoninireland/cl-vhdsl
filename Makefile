@@ -29,6 +29,8 @@ SOURCES = $(shell find src -name '*.lisp' -print)
 SOURCES_GENERATED =
 SOURCES_GENERATED_EXTRA = TAGS
 
+OBJECTS = $(shell find src -name '*.fasl' -print)
+
 SOURCES_DOC =  $(shell ls doc/*.rst)
 SOURCES_DOC_CONF = doc/conf.py
 SOURCES_DOC_BUILD_DIR = doc/_build
@@ -117,7 +119,7 @@ check-local-repo-clean:
 
 # Clean up the distribution build and documentation
 clean:
-	$(RM) $(SOURCES_GENERATED) $(SOURCES_GENERATED_EXTRA) $(SOURCES_DOC_BUILD_DIR) $(BINARIES)
+	$(RM) $(SOURCES_GENERATED) $(SOURCES_GENERATED_EXTRA) $(SOURCES_DOC_BUILD_DIR) $(OBJECTS) $(BINARIES)
 
 # Clean up everything, including the documentation venv
 reallyclean: clean
