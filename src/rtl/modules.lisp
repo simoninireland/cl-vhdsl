@@ -398,9 +398,9 @@ and causes a NOT-IMPORTABLE error if not."
 	    (modargs (keys-to-arguments modname initargs))
 	    (modvar (gensym)))
 
-	(synthesise modvar :indeclaration)
-	(as-literal " ")
 	(synthesise modname :indeclaration)
+	(as-literal " ")
+	(synthesise modvar :indeclaration)
 	(as-literal "(" :newline t)
 	;; arguments
 	(as-list (arguments intf) :indeclaration :indented t :newlines t
