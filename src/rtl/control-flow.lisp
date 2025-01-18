@@ -42,8 +42,7 @@
 
 
 (defmethod synthesise-sexp ((fun (eql 'progn)) args (context (eql :inblock)))
-  (dolist (form args)
-    (synthesise form :inblock)))
+  (as-body args :inblock))
 
 
 ;; ---------- Triggered blocks ----------
@@ -66,7 +65,7 @@
     (as-list sensitivities :inexpression)
     (as-literal ")" :newline t)
     (as-body body :inblock
-	     :before "begin" :after "end")
+	     :before "begin" :after "end" :always t)
     (as-literal "" :newline t)))
 (defmethod synthesise-sexp ((fun (eql '@)) args (context (eql :inmodule)))
   (synthesise-sexp fun args :inblock))
