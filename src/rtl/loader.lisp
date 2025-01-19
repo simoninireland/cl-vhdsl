@@ -106,7 +106,9 @@ it will be at least minimally syntactically correct after definition.
 
 The module is added to the *MODULE-LIST* list for synthesis. Its
 type is added to *MODULE-INTERFACES* for importing. Duplicate
-module names will cause a DUPLICATE-MODULE error."
+module names will cause a DUPLICATE-MODULE error.
+
+Return the name of the newly-defined module."
   (with-gensyms (module expanded)
     (let* ((code `(module ,modname ,decls
 			  ,@body)))
@@ -121,7 +123,7 @@ module names will cause a DUPLICATE-MODULE error."
 	   ;; add expanded code to modules for synthesis
 	   (add-module-for-synthesis ',modname ,expanded)
 
-	   t)))))
+	   ',modname)))))
 
 
 ;; ---------- Module synthesis ----------
