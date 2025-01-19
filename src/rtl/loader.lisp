@@ -32,7 +32,10 @@ Modules added here are queued for synthesis.")
 (defparameter *module-interfaces* '()
   "Mapping of known modules to their interface types.
 
-This variable contains all the modules that can be imported.")
+This variable contains all the modules that can be imported. It will
+contain the types of all the modules in *MODULE-LIST* that have been
+defined in this session, plus any externlly-defined modules made
+available for import.")
 
 
 (defun clear-module-registry ()
@@ -59,7 +62,8 @@ This variable contains all the modules that can be imported.")
   (if-let ((m (assoc modname *module-interfaces*)))
     (cadr m)
 
-    (error 'unknown-module :module modname)))
+    (error 'unknown-module :module modname
+			   :hint "Make sure the module has been defined or imported")))
 
 
 (defun synthesising-module-p (modname)
@@ -83,7 +87,8 @@ type-checked, macro-expanded, and possibly had other passes applied."
   (if-let ((m (assoc modname *module-list*)))
     (cadr m)
 
-    (error 'unknown-module :module modname)))
+    (error 'unknown-module :module modname
+			   :hint "Make sure the module has been declared")))
 
 
 (defun get-modules-for-synthesis ()
