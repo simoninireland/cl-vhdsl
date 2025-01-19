@@ -20,11 +20,40 @@
 (in-package :cl-vhdsl/cli)
 
 
-;; ---------- Command-line options ----------
+;; ---------- Globals ----------
 
 (defvar *errors* 0
   "Number of errors caught.")
 
+
+(defvar *module-source-file-names* nil
+  "Map module names to their source files.")
+
+
+(defun add-module-source-file-name (modname fn)
+  "Add FN as the source file for MODNAME."
+  (appendf *module-source-file-names* (list (list modname fn))))
+
+
+(defun get-module-source-file-name (modname)
+  "Retrieve the source file for MODNAME.
+
+Reyirn NIL if the module isn't known."
+  (if-let ((m (assoc modname *module-source-file-names*)))
+    (cadr m)))
+
+
+(defun record-new-modules (fn)
+  "Record modules loaded from FN into *MODULE-SOURCE-FILE-NAMES*."
+  (dolist (mm (get-modules-for-synthesis))
+    (destructuring-bind (modname module)
+	mm
+      (declare (ignore module))
+      (unless (get-module-source-file-name modname)
+	(add-module-source-file-name modname fn)))))
+
+
+;; ---------- Command-line options handling ----------
 
 (defvar *verbosity* 0
   "Verbosity (reporting) level (higher is more verbose).")
@@ -120,6 +149,7 @@ See https://en.wikipedia.org/wiki/ISO_8601"
   (multiple-value-bind
 	(second minute hour date month year day-of-week dst-p tz)
       (get-decoded-time)
+    (declare (ignore day-of-week dst-p))
     (format nil "~4,'0d-~2,'0d-~dT~2,'0d:~2,'0d:~2,'0d+~2,'0d:00"
 	    year month date
 	    hour minute second
@@ -169,7 +199,8 @@ Verilog."
 	(restart-case
 	    (progn
 	      (info "Loading ~a~%" fn)
-	      (load fn :if-does-not-exist t))
+	      (load fn :if-does-not-exist t)
+	      (record-new-modules fn))
 
 	  (ignore-file-with-errors ()
 	    :report "Ignore this file and continue"
@@ -196,6 +227,9 @@ Verilog."
 		  (destructuring-bind (modname module)
 		      mm
 		    (info "Compiling ~a~%" modname)
+		    (let ((fn (get-module-source-file-name modname)))
+		      (format str (filename-header fn))
+		      (format str "~%"))
 		    (synthesise-module module str))
 
 		(ignore-file-with-errors ()
@@ -212,6 +246,7 @@ Verilog."
 		    (with-open-file (str fn :direction :output
 					    :if-exists :supersede)
 		      (format str (file-header))
+		      (format str (filename-header fn))
 		      (format str "~%")
 
 		      (synthesise-module module str))))
