@@ -33,10 +33,12 @@ body of this LET form."
 	   (make-env (env)
 	     (map-environment #'make-decl env)))
 
-    (let ((lispform (lispify form env)))
+    (let ((lispform (lispify form env))
+	  (ns (map-environment (lambda (n env) n) env)))
       (if (null env)
 	  lispform
 	  `(let ,(make-env env)
+	     (declare (ignorable ,@ns))
 	     ,lispform)))))
 
 
