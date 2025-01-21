@@ -36,18 +36,20 @@
     ;; condition
     (as-literal "if(")
     (synthesise condition :inexpression)
-    (as-literal ") then")
+    (as-literal ")")
     (as-newline)
 
     ;; then arm
     (as-block (list then) :inblock
-	      :before "begin" :after "end")
+	      :before "begin" :after "end"
+	      :always t)
 
     ;; else arm
     (when else
       (as-literal "else" :newline t)
       (as-block else :inblock
-		:before "begin" :after "end"))))
+		:before "begin" :after "end"
+		:always t))))
 
 
 ;; ---------- if (expression) ----------
