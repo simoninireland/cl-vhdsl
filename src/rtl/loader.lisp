@@ -132,5 +132,6 @@ Return the name of the newly-defined module."
   "Synthesise module M to STR."
   (with-synthesis-to-stream str
       (funcall (compose (rcurry #'synthesise :toplevel)
+			#'simplify-progn
 			(compose #'car #'float-let-blocks))
 	       m)))
