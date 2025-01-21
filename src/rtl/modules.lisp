@@ -409,12 +409,11 @@ and causes a NOT-IMPORTABLE error if not."
 	(synthesise modname :indeclaration)
 	(as-literal " ")
 	(synthesise modvar :indeclaration)
-	(as-literal "(" :newline t)
 
 	;; arguments
 	(as-argument-list (arguments intf) :indeclaration
+			  :before "(" :after ")"
 			  :process (rcurry #'synthesise-arg-binding (args-to-alist initargs)))
-	(as-literal ");" :newline t)
 
 	(as-blank-line)))))
 
