@@ -181,17 +181,26 @@ and where there is a sensible initialiser."
 	      (append basedecls newdecls))))))
 
 
+(defun simplify-implied-progn (body)
+  "Simplify an implied PROGN represented by BODY.
+
+This removes nested PROGN blocks, singleton PROGNs that can be
+repalced by a list of forms, and other simplifications needed
+by LET and MODULE forms."
+  (foldr (lambda (l arg)
+	   (if (and (listp arg)
+		    (eql (car arg) 'progn))
+	       (append l (cdr arg))
+	       (append l (list arg))))
+	 body
+	 '()))
+
+
 (defmethod simplify-progn-sexp ((fun (eql 'let)) args)
   (destructuring-bind (decls &rest body)
       args
     (let ((newbody (mapcar #'simplify-progn body)))
-      `(let ,decls ,@ (foldr (lambda (l arg)
-			       (if (and (listp arg)
-					(eql (car arg) 'progn))
-				   (append l (cdr arg))
-				   (append l (list arg))))
-			     newbody
-			     '())))))
+      `(let ,decls ,@(simplify-implied-progn newbody)))))
 
 
 (defmethod detect-shadowing-sexp ((fun (eql 'let)) args env)
@@ -288,7 +297,7 @@ Constants turn into local parameters."
 	(as-blank-line))
 
     ;; synthesise the body
-    (as-block-forms body :inblock)))
+    (as-block-forms body :inmodule)))
 
 
 (defmethod synthesise-sexp ((fun (eql 'let)) args (context (eql :inblock)))

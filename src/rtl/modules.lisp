@@ -185,7 +185,8 @@ values can't be defined in terms of other parameter values."
 (defmethod simplify-progn-sexp ((fun (eql 'module)) args)
   (destructuring-bind (modname decls &rest body)
       args
-    `(module ,modname ,decls ,@(mapcar #'simplify-progn body))))
+    (let ((newbody (mapcar #'simplify-progn body)))
+      `(module ,modname ,decls ,@(simplify-implied-progn newbody)))))
 
 
 (defmethod detect-shadowing-sexp ((fun (eql 'module)) args env)
@@ -412,7 +413,7 @@ and causes a NOT-IMPORTABLE error if not."
 
 	;; arguments
 	(as-argument-list (arguments intf) :indeclaration
-			  :before "(" :after ")"
+			  :before "(" :after ");"
 			  :process (rcurry #'synthesise-arg-binding (args-to-alist initargs)))
 
 	(as-blank-line)))))
