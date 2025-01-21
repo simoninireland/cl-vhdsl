@@ -81,4 +81,5 @@
    #:direction-mismatch
    #:type-mismatch
    #:bitfield-mismatch
+   #:shape-mismatch
    ))

@@ -52,10 +52,26 @@ RTLisp, but don't /require/ it."
 	    (eql (car ,place) 'quote))
        (setq ,place (cadr ,place))))
 
+
+(defun data-has-shape-p (data shape)
+  "Test whether DATA has the given SHAPE."
+  (and (= (length shape) 1)
+       (= (length data) (car shape))))
+
+
+(defun ensure-data-has-shape (data shape)
+  "Ensure DATA has the given SHAPE."
+  (unless (data-has-shape-p data shape)
+    (signal 'shape-mismatch :expected shape
+			    :hint "Ensure initial contents have the right shape")))
+
+
 ;; shape needs to be made up of constants (or parameters)
 
 (defmethod typecheck-sexp ((fun (eql 'make-array)) args env)
-  (destructuring-bind (shape &key initial-value element-width element-type)
+  (destructuring-bind (shape &key
+			       initial-element initial-contents
+			       element-width element-type)
       args
     ;; skip an initial quotes, allowed for Lisp compatability
     (unquote shape)
@@ -63,32 +79,43 @@ RTLisp, but don't /require/ it."
 
     (ensure-valid-array-shape shape env)
 
-    ;; check initial value
-    (if initial-value
-	(let* ((ty (typecheck initial-value env))
+    ;; check initial element value
+    (if initial-element
+	(let* ((ty (typecheck initial-element env))
 	       (w (bitwidth ty env)))
 	  (if element-width
 	      (unless (<= w element-width)
 		(signal 'type-mismatch :expected element-width :got w
-				       :hint "Ensure variable is wide enough for value"))
+				       :hint "Ensure variable is wide enough for initial element value"))
 	      (setq element-width w)))
 
 	;; set to zero if omitted
-	(setq initial-value 0))
+	(setq initial-element 0))
 
     ;; check or derive element width
     (if element-width
-	(ensure-width-can-store element-width (typecheck initial-value env) env)
+	(ensure-width-can-store element-width (typecheck initial-element env) env)
 
 	;; set width from initial value
-	(setq element-width (bitwidth initial-value env)))
+	(setq element-width (bitwidth initial-element env)))
 
     ;; check or derive element type
     (if element-type
-	(ensure-subtype (typecheck initial-value env) element-type)
+	(ensure-subtype (typecheck initial-element env) element-type)
 
 	;; default is a fixed-width unsigned
 	(setq element-type`(fixed-width-unsigned ,element-width)))
+
+    ;; initial contents must either match the size of the array
+    ;; or identify a file
+    (if initial-contents
+	(cond ((listp initial-contents)
+	       (ensure-data-has-shape initial-contents shape)
+	       (dolist (c initial-contents)
+		 (ensure-subtype (typecheck c env) element-type)))
+
+	      ((stringp initial-contents)
+	       (error 'not-synthesisable :hint "File-based array initialisation not yest implemnted"))))
 
     `(array ,element-type ,@shape)))
 

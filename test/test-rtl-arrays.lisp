@@ -86,3 +86,18 @@
   (is (rtl:synthesise '(let ((a (make-array '(16) :element-width 32)))
 			(setf (aref a 8) (aref a 0)))
 		      :inblock)))
+
+
+(test test-typecheck-array-initialiser
+  "Test we can typecheck an array initialiser."
+  (is (subtypep (rtl:typecheck '(let ((a (make-array (5)
+					   :initial-contents (1 2 3 4 5))))
+				  (aref a 0))
+				emptyenv)
+		'(rtl:fixed-width-unsigned 1)))
+
+  (signals (rtl:shape-mismatch)
+    (rtl:typecheck '(let ((a (make-array (5)
+					   :initial-contents (1 2 3))))
+				  (aref a 0))
+				emptyenv)))

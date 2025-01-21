@@ -246,3 +246,20 @@ caused by the assignment."))
   (:documentation "Condition signalled when a bitfield pattern can't be parsed.
 
 This is usually caused by non-consecutive uses of variables in the pattern."))
+
+
+(define-condition shape-mismatch (rtl-condition)
+  ((shape
+    :documentation "The expected shape."
+    :initarg :expected
+    :reader shape))
+  (:report (lambda (c str)
+	     (format-condition-context (format nil "Data doesn't match shape~a: ~a"
+					       (format-hint c)
+					       (shape c))
+				       c str)))
+  (:documentation "Condition signalled when data has the wrong shape.
+
+This means that the initial contents of an array are not in the right
+shape for the array. Usually this can be fixed by simply reformatting
+the data, and/or making sure there's the right amount of it."))
