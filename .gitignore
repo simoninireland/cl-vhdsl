@@ -29,3 +29,6 @@ TAGS
 # Sphinx documentation files
 doc/_build
 venv3
+
+# Generated binaries
+bin/
