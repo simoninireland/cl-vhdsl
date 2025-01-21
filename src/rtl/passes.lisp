@@ -149,7 +149,7 @@ method to change this behaviour.")
   (handler-bind
       ((error (lambda (cond)
 		(error 'not-synthesisable :underlying-condition cond
-					  :hint "Syntax error"))))
+					  :hint "Mistake"))))
     (call-next-method)))
 
 
