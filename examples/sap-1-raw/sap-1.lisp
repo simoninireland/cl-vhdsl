@@ -155,7 +155,7 @@
 		       (out :width 12 :direction :out))
 
   (let ((sig_hlt       11 :as :constant)
-	(sig_pc_int    10 :as :constant)
+	(sig_pc_inc    10 :as :constant)
 	(sig_pc_en      9 :as :constant)
 	(sig_mem_load   8 :as :constant)
 	(sig_mem_en     7 :as :constant)
@@ -188,46 +188,46 @@
 
        (case stage
 	 (0
-	  (setf (bit ctrl_word sig_pc_en) 1)
-	  (setf (bit ctrl_word sig_mem_load) 1))
+	  (setf (bit ctrl_word sig_pc_en) 1 :sync t)
+	  (setf (bit ctrl_word sig_mem_load) 1 :sync t))
 	 (1
-	  (setf (bit ctrl_word sig_pc_inc) 1))
+	  (setf (bit ctrl_word sig_pc_inc) 1 :sync t))
 	 (2
-	  (setf (bit ctrl_word sig_mem_en) 1)
-	  (setf (bit ctrl_word sig_ir_load) 1))
+	  (setf (bit ctrl_word sig_mem_en) 1 :sync t)
+	  (setf (bit ctrl_word sig_ir_load) 1 :sync t))
 	 (3
 	  (case opcode
 	    (op_lda
-	     (setf (bit ctrl_word sig_ir_en) 1)
-	     (setf (bit ctrl_word sig_mem_load) 1))
+	     (setf (bit ctrl_word sig_ir_en) 1 :sync t)
+	     (setf (bit ctrl_word sig_mem_load) 1 :sync t))
 	    (op_add
-	     (setf (bit ctrl_word sig_ir_en) 1)
-	     (setf (bit ctrl_word sig_mem_load) 1))
+	     (setf (bit ctrl_word sig_ir_en) 1 :sync t)
+	     (setf (bit ctrl_word sig_mem_load) 1 :sync t))
 	    (op_sub
-	     (setf (bit ctrl_word sig_ir_en) 1)
-	     (setf (bit ctrl_word sig_mem_load) 1))
+	     (setf (bit ctrl_word sig_ir_en) 1 :sync t)
+	     (setf (bit ctrl_word sig_mem_load) 1 :sync t))
 	    (op_hlt
-	     (setf (bit ctrl_word sig_hlt) 1))))
+	     (setf (bit ctrl_word sig_hlt) 1 :sync t))))
 	 (4
 	  (case opcode
 	    (op_lda
-	     (setf (bit ctrl_word sig_mem_en) 1)
-	     (setf (bit ctrl_word sig_a_load) 1))
+	     (setf (bit ctrl_word sig_mem_en) 1 :sync t)
+	     (setf (bit ctrl_word sig_a_load) 1 :sync t))
 	    (op_add
-	     (setf (bit ctrl_word sig_mem_en) 1)
-	     (setf (bit ctrl_word sig_b_load) 1))
+	     (setf (bit ctrl_word sig_mem_en) 1 :sync t)
+	     (setf (bit ctrl_word sig_b_load) 1 :sync t))
 	    (op_sub
-	     (setf (bit ctrl_word sig_mem_en) 1)
-	     (setf (bit ctrl_word sig_b_load) 1))))
+	     (setf (bit ctrl_word sig_mem_en) 1 :sync t)
+	     (setf (bit ctrl_word sig_b_load) 1 :sync t))))
 	 (5
 	  (case opcode
 	    (op_add
-	     (setf (bit ctrl_word sig_adder_en) 1)
-	     (setf (bit ctrl_word sig_a_load) 1))
+	     (setf (bit ctrl_word sig_adder_en) 1 :sync t)
+	     (setf (bit ctrl_word sig_a_load) 1 :sync t))
 	    (op_sub
-	     (setf (bit ctrl_word sig_adder_sub) 1)
-	     (setf (bit ctrl_word sig_adder_en) 1)
-	     (setf (bit ctrl_word sig_a_load) 1))))))
+	     (setf (bit ctrl_word sig_adder_sub) 1 :sync t)
+	     (setf (bit ctrl_word sig_adder_en) 1 :sync t)
+	     (setf (bit ctrl_word sig_a_load) 1 :sync t))))))
 
     (setq out ctrl_word)))
 
