@@ -21,6 +21,19 @@
 (declaim (optimize debug))
 
 
+;; ---------- Helper ----------
+
+(defun simplify-progn-body (body)
+  "Simplify the body of a PROGN or implied PROGN block."
+  (foldr (lambda (l arg)
+	   (if (and (listp arg)
+		    (eql (car arg) 'progn))
+	       (append l (cdr arg))
+	       (append l (list arg))))
+	 body
+	 '()))
+
+
 ;; ---------- PROGN ----------
 
 (defmethod typecheck-sexp ((fun (eql 'progn)) args env)
@@ -30,19 +43,15 @@
 (defmethod simplify-progn-sexp ((fun (eql 'progn)) args)
   (destructuring-bind (&rest body)
       args
-    (let ((newbody (mapcar #'simplify-progn args)))
-      (cond ((= (length newbody) 0)
-	     nil)
-
-	    ((= (length newbody) 1)
-	     (car newbody))
-
-	    (t
-	     `(progn ,@newbody))))))
+    (let ((newbody (mapcar #'simplify-progn body)))
+      `(progn ,@(simplify-progn-body newbody)))))
 
 
 (defmethod synthesise-sexp ((fun (eql 'progn)) args (context (eql :inblock)))
-  (as-body args :inblock))
+  (as-block args :inblock))
+
+(defmethod synthesise-sexp ((fun (eql 'progn)) args (context (eql :inmodule)))
+  (synthesise-sexp fun args :inblock))
 
 
 ;; ---------- Triggered blocks ----------
@@ -58,15 +67,24 @@
     (mapn (rcurry #'typecheck env) body)))
 
 
+(defmethod simplify-progn-sexp ((fun (eql '@)) args)
+  (destructuring-bind ((&rest sensitivities) &rest body)
+      args
+    (let ((newbody (mapcar #'simplify-progn body)))
+      `(@ ,sensitivities ,@(simplify-progn-body newbody)))))
+
+
 (defmethod synthesise-sexp ((fun (eql '@)) args (context (eql :inblock)))
   (destructuring-bind ((&rest sensitivities) &rest body)
       args
-    (as-literal "always @(")
-    (as-list sensitivities :inexpression)
-    (as-literal ")" :newline t)
-    (as-body body :inblock
-	     :before "begin" :after "end" :always t)
-    (as-literal "" :newline t)))
+    (as-list sensitivities :inexpression
+	     :before "always @(" :after ")")
+    (as-newline)
+
+    (as-block body :inblock
+	      :before "begin" :after "end" :always t)
+    (as-blank-line)))
+
 (defmethod synthesise-sexp ((fun (eql '@)) args (context (eql :inmodule)))
   (synthesise-sexp fun args :inblock))
 

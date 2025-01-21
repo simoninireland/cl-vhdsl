@@ -25,16 +25,16 @@
 (test test-let-float
   "Test that nested LETs float."
   (destructuring-bind (form decls)
-      (rtl::float-let-blocks '(let ((a 1 :width 8))
-			       (setq a 12)
-			       (let ((b (+ a 1)))
-				 (setq a (* a b)))))
+      (rtl:float-let-blocks '(let ((a 1 :width 8))
+			      (setq a 12)
+			      (let ((b (+ a 1)))
+				(setq a (* a b)))))
     (is (equal (mapcar #'car decls)
 	       '(a b)))
 
     ;; this may change when we float constant initial values
     (is (equal (mapcar #'cadr decls)
-	       '(0 0)))))
+	       '(1 0)))))
 
 
 (test test-let-float-markers

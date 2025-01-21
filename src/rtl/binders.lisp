@@ -127,7 +127,7 @@ Signal VALUE-MISMATCH as an error if not."
 
 	   ;; remove any re-writes referring to shadowed variables
 	   (rwenv (typecheck-env rwdecls (empty-environment)))
-	   (rwrewrite (remove-if (rcurry #'variable-defined rwenv)
+	   (rwrewrite (remove-if (rcurry #'variable-defined-p rwenv)
 				 rewrite :key #'car))
 
 	   ;; re-write the body with these new re-writes
@@ -139,24 +139,11 @@ Signal VALUE-MISMATCH as an error if not."
 ;; These two functions should only re-write non-constant initial values
 
 (defun float-let-blocks-decl (decl)
-  "Decompose DECL into an assignment.
-
-This is only required if DECL's value is not a constant,
-and where there is a sensible initialiser."
-  (destructuring-bind (n v &key &allow-other-keys)
-      decl
-
-    (if (or (array-value-p v)
-	    (null (eval-if-static v (empty-environment))))  ; this is too strong
-	`(setq ,n ,v))))
-
-
-(defun float-let-blocks-init (decl)
-  "Generate a SETF to fige DECL an appropriate initial value."
+  "Generate the declaration part for DECL."
   (destructuring-bind (n v &rest keys)
       decl
     `(,n ,(if (array-value-p v)
-	      ;; arrays are retained
+	      ;; array initialisers are retained
 	      v
 
 	      ;; non-arrays, check for constant
@@ -165,13 +152,26 @@ and where there is a sensible initialiser."
 	 ,@keys)))
 
 
+(defun float-let-blocks-init (decl)
+  "Generate a SETF to set DECL an appropriate initial value.
+
+This is only required if DECL's value is not an array, not a constant,
+and where there is a sensible initialiser."
+  (destructuring-bind (n v &key &allow-other-keys)
+      decl
+
+    (if (and (not (array-value-p v))
+	     (null (eval-if-static v (empty-environment))))
+	`(setq ,n ,v))))
+
+
 (defmethod float-let-blocks-sexp ((fun (eql 'let)) args)
   (destructuring-bind (decls &rest body)
       args
 
     ;; turn initial values into assignments
-    (let ((assignments (remove-nulls (mapcar #'float-let-blocks-decl decls)))
-	  (basedecls (remove-nulls (mapcar #'float-let-blocks-init decls))))
+    (let ((basedecls (remove-nulls (mapcar #'float-let-blocks-decl decls)))
+	  (assignments (remove-nulls (mapcar #'float-let-blocks-init decls))))
       ;; extract the body and decls of the body
       (destructuring-bind (newbody newdecls)
 	  (float-let-blocks `(progn ,@assignments ,@body))
@@ -181,12 +181,25 @@ and where there is a sensible initialiser."
 	      (append basedecls newdecls))))))
 
 
+(defmethod simplify-progn-sexp ((fun (eql 'let)) args)
+  (destructuring-bind (decls &rest body)
+      args
+    (let ((newbody (mapcar #'simplify-progn body)))
+      `(let ,decls ,@ (foldr (lambda (l arg)
+			       (if (and (listp arg)
+					(eql (car arg) 'progn))
+				   (append l (cdr arg))
+				   (append l (list arg))))
+			     newbody
+			     '())))))
+
+
 (defmethod detect-shadowing-sexp ((fun (eql 'let)) args env)
   (destructuring-bind (decls &rest body)
       args
     (let ((vars (mapcar #'car decls)))
       (dolist (n vars)
-	(if (variable-defined n env)
+	(if (variable-defined-p n env)
 	    (error 'duplicate-variable :variable n
 				       :hint "Variable shadows a previous definition"))))
 
@@ -270,13 +283,12 @@ Constants turn into local parameters."
 	(body (cdr args)))
 
     ;; synthesise the constants and registers
-    (as-block decls context :newlines t
-			    :process #'synthesise-decl)
+    (as-block-forms decls context :process #'synthesise-decl)
     (if (> (length decls) 0)
-	(as-literal "" :newline t))
+	(as-blank-line))
 
     ;; synthesise the body
-    (as-body body :inblock)))
+    (as-block-forms body :inblock)))
 
 
 (defmethod synthesise-sexp ((fun (eql 'let)) args (context (eql :inblock)))

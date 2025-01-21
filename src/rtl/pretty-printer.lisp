@@ -21,6 +21,8 @@
 (declaim (optimize debug))
 
 
+;; ---------- Streams and indentation ----------
+
 (defvar *synthesis-stream* *standard-output*
   "Stream receiving the logical blocks.")
 
@@ -33,16 +35,25 @@
   "Number of spaces used at each indentation level.")
 
 
+(defvar *at-start-of-line* t
+  "Whether the printer is at the start of a line.
+
+The first literal output to a line is indented according
+to *INDENTATION-LEVEL*.")
+
+
 (defun indentation ()
   "Return an indentation for the current level."
   (string-times " " (* *indentation-level*
 		       *indentation*)))
 
 
+;; ---------- Helper macros ----------
+
 (defmacro with-synthesis-to-stream (str &body body)
   "Send all code synthesised in the BODY forms to STR."
   `(let ((*synthesis-stream* str))
-    ,@body))
+     ,@body))
 
 
 (defmacro with-indentation (&body body)
@@ -51,122 +62,148 @@
      ,@body))
 
 
-(defun as-block (args context &key before after
-				(always t)
-				(indented t)
-				(sep "")
-				(newlines t)
-				(process #'synthesise))
-  "Output ARGS in CONTEXT within a block.
+;; ---------- Pretty-printing forms ----------
 
-BEFORE and AFTER specify text to go before and after the block respectively.
-If ALWAYS is NIL they only appear when ARGS has more than one element.
+;; The pretty-printer understands several different structures:
+;;
+;; - Inline literals, printed one after the other (as-literal)
+;; - Inline lists, printed one a line with a separator (as-list)
+;; - Body forms, printed on separate lines with pre and post (as-block)
+;; - Argument lists, printed on seperate lines with pre and post (as-argument-list)
+;; - Operators, with the operator between elements of an line list (as-infix)
+;;
+;; Each makes use of four lower-level functions:
+;;
+;; - Printing an individual inline form (as-form)
+;; - A set of forms separated by newlines (as-block-forms)
+;; - A set of forms on the same line (as-inline-forms)
+;; - A newline (as-newline)
+;;
+;; Each of these functions can take a processor to generate the
+;; actual form (synthesise by default).
 
-SEP contains a string that is placed between elements. if NEWLINES is T
-a newline is emitted after each element.
 
-If INDENTED is T the indentation level is increased.
+(defun as-form (arg context &key (process #'synthesise))
+  "Format a single ARG in the given CONTEXT.."
+  (funcall process arg context))
 
-PROCESS can be used to specify a function to be applied to each element
-of ARGS in order to emit it. This defaults to SYNTHESISE: if another function
-is provided it should take an argument an the context as arguments, and
-peform the output function (typically by calling the pretty-printer and/or
-SYNTHESISE itself)."
+
+(defun as-block-forms (args context &key sep (process #'synthesise))
+  "Format all ARGS with indentation."
   (let ((n (length args)))
-    (labels ((format-arg (arg)
-	       "Format a single ARG along with any terminator string."
-	       (funcall process arg context))
+    (dolist (i (iota n))
+      (as-form (elt args i) context :process process)
 
-	     (format-args (args)
-	       "Format all ARGS along with any separator strings and indentation."
-	       (dolist (i (iota n))
-		 (if (and indented
-			  (or newlines
-			      (= i 0)))
-		     (format *synthesis-stream* "~a" (indentation)))
+      (when (and sep
+		 (< i (- n 1)))
+	(as-literal sep))
 
-		 (format-arg (elt args i))
-
-		 (when (< i (1- n))
-		   (format *synthesis-stream* "~a" sep))
-		 (if newlines
-		     (format *synthesis-stream* "~&")))))
-
-      ;; leading bracket
-      (when (and before
-		 (or always
-		     (> n 1)))
-	(if indented
-	    (format *synthesis-stream* "~a" (indentation)))
-	(format *synthesis-stream* "~a" before)
-	(if newlines
-	    (format *synthesis-stream* "~&")))
-
-      ;; arguments
-      (if (and before after indented)
-	  ;; indent the contents
-	  (with-indentation
-	    (format-args args))
-
-	  ;; format the arguments at the current level
-	  (format-args args))
-
-      ;; trailing bracket
-      (when (and after
-		 (or always
-		     (> n 1)))
-	(if indented
-	    (format *synthesis-stream* "~a" (indentation)))
-	(format *synthesis-stream* "~a" after)
-	(if newlines
-	    (format *synthesis-stream* "~&"))))))
+      (as-newline))))
 
 
-(defun as-literal (s &key newline indented)
-  "Output the given literal value S.
+(defun as-inline-forms (args context &key sep (process #'synthesise))
+  "Format all ARGS as an inline list along with any separator strings."
+  (let ((n (length args)))
+    (dolist (i (iota n))
+      ;; form
+      (as-form (elt args i) context :process process)
 
-If the NEWLINE key is non-nil a newline is emitted after the literal."
-  (if indented
-      (format *synthesis-stream* "~a" (indentation)))
+      ;; seperator
+      (when (and sep
+		 (< i (1- n)))
+	(as-literal sep)))))
+
+
+(defun as-literal (s &key newline)
+  "Output the given literal value S."
+  ;; indentation (if at the start start of a line)
+  (when *at-start-of-line*
+    (format *synthesis-stream* "~a" (indentation))
+    (setq *at-start-of-line* nil))
+
+  ;; form
   (format *synthesis-stream* "~a" s)
+
+  ;; newline (if requested)
   (if newline
-      (format *synthesis-stream* "~%")))
+      (as-newline)))
 
 
-(defun as-body (args context &key before after always (process #'synthesise))
-  "Output ARGS in CONTEXT as the body of a construct.
+(defun as-newline ()
+  "Start a new line."
+  (unless *at-start-of-line*
+    (format *synthesis-stream* "~%")
+    (setq *at-start-of-line* t)))
 
-Key arguments are as in AS-BLOCK."
-  (as-block args context
-	    :before before :after after
-	    :indented t :newlines t
-	    :always always
-	    :process process))
+
+(defun as-blank-line (&optional (n 1))
+  "Output one of more blank lines."
+  (as-newline)
+  (dolist (i (iota n))
+    (format *synthesis-stream* "~%")))
+
+
+(defun as-list (args context
+		&key before after
+		  (sep ", ")
+		  (process #'synthesise))
+  "Synthesise ARGS as an inline list along with BEFORE and AFTER brackets."
+  ;; leading bracket
+  (when before
+    (as-literal before))
+
+  ;; arguments
+  (as-inline-forms args :inexpression :sep sep :process process )
+
+  ;; trailing bracket
+  (when after
+    (as-literal after)))
+
+
+(defun as-argument-list (args context
+			 &key before after
+			   (sep ", ")
+			   (process #'synthesise))
+  "Synthesise ARGS as a list with newlines along with BEFORE abd AFTER brackets."
+  ;; leading bracket
+  (when before
+    (as-literal before :newline t))
+
+  ;; arguments
+  (with-indentation
+    (as-block-forms args :inexpression :sep sep :process process))
+
+  ;; trailing bracket
+  (when after
+    (as-literal after :newline t)))
+
+
+(defun as-block (args context &key before after
+				always
+				(sep "")
+				(process #'synthesise))
+  "Output ARGS in CONTEXT within a block."
+  (let ((n (length args)))
+    ;; leading bracket
+    (when (and before
+	       (or always
+		   (> n 1)))
+      (as-literal before :newline t))
+
+    ;; arguments
+    (with-indentation
+      (as-block-forms args context :sep sep :process process))
+
+    ;; trailing bracket
+    (when (and after
+	       (or always
+		   (> n 1)))
+      (as-literal after :newline t))))
 
 
 (defun as-infix (op args)
   "Synthesise ARGS with OP between them.
 
 Every argument is sythresised in the :inexpression context."
-  (as-block args :inexpression :before "("
-			       :after ")"
-			       :sep (format nil " ~a " op)
-			       :always nil
-			       :indented nil
-			       :newlines nil))
-
-
-(defun as-list (args context
-		&key before after
-		  indented newlines
-		  (process #'synthesise))
-  "Synthesise ARGS as a list.
-
-Each element of ARGS is synthesised in the CONTEXT role.
-Key arguments are as for AS-BLOCK."
-  (as-block args context :before before
-			 :after after
-			 :sep ", "
-			 :indented indented
-			 :newlines newlines
-			 :process process))
+  ;; arguments
+  (as-list args :inexpression :sep (format nil " ~a " op)))

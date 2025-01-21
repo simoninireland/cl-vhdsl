@@ -33,15 +33,21 @@
 (defmethod synthesise-sexp ((fun (eql 'if)) args (context (eql :inblock)))
   (destructuring-bind (condition then &rest else)
       args
+    ;; condition
     (as-literal "if(")
     (synthesise condition :inexpression)
-    (as-literal ") then" :newline t)
-    (as-body (list then) :inblock
-	     :before "begin" :after "end" :always t)
+    (as-literal ") then")
+    (as-newline)
+
+    ;; then arm
+    (as-block (list then) :inblock
+	      :before "begin" :after "end")
+
+    ;; else arm
     (when else
-      (as-literal "else" :newline t :indented t)
-      (as-body else :inblock
-	       :before "begin" :after "end" :always t))))
+      (as-literal "else" :newline t)
+      (as-block else :inblock
+		:before "begin" :after "end"))))
 
 
 ;; ---------- if (expression) ----------
@@ -98,10 +104,10 @@ The type is the lub of the clause types."
 	(as-literal "default")
 	(synthesise val :inexpression))
     (as-literal ":":newline t)
-    (as-body body context
-	     :before "begin"
-	     :after "end"
-	     :always nil)))
+
+    (as-block body context
+	      :before "begin"
+	      :after "end")))
 
 
 (defmethod synthesise-sexp ((fun (eql 'case)) args (context (eql :inblock)))
@@ -109,8 +115,9 @@ The type is the lub of the clause types."
       args
     (as-literal"case (")
     (synthesise condition :inexpression)
-    (as-literal ")" :newline t
-		)
+    (as-literal ")" :newline t)
+
     (with-indentation
-      (as-body clauses :inblock :process #'synthesise-clause))
+      (as-block clauses :inblock :process #'synthesise-clause))
+
     (as-literal "endcase" :newline t)))

@@ -170,15 +170,22 @@ values can't be defined in terms of other parameter values."
       args
     (destructuring-bind (newbody newdecls)
 	(float-let-blocks `(progn ,@body))
-      `((module ,modname ,decls
-		(let ,newdecls
-		  ,@ (cdr newbody)))))))
+      (list
+       `(module ,modname ,decls
+		,(if newdecls
+		     ;; declare the floated declarations
+		     `(let ,newdecls
+			,newbody)
+
+		     ;; no declarations, just return the new body
+		     newbody))
+       '()))))
 
 
 (defmethod simplify-progn-sexp ((fun (eql 'module)) args)
   (destructuring-bind (modname decls &rest body)
       args
-    `(module ,modname ,decls ,@ (mapcar #'simplify-progn body))))
+    `(module ,modname ,decls ,@(mapcar #'simplify-progn body))))
 
 
 (defmethod detect-shadowing-sexp ((fun (eql 'module)) args env)
@@ -229,24 +236,25 @@ values can't be defined in terms of other parameter values."
 	(split-args-params decls)
       ;; parameters
       (if params
-	  (as-list params :indeclaration :before " #(" :after ")"
-					 :indented t :newlines t
-					 :process (lambda (form context)
-						    (synthesise-param form))))
+	  (as-argument-list params :indeclaration :before " #(" :after ")"
+						  :sep ", "
+						  :process (lambda (form context)
+							     (synthesise-param form))))
 
       ;; arguments
-      (as-list args :indeclaration :before "(" :after ");"
-				   :indented t :newlines t
-				   :process (lambda (form context)
-					      (synthesise-arg form))))
+      (as-argument-list args :indeclaration :before "(" :after ");"
+					    :sep ", "
+					    :process (lambda (form context)
+						       (synthesise-arg form))))
+    (as-blank-line)
 
     ;; body
     (with-indentation
-      (as-body body :inmodule))
+	(as-block-forms body :inmodule))
 
     (as-literal "endmodule // ")
     (as-literal (format nil "~(~a~)" modname) :newline t)
-    (as-literal "" :newline t)))
+    (as-blank-line)))
 
 
 ;; ---------- Module instanciation ----------

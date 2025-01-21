@@ -215,7 +215,9 @@ well as PROGNs nested inside other PROGNs.")
 
 
 (defgeneric simplify-progn-sexp (fun args)
-  (:documentation "Simplify PROGN blocks in FUN applied to ARGS."))
+  (:documentation "Simplify PROGN blocks in FUN applied to ARGS.")
+  (:method (fun args)
+    `(,fun ,@(mapcar #'simplify-progn args))))
 
 
 ;; ---------- Macro expansion ----------

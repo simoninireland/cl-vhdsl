@@ -38,7 +38,7 @@
 
 
 (defmethod synthesise ((form integer) (context (eql :inexpression)))
-  (format *synthesis-stream* "~s" form))
+  (as-literal (format nil "~s" form)))
 
 
 (defmethod lispify ((form integer) env)
