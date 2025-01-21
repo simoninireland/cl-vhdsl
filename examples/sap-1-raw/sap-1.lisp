@@ -179,7 +179,8 @@
        (cond (rst
 	      (setq stage 0))
 	     ((= stage 5)
-	      (setq stage 0)
+	      (setq stage 0))
+	     (t
 	      (setq stage (+ 1 stage)))))
 
     (@ (stage)
