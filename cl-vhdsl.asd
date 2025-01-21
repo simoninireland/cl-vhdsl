@@ -26,7 +26,6 @@
   :license "GPL3"
   :depends-on ("alexandria"
 	       "str"
-	       "cl-bitfields"
 	       "cl-ppcre"
 	       "closer-mop"
 	       "slot-extra-options")
