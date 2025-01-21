@@ -410,10 +410,13 @@ and causes a NOT-IMPORTABLE error if not."
 	(as-literal " ")
 	(synthesise modvar :indeclaration)
 	(as-literal "(" :newline t)
+
 	;; arguments
-	(as-list (arguments intf) :indeclaration :indented t :newlines t
-						 :process (rcurry #'synthesise-arg-binding (args-to-alist initargs)))
-	(as-literal ");" :newline t)))))
+	(as-argument-list (arguments intf) :indeclaration
+			  :process (rcurry #'synthesise-arg-binding (args-to-alist initargs)))
+	(as-literal ");" :newline t)
+
+	(as-blank-line)))))
 
 (defmethod synthesise-sexp ((fun (eql 'make-instance)) args (context (eql :inblock)))
   (synthesise-sexp fun args :inmodule))
