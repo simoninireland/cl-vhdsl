@@ -253,6 +253,7 @@ values can't be defined in terms of other parameter values."
     (with-indentation
 	(as-block-forms body :inmodule))
 
+    (as-blank-line)
     (as-literal "endmodule // ")
     (as-literal (format nil "~(~a~)" modname) :newline t)
     (as-blank-line)))
