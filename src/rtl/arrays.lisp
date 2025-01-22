@@ -78,6 +78,7 @@ RTLisp, but don't /require/ it."
     (unquote element-type)
     (unquote initial-contents)
 
+    ;; check shape
     (ensure-valid-array-shape shape env)
 
     ;; check initial element value
@@ -105,7 +106,7 @@ RTLisp, but don't /require/ it."
 	(ensure-subtype (typecheck initial-element env) element-type)
 
 	;; default is a fixed-width unsigned
-	(setq element-type`(fixed-width-unsigned ,element-width)))
+	(setq element-type `(fixed-width-unsigned ,element-width)))
 
     ;; initial contents must either match the size of the array
     ;; or identify a file
@@ -115,6 +116,7 @@ RTLisp, but don't /require/ it."
 		   (error 'not-synthesisable :hint "File-based array initialisation not yest implemnted"))
 
 		  (t
+		   ;; check all elements of literal data
 		   (ensure-data-has-shape initial-contents shape)
 		   (dolist (c initial-contents)
 		     (ensure-subtype (typecheck c env) element-type))))))
@@ -136,7 +138,9 @@ RTLisp, but don't /require/ it."
 
 
 (defmethod synthesise-sexp ((fun (eql 'make-array)) args (context (eql :indeclaration)))
-  (destructuring-bind (shape &key initial-element initial-contents)
+  (destructuring-bind (shape &key
+			       initial-element initial-contents
+			       element-width element-type)
       args
     ;; skip an initial quote, allowed for Lisp compatability
     (unquote shape)

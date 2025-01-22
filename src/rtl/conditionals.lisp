@@ -52,6 +52,10 @@
 		:always t))))
 
 
+(defmethod synthesise-sexp ((fun (eql 'if)) args (context (eql :inmodule)))
+  (synthesise-sexp fun args :inblock))
+
+
 ;; ---------- if (expression) ----------
 
 (defmethod synthesise-sexp ((fun (eql 'if)) args (context (eql :inexpression)))
@@ -123,3 +127,6 @@ The type is the lub of the clause types."
       (as-block clauses :inblock :process #'synthesise-clause))
 
     (as-literal "endcase" :newline t)))
+
+(defmethod synthesise-sexp ((fun (eql 'case)) args (context (eql :inmodule)))
+  (synthesise-sexp fun args :inblock))

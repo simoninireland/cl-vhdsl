@@ -90,6 +90,8 @@
 	       (:file "test-rtl-references")
 	       (:file "test-rtl-bits")
 	       (:file "test-rtl-arrays")
+	       (:file "test-rtl-operators")
+	       (:file "test-rtl-comparisons")
 	       (:file "test-rtl-binders")
 	       (:file "test-rtl-control-flow")
 	       (:file "test-rtl-conditionals")

@@ -164,5 +164,14 @@ plus the number of other arguments."
 
 ;; ---------- Logical operators ----------
 
+(defmethod typecheck-sexp ((fun (eql 'logand)) args env)
+  (let ((ty (foldr (lambda (ty1 arg)
+		     (lub ty1 (typecheck arg env) env))
+		   args nil)))
+    (ensure-subtype ty 'fixed-width-unsigned)
+
+    ty))
+
+
 (defmethod synthesise-sexp ((fun (eql 'logand)) args (context (eql :inexpression)))
   (as-infix '& args))

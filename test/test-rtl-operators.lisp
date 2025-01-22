@@ -102,3 +102,16 @@
     ;; conventional two-operand
     (is (rtl:synthesise `(,op 1 2)
 			:inexpression))))
+
+
+;; ---------- Bitwise operators ----------
+
+(test test-typecheck-logop
+  "Test we can typecheck the logical operators."
+  (is (subtypep (rtl:typecheck '(logand #2r10110 #2r11110)
+			       emptyenv)
+		'(rtl:fixed-width-unsigned 5)))
+
+  (is (subtypep (rtl:typecheck '(logand #2r10110 #2r1111110)
+			       emptyenv)
+		'(rtl:fixed-width-unsigned 7))))
