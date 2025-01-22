@@ -76,6 +76,7 @@ RTLisp, but don't /require/ it."
     ;; skip an initial quotes, allowed for Lisp compatability
     (unquote shape)
     (unquote element-type)
+    (unquote initial-contents)
 
     (ensure-valid-array-shape shape env)
 
@@ -109,13 +110,14 @@ RTLisp, but don't /require/ it."
     ;; initial contents must either match the size of the array
     ;; or identify a file
     (if initial-contents
-	(cond ((listp initial-contents)
-	       (ensure-data-has-shape initial-contents shape)
-	       (dolist (c initial-contents)
-		 (ensure-subtype (typecheck c env) element-type)))
+	(if (listp initial-contents)
+	    (cond ((eql (car initial-contents) :file)
+		   (error 'not-synthesisable :hint "File-based array initialisation not yest implemnted"))
 
-	      ((stringp initial-contents)
-	       (error 'not-synthesisable :hint "File-based array initialisation not yest implemnted"))))
+		  (t
+		   (ensure-data-has-shape initial-contents shape)
+		   (dolist (c initial-contents)
+		     (ensure-subtype (typecheck c env) element-type))))))
 
     `(array ,element-type ,@shape)))
 
@@ -123,15 +125,29 @@ RTLisp, but don't /require/ it."
 ;; Only works for one-dimensional arrays at the moment
 ;; Should expand constants
 
+(defun synthesise-array-init (data shape)
+  "Return the initialisation of DATA with the given SHAPE."
+  (as-literal " = " :newline t)
+
+  (with-indentation
+    (as-list data :inexpression
+	     :before "{ " :after " }"
+	     :per-row 5)))
+
+
 (defmethod synthesise-sexp ((fun (eql 'make-array)) args (context (eql :indeclaration)))
-  (destructuring-bind (shape &key &allow-other-keys)
+  (destructuring-bind (shape &key initial-element initial-contents)
       args
     ;; skip an initial quote, allowed for Lisp compatability
     (unquote shape)
+    (unquote initial-contents)
 
     (as-literal "[ ")
     (synthesise (car shape) :inexpression)
-    (as-literal " - 1 : 0 ]")))
+    (as-literal " - 1 : 0 ]")
+
+    (if initial-contents
+	(synthesise-array-init initial-contents shape))))
 
 (defmethod synthesise-sexp ((fun (eql 'make-array)) args (context (eql :inexpression)))
   (synthesise-sexp fun args :indeclaration))

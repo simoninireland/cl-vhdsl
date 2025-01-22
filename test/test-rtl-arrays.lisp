@@ -88,16 +88,26 @@
 		      :inblock)))
 
 
+;; ---------- Initialisation ----------
+
 (test test-typecheck-array-initialiser
   "Test we can typecheck an array initialiser."
   (is (subtypep (rtl:typecheck '(let ((a (make-array (5)
-					   :initial-contents (1 2 3 4 5))))
-				  (aref a 0))
-				emptyenv)
+					  :initial-contents (1 2 3 4 5))))
+				 (aref a 0))
+			       emptyenv)
 		'(rtl:fixed-width-unsigned 1)))
 
   (signals (rtl:shape-mismatch)
     (rtl:typecheck '(let ((a (make-array (5)
-					   :initial-contents (1 2 3))))
-				  (aref a 0))
-				emptyenv)))
+			      :initial-contents (1 2 3))))
+		     (aref a 0))
+		   emptyenv)))
+
+
+(test test-syntheseise-array-init
+  "Test we can synthesise array initialisation."
+  (rtl:synthesise '(let ((a (make-array '(10) :initial-contents '(1 2 3 4 5 6 7 8 9 10)))
+			 (b 0))
+		    (setf b (aref a 1)))
+		  :inblock))
