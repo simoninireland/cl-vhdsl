@@ -1,6 +1,6 @@
 ;; Helper functions and macros
 ;;
-;; Copyright (C) 2024 Simon Dobson
+;; Copyright (C) 2024--2025 Simon Dobson
 ;;
 ;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
 ;;
@@ -181,4 +181,4 @@ The name MAPN is supposed to bring to mind the behaviour of PROGN."
 
 (defun string-times (str n)
   "Return a string consisting of N copies of STR."
-  (apply #'concatenate (cons'string (mapcar (lambda (i) str) (iota n)))))
+  (apply #'concatenate (cons 'string (mapcar (lambda (i) str) (iota n)))))
