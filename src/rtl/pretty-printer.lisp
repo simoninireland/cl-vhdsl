@@ -146,14 +146,34 @@ to *INDENTATION-LEVEL*.")
 (defun as-list (args context
 		&key before after
 		  (sep ", ")
+		  per-row
 		  (process #'synthesise))
-  "Synthesise ARGS as an inline list along with BEFORE and AFTER brackets."
+  "Synthesise ARGS as an inline list along with BEFORE and AFTER brackets.
+
+PER-ROW, if set, generates a newline after that number of elements."
   ;; leading bracket
   (when before
     (as-literal before))
 
   ;; arguments
-  (as-inline-forms args :inexpression :sep sep :process process )
+  (if per-row
+      ;; divide-up the output
+      (let* ((n (length args))
+	     (rows (floor (/ n per-row))))
+	(dolist (r (iota rows))
+	  (let* ((i (* r per-row))
+		 (l (+ i (min (- n i) per-row)))
+		 (j (1- l)))
+	    (let ((row (sublist args i j)))
+	      (as-inline-forms row :inexpression :sep sep :process process)
+	      (when (= l per-row)
+		(as-literal sep :newline t))
+	      )
+
+	    )))
+
+      ;; output everything in one line
+      (as-inline-forms args :inexpression :sep sep :process process ))
 
   ;; trailing bracket
   (when after
