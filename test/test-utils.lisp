@@ -262,3 +262,16 @@
   (is (equal (filter-by-predicates '(1 3 0 5 7)
 				   #'oddp #'evenp #'zerop)
 	     '((1 3 5 7) (0) (0)))))
+
+
+;; ---------- Sub-lists ----------
+
+(test test-sublist
+  "Test we can extract sub-lists."
+  (is (equal (rtl::sublist '(1 2 3 4 5) 1 3)
+	     '(2 3 4)))
+  (is (equal (rtl::sublist '(1 2 3 4 5) 1)
+	     '(2 3 4 5)))
+  (is (equal (rtl::sublist '(1 2 3 4 5) 0)
+	     '(1 2 3 4 5)))
+  (is (null (rtl::sublist '(1 2 3 4 5) 5))))

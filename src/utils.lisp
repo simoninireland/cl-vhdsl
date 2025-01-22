@@ -166,6 +166,17 @@ The name MAPN is supposed to bring to mind the behaviour of PROGN."
   (reduce fun l :initial-value init))
 
 
+;; ---------- Sub-lists ----------
+
+(defun sublist (l start &optional end)
+  "Extract the sub-list of L starting at START and ending at END or the end."
+  (let ((n (length l)))
+    (unless end
+      (setq end (1- n)))
+    (let ((l1 (butlast l (1- (- n end)))))
+      (last l1 (1+ (- end start))))))
+
+
 ;; ---------- String utilities ----------
 
 (defun string-times (str n)

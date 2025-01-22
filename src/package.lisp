@@ -35,6 +35,7 @@
    #:mapn
    #:n-copies
    #:filter-by-predicate
+   #:sublist
 
    ;; data structure manipulations
    #:safe-cadr
