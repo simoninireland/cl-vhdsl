@@ -117,7 +117,8 @@
 
   (let ((mar 0 :width 4)
 	(ram (make-array '(16)
-			 :element-type '(fixed-width-unsigned 8))))
+			 :element-type '(fixed-width-unsigned 8)
+			 :initial-contents (:file "program.bin"))))
 
     (@ ((posedge clk) (posedge rst))
        (cond (rst
