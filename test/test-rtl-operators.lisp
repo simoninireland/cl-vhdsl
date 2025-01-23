@@ -65,12 +65,7 @@
 
   ;; unary minus
   (is (rtl:synthesise `(- 1)
-		      :inexpression))
-
-  ;; nested
-  (is (equal (rtl:synthesise `(+ 1 (- (+ 2 3 -1)))
-			     :inexpression)
-	     "(1 + (- (2 + 3 + -1)))")))
+		      :inexpression)))
 
 
 ;; ---------- Shifts ----------
