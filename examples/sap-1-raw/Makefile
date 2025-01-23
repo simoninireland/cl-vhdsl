@@ -25,7 +25,7 @@ TARGET = sap-1.bin
 TOPMODULE = top
 
 # Sources
-SOURCES = package.lisp sap-1-raw.lisp
+SOURCES = package.lisp sap-1.lisp
 CONFIG = sap-1.pcf
 OBJECT = sap-1.v
 
