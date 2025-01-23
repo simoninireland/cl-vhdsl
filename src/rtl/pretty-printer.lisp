@@ -159,18 +159,16 @@ PER-ROW, if set, generates a newline after that number of elements."
   (if per-row
       ;; divide-up the output
       (let* ((n (length args))
-	     (rows (floor (/ n per-row))))
+	     (rows (ceiling (/ n per-row))))
 	(dolist (r (iota rows))
 	  (let* ((i (* r per-row))
-		 (l (+ i (min (- n i) per-row)))
-		 (j (1- l)))
+		 (l (min (- n i) per-row))
+		 (j (1- (+ i l))))
 	    (let ((row (sublist args i j)))
 	      (as-inline-forms row :inexpression :sep sep :process process)
-	      (when (= l per-row)
-		(as-literal sep :newline t))
-	      )
-
-	    )))
+	      (when (and (= l per-row)
+			 (< j (- n 1)))
+		(as-literal sep :newline t))))))
 
       ;; output everything in one line
       (as-inline-forms args :inexpression :sep sep :process process ))

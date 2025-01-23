@@ -152,7 +152,8 @@ RTLisp, but don't /require/ it."
     (if initial-contents
 	(if (listp initial-contents)
 	    (cond ((eql (car initial-contents) :file)
-		   (error 'not-synthesisable :hint "File-based array initialisation not yest implemnted"))
+		   ;; nothing to do at the moment
+		   t)
 
 		  (t
 		   ;; check all elements of literal data
@@ -168,12 +169,9 @@ RTLisp, but don't /require/ it."
 
 (defun synthesise-array-init-from-data (data shape)
   "Return the initialisation of DATA with the given SHAPE."
-  (as-literal " = " :newline t)
-
-  (with-indentation
-    (as-list data :inexpression
-	     :before "{ " :after " }"
-	     :per-row 5)))
+  (as-list data :inexpression
+	   :before "{ " :after " }"
+	   :per-row 16))
 
 
 (defun synthesise-array-init (init shape)
@@ -182,9 +180,11 @@ RTLisp, but don't /require/ it."
 If INIT is a list of the form (:FILE FN) the data is read from file FN.
 Otheriwse it is read as a literal list."
   (if (listp init)
-      (cond ((eql init :file)
-	     (let ((ns (load-array-data-from-file (cadr init) :radix 16)))
-	       (synthesise-array-init-from-data ns shape)))
+      (cond ((eql (car init) :file)
+	     (let ((fn (cadr init)))
+	       (as-literal (format nil "// Initialised from ~a" fn) :newline t)
+	       (let ((ns (load-array-data-from-file fn :radix 16)))
+		 (synthesise-array-init-from-data ns shape))))
 
 	    (t
 	     (synthesise-array-init-from-data init shape)))))
@@ -203,8 +203,10 @@ Otheriwse it is read as a literal list."
     (synthesise (car shape) :inexpression)
     (as-literal " - 1 : 0 ]")
 
-    (if initial-contents
-	(synthesise-array-init initial-contents shape))))
+    (when initial-contents
+      (as-literal " = " :newline t)
+      (with-indentation
+	(synthesise-array-init initial-contents shape)))))
 
 (defmethod synthesise-sexp ((fun (eql 'make-array)) args (context (eql :inexpression)))
   (synthesise-sexp fun args :indeclaration))
