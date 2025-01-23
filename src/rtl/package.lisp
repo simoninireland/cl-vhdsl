@@ -22,11 +22,12 @@
 (defpackage cl-vhdsl/rtl
   (:documentation "RTLisp, the synthesisiable fraction of Common Lisp, as an embedded DSL")
   (:use :cl :alexandria
-	:cl-vhdsl             ;; for utility functions
-	:cl-ppcre)            ;; for specifying identifiers
+	:cl-vhdsl                ;; for utility functions
+	:cl-ppcre)               ;; for specifying identifiers
   (:import-from :str
-		#:concat      ;; for macros
-		#:shorten)    ;; for reporting
+		#:concat         ;; for macros
+		#:shorten        ;; for reporting
+		#:words)         ;; for reading array data
 
   (:export
    ;; fixed-width types

@@ -21,7 +21,7 @@
 (declaim (optimize debug))
 
 
-;; ---------- Array construction ----------
+;; ---------- Array initialisation data ----------
 
 (defun valid-array-shape-p (shape env)
   "Test that SHAPE is a valid array shape in ENV.
@@ -41,18 +41,6 @@ whose values are statically determinable."
 			  :hint "Make sure shape is valid for an array")))
 
 
-(defmacro unquote (place)
-  "Remove any leading quote from the data in PLACE.
-
-This is mainly used to preserve compatability with Lisp, where
-these forms need to be quoted. We /allow/ them to be quoted in
-RTLisp, but don't /require/ it."
-  `(if (and (not (null ,place))
-	    (listp ,place)
-	    (eql (car ,place) 'quote))
-       (setq ,place (cadr ,place))))
-
-
 (defun data-has-shape-p (data shape)
   "Test whether DATA has the given SHAPE."
   (and (= (length shape) 1)
@@ -66,7 +54,58 @@ RTLisp, but don't /require/ it."
 			    :hint "Ensure initial contents have the right shape")))
 
 
-;; shape needs to be made up of constants (or parameters)
+(defun read-array-data-from-stream (str &key (radix 16))
+  "Load array initialisation data from STR.
+
+By default the data is assumed to be in hex. This can be changed
+using the RADIX key: common radices are 10, 16, and 2, but I suppose
+some applications might need others.
+
+The data is assumed to be unstructured -- or, more precisely, its shape
+is determined by the array declaration, not by the data.
+
+Return a list of the data values."
+  (labels ((read-array (str)
+	     "Read a sequence of numbers from STR."
+	     (multiple-value-bind (s eof)
+		 (read-line str :eof-error-p nil)
+	       (if s
+		   ;; we've got a string, parse it and continue
+		   (let* ((ss (words s))
+			  (ns (mapcar (lambda (n)
+					(parse-integer n :radix radix))
+				      ss)))
+		     (if eof
+			 ns
+			 (append ns (read-array str))))
+
+		   ;; end of file with no data
+		   nil))))
+
+    (read-array str)))
+
+
+(defun load-array-data-from-file (fn &key (radix 16))
+  "Read array data as integers in radix RADIX from FN."
+  (with-open-file (str fn)
+    (read-array-data-from-stream str :radix radix)))
+
+
+;; ---------- Array construction ----------
+
+(defmacro unquote (place)
+  "Remove any leading quote from the data in PLACE.
+
+This is mainly used to preserve compatability with Lisp, where
+these forms need to be quoted. We /allow/ them to be quoted in
+RTLisp, but don't /require/ it."
+  `(if (and (not (null ,place))
+	    (listp ,place)
+	    (eql (car ,place) 'quote))
+       (setq ,place (cadr ,place))))
+
+
+; shape needs to be made up of constants (or parameters)
 
 (defmethod typecheck-sexp ((fun (eql 'make-array)) args env)
   (destructuring-bind (shape &key
@@ -127,7 +166,7 @@ RTLisp, but don't /require/ it."
 ;; Only works for one-dimensional arrays at the moment
 ;; Should expand constants
 
-(defun synthesise-array-init (data shape)
+(defun synthesise-array-init-from-data (data shape)
   "Return the initialisation of DATA with the given SHAPE."
   (as-literal " = " :newline t)
 
@@ -135,6 +174,20 @@ RTLisp, but don't /require/ it."
     (as-list data :inexpression
 	     :before "{ " :after " }"
 	     :per-row 5)))
+
+
+(defun synthesise-array-init (init shape)
+  "Parse the initial contents in INIT into an initialiser for SHAPE.
+
+If INIT is a list of the form (:FILE FN) the data is read from file FN.
+Otheriwse it is read as a literal list."
+  (if (listp init)
+      (cond ((eql init :file)
+	     (let ((ns (load-array-data-from-file (cadr init) :radix 16)))
+	       (synthesise-array-init-from-data ns shape)))
+
+	    (t
+	     (synthesise-array-init-from-data init shape)))))
 
 
 (defmethod synthesise-sexp ((fun (eql 'make-array)) args (context (eql :indeclaration)))
@@ -211,6 +264,7 @@ probably should, for those that are statically determined."
     (as-literal "[ ")
     (as-list indices :inexpression)
     (as-literal " ]")))
+
 (defmethod synthesise-sexp ((fun (eql 'aref)) args (context (eql :inassignment)))
   (synthesise-sexp fun args :inexpression))
 

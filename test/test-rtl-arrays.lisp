@@ -105,7 +105,7 @@
 		   emptyenv)))
 
 
-(test test-typecheck=array-initialiser-bad-value
+(test test-typecheck-array-initialiser-bad-value
   "Test we can detect a badly-typed value in an array initialiaser."
   (signals (rtl:type-mismatch)
     (rtl:typecheck '(let ((a (make-array (5)
@@ -118,6 +118,34 @@
 (test test-syntheseise-array-init
   "Test we can synthesise array initialisation."
   (is (rtl:synthesise '(let ((a (make-array '(10) :initial-contents '(1 2 3 4 5 6 7 8 9 10)))
+			     (b 0))
+			(setf b (aref a 1)))
+		      :inblock)))
+
+
+(test test-read-array-data
+  "Test we can read array data from a stream."
+  (with-input-from-string (str "1d 2 3 4 5f")
+    (is (equal (rtl::read-array-data-from-stream str)
+	       '(#16r1d 2 3 4 #16r5f))))
+
+  ;; can handle embedded newlines and whitespace
+  (with-input-from-string (str (format nil "1d    2~%    3 4~%~%~%5f"))
+    (is (equal (rtl::read-array-data-from-stream str)
+	       '(#16r1d 2 3 4 #16r5f)))))
+
+
+;; Thee next two tests use ROM data from the SAP-1 example
+
+(test test-read-array-file
+  "Test we can read array data from a file."
+  (is (equal (length (rtl::load-array-data-from-file "examples/sap-1-raw/program.bin"))
+	     16)))
+
+
+(test test-synthesise-array-init-from-file
+  "Test we can synthesise array initialisation from a file."
+  (is (rtl:synthesise '(let ((a (make-array '(10) :initial-contents '(:file "examples/sap-1-raw/program.bin")))
 			     (b 0))
 			(setf b (aref a 1)))
 		      :inblock)))
