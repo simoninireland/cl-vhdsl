@@ -32,10 +32,13 @@
    #:defun/dsl
    #:defdslform
    #:defdslfun
+   #:defdslmacro
 
    ;; conditions
    #:no-current-dsl
    #:duplicate-dsl-function
    #:unknown-dsl-function
    #:unknown-dsl-form
+   #:duplicate-dsl-macro
+   #:unknown-dsl-macro
    ))

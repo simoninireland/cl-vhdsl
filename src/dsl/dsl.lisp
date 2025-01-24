@@ -57,9 +57,25 @@ Forms can be declared more than once."
 
 
 (defun ensure-dsl-form (name dsl)
-  "Ensure that NAME is declared as valid form in DSL."
+  "Ensure that NAME is declared as a form in DSL."
   (unless (dsl-form-p name dsl)
     (error 'unknown-dsl-form :form name :dsl dsl)))
+
+
+(defun dsl-macro-p (name dsl)
+  "Test whether NAME is a macro within DSL."
+  (not (null (member name (dsl-macro dsl)))))
+
+
+(defun add-dsl-macro (name dsl &key import)
+  "Add macro NAME as valid within DSL.
+
+If the :IMPORT key is given, it indicates an existing (Lisp-level)
+macro that is im[ported direcrtly into the DSL."
+  (unless (dsl-form-p name dsl)
+    (error 'duplicate-dsl-macro :macro name :dsl dsl))
+
+  (appendf (dsl-macros dsl) (list (list name import))))
 
 
 (defun dsl-function-p (name dsl)
@@ -139,13 +155,28 @@ is provided the current DSL is removed."
   *current-dsl*)
 
 
+(defun clause-p (cl)
+  "Test if CL is a clause.
+
+Clauses are lists beginning with a keyword."
+  (and (listp cl)
+       (symbolp (car cl))
+       (eql (symbol-package (car cl))
+	    (find-package "KEYWORD"))))
+
+
 (defun get-clause (tag clauses &optional def)
   "Return the value associated with TAG in CLAUSES.
 
-If clause matches return DEF, which is NIL by default."
-  (if-let ((m (assoc tag clauses)))
-    (cadr m)
+If no clause matches return DEF, which is NIL by default."
+  (if-let ((cl (find-if (lambda (cl)
+			  (and (clause-p cl)
+			       (eql (car cl) tag)))
+			clauses)))
+    ;; found the clause, return the head of its body
+    (cadr cl)
 
+    ;; not found, return default
     def))
 
 
@@ -155,12 +186,14 @@ If clause matches return DEF, which is NIL by default."
 The body clauses won't have a keyword symbol as its head.
 There should only be one."
   (flet ((body-clause-p (cl)
-	   (and (listp cl)
-		(symbolp (car cl))
-		(not (eql (symbol-package (car cl))
-			  (find-package "KEYWORD"))))))
+	   (or (atom cl)
+	       (and (listp cl)
+		    (not clause-p)
+		    (symbolp (car cl))
+		    (not (eql (symbol-package (car cl))
+			      (find-package "KEYWORD")))))))
 
-    (let ((cl (remove-if-not #'body-clause-p clauses)))
+    (let ((cl (remove-if #'clause-p clauses)))
       (if (= (length cl) 0)
 	(error "No body")
 	cl))))
@@ -170,20 +203,25 @@ There should only be one."
   "Extract the DSL defined in CLAUSES.
 
 The DSL clause consists of a :DSL tag and a symbol used to
-identify the DSL. If the DSL exists, return it; if not,
-and there is a current DSL, return that; otherwise signal a
+identify the DSL. If the DSL exists, return it; if not, and
+there is a current DSL, return that; otherwise signal a
 NO-CURRENT-DSL error."
-  (or (if-let ((dsl (get-clause :dsl clauses)))
-	(symbol-value dsl))
+  (or (get-clause :dsl clauses)
       (get-current-dsl)
       (error 'no-current-dsl
-	     :hint "Specify a DSL explicitly or use IN-DSL")))
+	     :hint "Specify a DSL explicitly or use IN-DSL"))
+  (get-clause :dsl clauses))
 
 
 (defun split-dslfun-args (args)
   "Split ARGS into the form argument and function argument pattern."
   (list (car args)
 	(cdr args)))
+
+
+(defun get-dsl (sym)
+  "Get the DSL named by SYM."
+  (symbol-value sym))
 
 
 ;; ---------- DSL macros ----------
@@ -205,11 +243,11 @@ DSL class."
 	(formarg (car args))
 	(extraargs (cdr args))
 	(doc (get-clause :documentation clauses "A function over a DSL."))
-	(dsl (get-dsl-clause clauses)))
+	(dslsym (get-dsl-clause clauses)))
 
     (with-gensyms (formfun formargs)
       `(progn
-	 (add-dsl-function ',name ',args ,dsl)
+	 (add-dsl-function ',name ',args ,dslsym)
 
 	 (defgeneric ,fname ,args
 	   (:documentation ,doc)
@@ -220,23 +258,18 @@ DSL class."
 	       (,formname ,formfun ,formargs ,@extraargs))))))))
 
 
-(defmacro defdslform (name &rest clauses)
-  "Declare forms named NAME in the DSL."
-  (let ((dsl (get-clause :dsl clauses (get-current-dsl))))
-    `(add-dsl-form ',name ,dsl)))
-
-
 (defun defdslfun-over-form (f name args clauses)
   "Define a method of F that operates on forms named NAME with given ARGS."
-  (let* ((dsl (get-dsl-clause clauses))
+  (let* ((dslsym (get-dsl-clause clauses))
+	 (dsl (get-dsl dslsym))
 	 (fname (fun/dsl-form-name f))
 	 (body (get-body clauses))
 	 (formarg (get-dsl-function-form-argument f dsl))
 	 (extraargs (get-dsl-function-extra-arguments f dsl)))
     (with-gensyms (argsarg)
       `(progn
-	 (ensure-dsl-function ',f ,dsl)
-	 (ensure-dsl-form ',name ,dsl)
+	 (ensure-dsl-function ',f ,dslsym)
+	 (ensure-dsl-form ',name ,dslsym)
 
 	 (defmethod ,fname ((,formarg (eql ',name)) ,argsarg ,@extraargs)
 	   (destructuring-bind (,@args)
@@ -246,15 +279,16 @@ DSL class."
 
 (defun defdslfun-over-whole-form (f spec clauses)
   "Define a method specialising on a whole form within a DSL."
-  (let ((dsl (get-clause :dsl clauses (get-currrent-dsl))))
-    (ensure-dsl-function name dsl)
+  (let* ((dslsym (get-dsl-clause clauses))
+	 (dsl (get-dsl dslsym))
+	 (fname (fun/dsl-name f))
+	 (body (get-body clauses))
+	 (extraargs (get-dsl-function-extra-arguments f dsl)))
+    `(progn
+       (ensure-dsl-function ',fname ,dslsym)
 
-    (let ((fname (fun/dsl-name f))
-	  (body (get-body-clause clauses)))
-      (destructuring-bind ()))
-
-    )
-  )
+       (defmethod ,fname (,@spec ,@extraargs)
+	 ,@body))))
 
 
 (defmacro defdslfun (f &rest rest)
@@ -263,7 +297,6 @@ DSL class."
     (cond ((listp spec)
 	   ;; specialiser is a list, switching on the form
 	   (defdslfun-over-whole-form f spec (cdr rest)))
-
 
 	  ((atom spec)
 	   ;; specialiser is a symbol, switching on the form's lead symbol
@@ -274,41 +307,86 @@ DSL class."
 	  (t
 	   (error "Malformed DSL function definition")))))
 
+
+(defun defdslform-short (name clauses)
+  "Declare a form named NAME in the DSL."
+  (let ((dslsym (get-dsl-clause clauses)))
+    `(add-dsl-form ',name ,dslsym)))
+
+
+(defun defdslform-function (f name args dslsym body)
+  "Define function F over the form."
+  (let ((fname (fun/dsl-name f)))
+    `(defdslfun ,fname ,name ,args
+       ,(if dslsym
+	    `(:dsl ,dslsym))
+       ,@body)))
+
+
+(defun defdslform-full (name args clauses)
+  "Define a DSL form named NAME taking ARGS, and a set of functions for it."
+  (let* ((dslsym (get-dsl-clause clauses))
+	 (dsl (get-dsl dslsym))
+	 (doc (get-clause :documentation clauses "A DSL form."))
+	 (fns (get-body clauses))
+	 (fndefs (mapcar (lambda (def)
+			   (destructuring-bind (f &rest body)
+			       def
+			     (defdslform-function f name args dslsym body)))
+			 fns)))
+
+    `(progn
+       ;; define the form in the dsl
+       (defdslform ,name
+	 ,(if dslsym
+	     `(:dsl ,dslsym))
+	 (:documentation ,doc))
+
+       ;; define the function mathods on this form
+       ,@fndefs)))
+
+
+(defmacro defdslform (name &rest rest)
+  "Define a form called NAME within the DSL."
+  (let ((args (car rest)))
+    (cond ((and (listp args)
+		(not (null args))
+		(not (clause-p args)))
+	   ;; definition has an arg list, so it's a full definition
+	   (defdslform-full name args (cdr rest)))
+
+	  ((or (null rest)
+	       (clause-p (car rest)))
+	   ;; no args, so it's a short definition
+	   (defdslform-short name rest))
+
+	  (t
+	   (error "Malformed DSL form definition")))))
+
+
+(defmacro defdslmacro (name args &body clauses)
+  "Define a macro NAME for use in a DSL."
+  (let* ((dslsym (get-dsl-clause clauses))
+	 (dsl (get-dsl dslsym))
+	 (import (get-dsl-clause :import clauses))
+	 (body (get-body clauses)))
+
+    (if import
+	;; importing an existing macro
+	`(add-dsl-macro ',name ,dslsym :import ',import)
+
+	;; defining a new macro
+	`(progn
+	   (add-dsl-macro ',name ,dslsym)
+
+	   (defmacro ,name ,args
+	     ,@body)))
+
+    )
+
+  )
+
 ;; ---------- Examples ----------
-
-(defdsl rtl
-    (:documentation "The synthesisable fragment of Lisp."))
-
-
-;; Functions over the DSL's forms
-
-(defun/dsl typecheck (form env)
-  (:documentation "Type-check FORM in ENV.")
-  (:dsl rtl))
-
-
-(defdslfun typecheck ((form integer))
-  (:dsl rtl)
-  (let ((w (bitwidth form env)))
-    (if (< w 0)
-	`(fixed-width-signed ,w)
-	`(fixed-width-unsigned ,w))))
-
-
-(defdslfun typecheck ((form symbol))
-  (:dsl rtl)
-  (get-type form env))
-
-
-(defdslform +
-  (:documentation "Addition operator")
-  (:dsl rtl))
-
-
-(defdslfun typecheck + (&rest args)
-  (:dsl rtl)
-  (typecheck-addition args env))
-
 
 (defdslmacro when (condition &body body)
   (:dsl rtl)
@@ -318,24 +396,3 @@ DSL class."
 (defdslmacro always (&body body)
   (:dsl rtl)
   `(when t ,@body))
-
-
-;; all a form's functions in one go
-
-(defdslform << (val offset)
-  (:documentation "Left-shift operator")
-  (:dsl rtl)
-
-  (typecheck
-   (let ((tyval (typecheck val env))
-	 (tyoffset (typecheck offset env)))
-     (ensure-fixed-width tyval)
-     (ensure-fixed-width tyoffset)
-
-     ;; the width is the width of the value plus the
-     ;; maximum number that can be in the offset
-     `(fixed-width-unsigned ,(+ (bitwidth tyval env)
-				(1- (ash 1 (bitwidth tyoffset env)))))))
-
-  (synthesise
-   (as-infix '<< (list val offset))))

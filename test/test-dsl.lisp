@@ -102,13 +102,46 @@
     (:documentation "A test function using an extra argument")
     (:dsl test-dsl-function-over-forms))
 
+  ;; function defined over the whole form
+  (dsl:defdslfun testdef ((form integer))
+    (:dsl test-dsl-function-over-forms)
+    form)
+
+  (is (= (testdef 12 '())
+	 12))
+
+  ;; function defined over a declared form
   (dsl:defdslfun testdef + (&rest args)
     (:dsl test-dsl-function-over-forms)
-    (apply #'+ args))
+    (apply #'+ (mapcar (rcurry #'testdef '()) args)))
+
+  (is (= (testdef '(+ 1 2 3) '())
+	 (+ 1 2 3))))
+
+
+(test test-dsl-function-together
+  "Test we can define a form and its functions."
+  (dsl:defdsl test-dsl-function-together
+      (:documentation "A DSL to receive a form and function."))
+
+  (dsl:defun/dsl testdef (form env)
+    (:documentation "A test function using an extra argument")
+    (:dsl test-dsl-function-together))
+
+  (dsl:defun/dsl testagain (form)
+    (:documentation "Another test function")
+    (:dsl test-dsl-function-together))
+
+  (dsl:defdslform + (&rest args)
+    (:dsl test-dsl-function-together)
+
+    (testdef
+     (apply #'+ (mapcar (rcurry #'testdef '()) args)))
+
+    (testagain
+     (list 4 5 6 7)))
 
   (is (= (testdef '(+ 1 2 3) '())
 	 (+ 1 2 3)))
-
-  )
-
-(intern (symbol-name 'testdef))
+  (is (equal (testagain '(+ 1 2))
+	     '(4 5 6 7))))

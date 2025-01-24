@@ -94,3 +94,14 @@ declared over the DSL."))
 
 This happens when methods are added to a form that hasn't been added
 as valid to the DSL."))
+
+
+(define-condition duplicate-dsl-macro (dsl-condition)
+  ((f
+    :documentation "The macro."
+    :initarg :macro
+    :reader dsl-macro))
+  (:report (lambda (c str)
+	     (format-condition-context (format nil "Duplicate definiton of macro ~a over DSL" (dsl-macro c))
+				       c str)))
+  (:documentation "Condition signalled for a macro re-defined over the DSL."))
