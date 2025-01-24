@@ -7,7 +7,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'VHDSL'
-copyright = '2024, Simon Dobson'
+copyright = '2024--2025, Simon Dobson'
 author = 'Simon Dobson'
 release = '0.1'
 
@@ -39,7 +39,7 @@ cl_systems = [{"name": "cl-vhdsl",
                "path": join(dirname(realpath(__file__)), "../")}]
 
 # Packages to grab symbols from (in the core image)
-cl_packages = ["cl-vhdsl"]
+cl_packages = ["cl-vhdsl", "cl-vhdsl/rtl"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
