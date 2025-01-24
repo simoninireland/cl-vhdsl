@@ -36,8 +36,9 @@ programmers prefer to treat both arms the same.
 
 .. note::
 
-   The arms of the ``if`` can only be simple expressions, not
-   arbitrary code as can be done in Lisp.
+   When used as an expression like this the arms of the ``if`` can
+   only be simple expressions, not arbitrary code as can be done in
+   Lisp.
 
 
 ``case``
