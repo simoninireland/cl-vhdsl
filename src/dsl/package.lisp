@@ -1,6 +1,6 @@
-;; Top-level test package
+;; Package for DSL definition facility
 ;;
-;; Copyright (C) 2023 Simon Dobson
+;; Copyright (C) 2024--2025 Simon Dobson
 ;;
 ;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
 ;;
@@ -17,17 +17,25 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
-(defpackage cl-vhdsl/test
-  (:use :cl :alexandria :fiveam
-	:cl-vhdsl)
-  (:local-nicknames (:dsl :cl-vhdsl/dsl)
-		    (:rtl :cl-vhdsl/rtl)
-		    (:def :cl-vhdsl/def))
-  (:import-from :fiveam #:is #:test))
+(in-package :common-lisp-user)
 
-(in-package :cl-vhdsl/test)
+(defpackage cl-vhdsl/dsl
+  (:documentation "A facility for defining embedded Lisp domain-specific languages and sub-sets.")
+  (:use :cl :alexandria)
+  (:import-from :str
+		#:concat)   ;; for building function names
 
-(def-suite cl-vhdsl)       ;; utilities
-(def-suite cl-vhdsl/dsl)   ;; DSL definition
-(def-suite cl-vhdsl/rtl)   ;; synthesisable fragment
-(def-suite cl-vhdsl/def)   ;; architectural component definitions
+  (:export
+   ;; top-level macros
+   #:defdsl
+   #:in-dsl
+   #:defun/dsl
+   #:defdslform
+   #:defdslfun
+
+   ;; conditions
+   #:no-current-dsl
+   #:duplicate-dsl-function
+   #:unknown-dsl-function
+   #:unknown-dsl-form
+   ))
