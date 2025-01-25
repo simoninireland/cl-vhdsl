@@ -57,6 +57,45 @@ This happens because no DSL is explicitly set in a DSL function or
 method, and there's no IN-DSL in effect."))
 
 
+(define-condition missing-required-clause (dsl-condition)
+  ((tag
+    :documentation "The missing tag."
+    :initarg :tag
+    :reader clause-tag)
+   (tags
+    :documentation "The required clauses."
+    :initarg :tags
+    :reader clause-tags))
+  (:report (lambda (c str)
+	     (format-condition-context (format nil "Clause ~a missing from required clauses ~a"
+					       (clause-tag c)
+					       (clause-tags c))
+				       c str)))
+  (:documentation "Condition signalled when there is missing metadata.
+
+The DSL macros accept metadata in clauses in their bodies. Some of this
+metedata is required for some macros."))
+
+
+(define-condition unpermitted-clause (dsl-condition)
+  ((tag
+    :documentation "The unrecognised tag."
+    :initarg :tag
+    :reader clause-tag)
+   (tags
+    :documentation "The permitted clauses."
+    :initarg :tags
+    :reader clause-tags))
+  (:report (lambda (c str)
+	     (format-condition-context (format nil "Clause ~a not in permitted set ~a"
+					       (clause-tag c)
+					       (clause-tags c))
+				       c str)))
+  (:documentation "Condition signalled when there is unknown metadata.
+
+The DSL macros accept metadata in clauses in their bodies."))
+
+
 (define-condition unknown-dsl-function (dsl-condition)
   ((f
     :documentation "The function."

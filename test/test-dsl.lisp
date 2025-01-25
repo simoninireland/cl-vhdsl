@@ -105,7 +105,7 @@
   ;; function defined over the whole form
   (dsl:defun/form testdef ((form integer))
     (:dsl test-dsl-function-over-forms)
-    form)
+    (:body form))
 
   (is (= (testdef 12 '())
 	 12))
@@ -113,7 +113,8 @@
   ;; function defined over a declared form
   (dsl:defun/form testdef + (&rest args)
     (:dsl test-dsl-function-over-forms)
-    (apply #'+ (mapcar (rcurry #'testdef '()) args)))
+    (:body
+	   (apply #'+ (mapcar (rcurry #'testdef '()) args))))
 
   (is (= (testdef '(+ 1 2 3) '())
 	 (+ 1 2 3))))
@@ -135,11 +136,11 @@
   (dsl:deform/dsl + (&rest args)
     (:dsl test-dsl-function-together)
 
-    (testdef
-     (apply #'+ (mapcar (rcurry #'testdef '()) args)))
+    (:body testdef
+	   (apply #'+ (mapcar (rcurry #'testdef '()) args)))
 
-    (testagain
-     (list 4 5 6 7)))
+    (:body testagain
+	   (list 4 5 6 7)))
 
   (is (= (testdef '(+ 1 2 3) '())
 	 (+ 1 2 3)))

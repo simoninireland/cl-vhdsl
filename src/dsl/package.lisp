@@ -36,6 +36,8 @@
 
    ;; conditions
    #:no-current-dsl
+   #:missing-required-clause
+   #:unpermitted-clause
    #:duplicate-dsl-function
    #:unknown-dsl-function
    #:unknown-dsl-form
