@@ -145,7 +145,7 @@
 
 (test test-synthesise-array-init-from-file
   "Test we can synthesise array initialisation from a file."
-  (is (rtl:synthesise '(let ((a (make-array '(10) :initial-contents '(:file "examples/sap-1-raw/program.bin"))
-			      (b 0)))
+  (is (rtl:synthesise '(let ((a (make-array '(10) :initial-contents '(:file "examples/sap-1-raw/program.bin")))
+			     (b 0))
 			(setf b (aref a 1)))
 		      :inblock)))
