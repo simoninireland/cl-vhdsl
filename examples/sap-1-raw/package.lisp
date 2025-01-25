@@ -20,4 +20,4 @@
 (in-package :common-lisp-user)
 
 (defpackage cl-vhdsl/examples/sap-1-raw
-  (:use :cl :cl-vhdsl/rtl)))
+  (:use :cl :cl-vhdsl/rtl))
