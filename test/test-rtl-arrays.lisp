@@ -135,7 +135,7 @@
 	       '(#16r1d 2 3 4 #16r5f)))))
 
 
-;; Thee next two tests use ROM data from the SAP-1 example
+;; The next two tests use ROM data from the SAP-1 example
 
 (test test-read-array-file
   "Test we can read array data from a file."
@@ -145,7 +145,7 @@
 
 (test test-synthesise-array-init-from-file
   "Test we can synthesise array initialisation from a file."
-  (is (rtl:synthesise '(let ((a (make-array '(10) :initial-contents '(:file "examples/sap-1-raw/program.bin")))
-			     (b 0))
+  (is (rtl:synthesise '(let ((a (make-array '(10) :initial-contents '(:file "examples/sap-1-raw/program.bin"))
+			      (b 0)))
 			(setf b (aref a 1)))
 		      :inblock)))
