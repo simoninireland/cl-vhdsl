@@ -31,7 +31,7 @@
   (dsl:defdsl test-dsl-define
       (:documentation "A test DSL"))
 
-  (is (not (null (find-class 'test-dsl-define))))
+  (is (not (null (symbol-value 'test-dsl-define))))
   (is (null dsl::*current-dsl*)))
 
 
@@ -83,7 +83,7 @@
   (dsl:defdsl test-dsl-for-forms
       (:documentation "A DSL to receive forms."))
 
-  (dsl:defdslform +
+  (dsl:deform/dsl +
       (:dsl test-dsl-for-forms))
 
   (is (dsl::dsl-form-p '+ test-dsl-for-forms)))
@@ -95,7 +95,7 @@
   (dsl:defdsl test-dsl-function-over-forms
       (:documentation "A DSL to receive a form and function."))
 
-  (dsl:defdslform +
+  (dsl:deform/dsl +
     (:dsl test-dsl-function-over-forms))
 
   (dsl:defun/dsl testdef (form env)
@@ -103,7 +103,7 @@
     (:dsl test-dsl-function-over-forms))
 
   ;; function defined over the whole form
-  (dsl:defdslfun testdef ((form integer))
+  (dsl:defun/form testdef ((form integer))
     (:dsl test-dsl-function-over-forms)
     form)
 
@@ -111,7 +111,7 @@
 	 12))
 
   ;; function defined over a declared form
-  (dsl:defdslfun testdef + (&rest args)
+  (dsl:defun/form testdef + (&rest args)
     (:dsl test-dsl-function-over-forms)
     (apply #'+ (mapcar (rcurry #'testdef '()) args)))
 
@@ -132,7 +132,7 @@
     (:documentation "Another test function")
     (:dsl test-dsl-function-together))
 
-  (dsl:defdslform + (&rest args)
+  (dsl:deform/dsl + (&rest args)
     (:dsl test-dsl-function-together)
 
     (testdef

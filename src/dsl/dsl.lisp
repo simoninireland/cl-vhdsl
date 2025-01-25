@@ -229,8 +229,8 @@ NO-CURRENT-DSL error."
 (defmacro defdsl (name &rest clauses)
   "Define a new DSL named NAME.
 
-The DSL is simply a variable containing an instance of the
-DSL class."
+The instance is simply a variable containing and instance
+of the DSL class."
   (let ((doc (get-clause :documentation clauses "A DSL.")))
 
     `(defparameter ,name (make-instance 'dsl :description ,doc))))
@@ -258,7 +258,7 @@ DSL class."
 	       (,formname ,formfun ,formargs ,@extraargs))))))))
 
 
-(defun defdslfun-over-form (f name args clauses)
+(defun defun/form-over-form (f name args clauses)
   "Define a method of F that operates on forms named NAME with given ARGS."
   (let* ((dslsym (get-dsl-clause clauses))
 	 (dsl (get-dsl dslsym))
@@ -277,7 +277,7 @@ DSL class."
 	     ,@body))))))
 
 
-(defun defdslfun-over-whole-form (f spec clauses)
+(defun defun/form-over-whole-form (f spec clauses)
   "Define a method specialising on a whole form within a DSL."
   (let* ((dslsym (get-dsl-clause clauses))
 	 (dsl (get-dsl dslsym))
@@ -291,39 +291,39 @@ DSL class."
 	 ,@body))))
 
 
-(defmacro defdslfun (f &rest rest)
+(defmacro defun/form (f &rest rest)
   "Define an arm of function F over a DSL."
   (let ((spec (car rest)))
     (cond ((listp spec)
 	   ;; specialiser is a list, switching on the form
-	   (defdslfun-over-whole-form f spec (cdr rest)))
+	   (defun/form-over-whole-form f spec (cdr rest)))
 
 	  ((atom spec)
 	   ;; specialiser is a symbol, switching on the form's lead symbol
 	   (destructuring-bind (name args &rest clauses)
 	       rest
-	     (defdslfun-over-form f name args clauses)))
+	     (defun/form-over-form f name args clauses)))
 
 	  (t
 	   (error "Malformed DSL function definition")))))
 
 
-(defun defdslform-short (name clauses)
+(defun deform/dsl-short (name clauses)
   "Declare a form named NAME in the DSL."
   (let ((dslsym (get-dsl-clause clauses)))
     `(add-dsl-form ',name ,dslsym)))
 
 
-(defun defdslform-function (f name args dslsym body)
+(defun deform/dsl-function (f name args dslsym body)
   "Define function F over the form."
   (let ((fname (fun/dsl-name f)))
-    `(defdslfun ,fname ,name ,args
+    `(defun/form ,fname ,name ,args
        ,(if dslsym
 	    `(:dsl ,dslsym))
        ,@body)))
 
 
-(defun defdslform-full (name args clauses)
+(defun deform/dsl-full (name args clauses)
   "Define a DSL form named NAME taking ARGS, and a set of functions for it."
   (let* ((dslsym (get-dsl-clause clauses))
 	 (dsl (get-dsl dslsym))
@@ -332,12 +332,12 @@ DSL class."
 	 (fndefs (mapcar (lambda (def)
 			   (destructuring-bind (f &rest body)
 			       def
-			     (defdslform-function f name args dslsym body)))
+			     (deform/dsl-function f name args dslsym body)))
 			 fns)))
 
     `(progn
        ;; define the form in the dsl
-       (defdslform ,name
+       (deform/dsl ,name
 	 ,(if dslsym
 	     `(:dsl ,dslsym))
 	 (:documentation ,doc))
@@ -346,25 +346,25 @@ DSL class."
        ,@fndefs)))
 
 
-(defmacro defdslform (name &rest rest)
+(defmacro deform/dsl (name &rest rest)
   "Define a form called NAME within the DSL."
   (let ((args (car rest)))
     (cond ((and (listp args)
 		(not (null args))
 		(not (clause-p args)))
 	   ;; definition has an arg list, so it's a full definition
-	   (defdslform-full name args (cdr rest)))
+	   (deform/dsl-full name args (cdr rest)))
 
 	  ((or (null rest)
 	       (clause-p (car rest)))
 	   ;; no args, so it's a short definition
-	   (defdslform-short name rest))
+	   (deform/dsl-short name rest))
 
 	  (t
 	   (error "Malformed DSL form definition")))))
 
 
-(defmacro defdslmacro (name args &body clauses)
+(defmacro defmacro/dsl (name args &body clauses)
   "Define a macro NAME for use in a DSL."
   (let* ((dslsym (get-dsl-clause clauses))
 	 (dsl (get-dsl dslsym))
@@ -386,13 +386,14 @@ DSL class."
 
   )
 
+
 ;; ---------- Examples ----------
 
-(defdslmacro when (condition &body body)
-  (:dsl rtl)
-  (:import when))
+;; (defmacro/dsl when (condition &body body)
+;;   (:dsl rtl)
+;;   (:import when))
 
 
-(defdslmacro always (&body body)
-  (:dsl rtl)
-  `(when t ,@body))
+;; (defmacro/dsl always (&body body)
+;;   (:dsl rtl)
+;;   `(when t ,@body))

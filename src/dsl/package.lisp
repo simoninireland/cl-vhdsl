@@ -30,9 +30,9 @@
    #:defdsl
    #:in-dsl
    #:defun/dsl
-   #:defdslform
-   #:defdslfun
-   #:defdslmacro
+   #:deform/dsl
+   #:defun/form
+   #:defmacro/dsl
 
    ;; conditions
    #:no-current-dsl
