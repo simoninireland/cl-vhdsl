@@ -45,13 +45,12 @@
   "The pathname to the project root directory.")
 
 
-(defun pathname-relative-to-root (fn)
+(defun pathname-relative-to-project-root (fn)
   "Return the pathname to FN relative to the project root."
   (let* ((p (parse-namestring fn))
 	 (pdir (cdr (pathname-directory p))) ; remove :relative
 	 (pname (pathname-name p))
-	 (ptype (pathname-type p))
-	 (this-dir (pathname-directory *this-file*)))
+	 (ptype (pathname-type p)))
     (make-pathname :directory (append *project-root* pdir)
 		   :name pname
 		   :type ptype)))
