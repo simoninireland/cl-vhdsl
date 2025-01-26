@@ -35,5 +35,20 @@ Assignment to several slices of bits within a variable:
       (setf (bits a 2 :width 1) #2r1)
       (setf (bits a 2 :end 1) #2r10))
 
-``(setq a 1)`` and ``(setf a 12)`` are equivalent. For the other
+``(setq a 1)`` and ``(setf a 1)`` are equivalent. For the other
 generalised places, see under their appropriate access operators.
+
+
+Synchronous and asynchronous assignment
+---------------------------------------
+
+By default the assignments made by ``setq`` and ``setf`` are
+asynchronous: they can be interleaved with other operations. To force
+the assignment to complete before control continues they can be
+decorated with the ``:sync`` keyword:
+
+.. code-block:: lisp
+
+   (setq a 24 :sync t)
+
+performs the assignment synchronously.
