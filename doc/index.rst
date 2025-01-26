@@ -29,4 +29,5 @@ essentially unusable at the moment.
 
    install
    cl-vhdsl
+   dsl
    rtl

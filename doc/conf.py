@@ -39,7 +39,7 @@ cl_systems = [{"name": "cl-vhdsl",
                "path": join(dirname(realpath(__file__)), "../")}]
 
 # Packages to grab symbols from (in the core image)
-cl_packages = ["cl-vhdsl", "cl-vhdsl/rtl"]
+cl_packages = ["cl-vhdsl", "cl-vhdsl/rtl", "cl-vhdsl/dsl"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
