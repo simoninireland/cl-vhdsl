@@ -139,13 +139,15 @@
 
 (test test-read-array-file
   "Test we can read array data from a file."
-  (is (equal (length (rtl::load-array-data-from-file "examples/sap-1-raw/program.bin"))
-	     16)))
+  (let ((fn (pathname-relative-to-root "examples/sap-1-raw/program.bin")))
+    (is (equal (length (rtl::load-array-data-from-file fn))
+	       16))))
 
 
 (test test-synthesise-array-init-from-file
   "Test we can synthesise array initialisation from a file."
-  (is (rtl:synthesise '(let ((a (make-array '(10) :initial-contents '(:file "examples/sap-1-raw/program.bin")))
-			     (b 0))
-			(setf b (aref a 1)))
-		      :inblock)))
+  (let ((fn (pathname-relative-to-root "examples/sap-1-raw/program.bin")))
+    (is (rtl:synthesise `(let ((a (make-array '(10) :initial-contents '(:file ,fn)))
+			       (b 0))
+			  (setf b (aref a 1)))
+			:inblock))))

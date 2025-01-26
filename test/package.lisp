@@ -31,3 +31,27 @@
 (def-suite cl-vhdsl/dsl)   ;; DSL definition
 (def-suite cl-vhdsl/rtl)   ;; synthesisable fragment
 (def-suite cl-vhdsl/def)   ;; architectural component definitions
+
+
+;; ---------- File access relative to the project root ----------
+
+;; This lets tests access data files stored elsewhere in the project
+;; https://stackoverflow.com/questions/70239407/how-can-i-get-the-current-file-name-in-common-lisp
+
+(defparameter *this-file* #.(or *compile-file-truename* *load-truename*)
+	      "The pathname of this file.")
+
+(defparameter *project-root* (butlast (pathname-directory *this-file*))
+  "The pathname to the project root directory.")
+
+
+(defun pathname-relative-to-root (fn)
+  "Return the pathname to FN relative to the project root."
+  (let* ((p (parse-namestring fn))
+	 (pdir (cdr (pathname-directory p))) ; remove :relative
+	 (pname (pathname-name p))
+	 (ptype (pathname-type p))
+	 (this-dir (pathname-directory *this-file*)))
+    (make-pathname :directory (append *project-root* pdir)
+		   :name pname
+		   :type ptype)))
