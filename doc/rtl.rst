@@ -1,3 +1,5 @@
+.. _rtl:
+
 RTLisp
 ======
 
@@ -40,6 +42,7 @@ on the types passed to operators.
 
    rtl/binders
    rtl/assignment
+   rtl/control-flow
    rtl/operators
    rtl/conditionals
    rtl/arrays
