@@ -44,7 +44,7 @@ BINARIES_BUILD_DIR = bin
 
 # Base commands
 LISP = sbcl
-LISPOPTS =
+LISPOPTS = --core ~/sbcl-dev.core
 PYTHON = python3
 PIP = pip
 VIRTUALENV = $(PYTHON) -m venv
@@ -82,8 +82,9 @@ help:
 bin: $(BINARIES)
 	$(MKDIR) $(BINARIES_BUILD_DIR)
 	$(LISP) $(LISPOPTS) \
-	--eval '(asdf:make :cl-vhdsl/cli)' \
-	--eval '(quit)'
+	--eval "(push (truename #p\"$(ROOT)\") asdf:*central-registry*)" \
+	--eval "(asdf:make :cl-vhdsl/cli)" \
+	--eval "(quit)"
 
 # Build the API documentation using Sphinx
 .PHONY: doc
