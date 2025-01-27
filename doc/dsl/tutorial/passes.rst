@@ -36,8 +36,8 @@ arguments unevaluated and re-arrange them into new syntactic forms
 that can then be further evaluated.
 
 
-Defining a function over a DSL
-------------------------------
+Declaring a function over a DSL
+-------------------------------
 
 A function over some DSL code, then, is simply a function that takes
 as its main argument the source tree of interest and does something

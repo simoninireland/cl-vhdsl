@@ -131,4 +131,4 @@ addition; if not, an error is signalled.
 	     (mapcar (rcurry #'typecheck env) args)
 
    Lisp is entirely un-opinionated about these things. It's your DSL:
-   code it up however you like.
+   code it up however you like, in the style you find most simple.
