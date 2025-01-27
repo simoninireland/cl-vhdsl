@@ -113,5 +113,22 @@ Now let's define the type for addition:
 	     (error "Non-integer in arguments to + ~a" args))))
 
 The main part of the check looks at the types of all arguments by
-calling ``typecheck`` on them. Since ``typecheck`` needs another
-argument, ``env``, on its
+calling ``typecheck`` on them. If they're all integers, so is their
+addition; if not, an error is signalled.
+
+.. note::
+
+   If you're a functional programming weenie who likes their
+   combinators raw, you can avoid those two lambda-expressions by
+   observing that in both cases they're simply currying a function
+   with an argument on its right. (Not the usual side for currying,
+   but perfectly sensible.) ``alexandria`` has you covered for this,
+   and we can re-write the main part of the function as:
+
+   .. code-block:: lisp
+
+      (every (rcurry #'eql 'integer)
+	     (mapcar (rcurry #'typecheck env) args)
+
+   Lisp is entirely un-opinionated about these things. It's your DSL:
+   code it up however you like.
