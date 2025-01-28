@@ -235,15 +235,19 @@ Return FORM with constants elaborated and types checked."
       el)))
 
 
+;; ---------- Wrapping-up DSL code ----------
+
+
+
 ;; ---------- Tests ----------
 
 ;; simple closed-form expression
-(eval '(let ((a 1)
-	     (b 2))
-	(+ a (* b b))))
+(eval (check-let-assign '(let ((a 1)
+			       (b 2))
+			  (+ a (* b b)))))
 
 ;; using quasiquoting to build the DSL form
 (let ((val 23))
-  (eval `(let ((a 1)
-	       (b (- ,val 2)))
-	   (+ a (* b b)))))
+  (eval (check-let-assign `(let ((a 1)
+				 (b (- ,val 2)))
+			     (+ a (* b b))))))
