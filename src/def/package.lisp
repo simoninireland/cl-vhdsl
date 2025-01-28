@@ -26,13 +26,10 @@
 		#:slot-exists-and-bound-p)
   (:import-from :closer-mop
 		#:finalize-inheritance
-		#:validate-superclass
 		#:class-slots
 		#:slot-boundp
 		#:slot-definition-name
 		#:slot-definition-type)
-  (:import-from :cl-ppcre
-		#:scan-to-strings)
   (:local-nicknames (:rtl :cl-vhdsl/rtl))
   (:export
    ;; Constants
@@ -44,7 +41,8 @@
    #:component
    #:on-startup
    #:pin-interface
-   #:subcomponent-interface
+   #:subcomponents
+   #:parameters
    #:wiring-diagram
 
    ;; mixins and their behaviours
