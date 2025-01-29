@@ -20,17 +20,18 @@
 (in-package :common-lisp-user)
 
 (defpackage cl-vhdsl/def
-  (:use :cl :alexandria :cl-vhdsl)
-  (:import-from :slot-extra-options
+  (:use :cl :alexandria
+	:cl-vhdsl                              ;; for utilities
+	:cl-vhdsl/rtl)                         ;; for RTLisp
+  (:import-from :slot-extra-options            ;; for extra slot metadata
 		#:def-extra-options-metaclass
 		#:slot-exists-and-bound-p)
-  (:import-from :closer-mop
+  (:import-from :closer-mop                    ;; to define metaclasses
 		#:finalize-inheritance
 		#:class-slots
 		#:slot-boundp
 		#:slot-definition-name
 		#:slot-definition-type)
-  (:local-nicknames (:rtl :cl-vhdsl/rtl))
   (:export
    ;; Constants
    #:KB
