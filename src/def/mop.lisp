@@ -82,7 +82,6 @@ These slots are represented as :parameter in the component."
 
 
 (defmethod finalize-inheritance :after ((cl synthesisable-component))
-  (break)
   (let* ((slot-defs (class-slots cl))
 	 (pin-slot-defs (remove-if-not #'slot-def-in-pin-interface-p
 				       slot-defs))
