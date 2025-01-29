@@ -29,6 +29,38 @@ Mixins should be used as additional base classes for components. They
 provide additional behaviour that is automatically synthesised."))
 
 
+;; ---------- Enabled components ----------
+
+(defclass enabled (mixin)
+  ((en
+    :documentation "The enable wire of the component."
+    :width 1
+    :as :wire
+    :initarg :en
+    :role :clock
+    :exported t
+    :reader en))
+  (:metaclass synthesisable-component)
+  (:documentation "Mixin for creating enable-able components.
+
+Enabled components have an EN line that enables the component's behaviour.
+When this is low the component's pin interface doesn't change."))
+
+
+(defgeneric on-enable (c)
+  (:method-combination append)
+  (:documentation "Behaviour of C when enabled.
+
+The behaviour should be given in RTLisp."))
+
+
+(defgeneric on-disable (c)
+  (:method-combination append)
+  (:documentation "Behaviour of C when disabled.
+
+The behaviour should be given in RTLisp."))
+
+
 ;; ---------- Synchronous (clocked) components ----------
 
 (defclass clocked (mixin)
@@ -37,7 +69,8 @@ provide additional behaviour that is automatically synthesised."))
     :width 1
     :as :wire
     :initarg :clk
-    :role :clock
+    :role :trigger
+    :exported t
     :reader clk))
   (:metaclass synthesisable-component)
   (:documentation "Mixin for creating clocked components.
@@ -74,6 +107,7 @@ The behaviour should be given in RTLisp."))
     :width 1
     :as :wire
     :role :trigger
+    :exported t
     :initarg :rst
     :reader rst))
   (:metaclass synthesisable-component)

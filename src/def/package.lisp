@@ -47,9 +47,15 @@
    #:wiring-diagram
 
    ;; mixins and their behaviours
+   #:enabled
+   #:en
+   #:on-enable
+   #:on-disable
    #:clocked
+   #:clk
    #:on-clock
    #:resetable
+   #:rst
    #:on-reset
 
    ;; conditions
