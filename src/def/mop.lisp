@@ -158,33 +158,45 @@ or :parameter, and not exported."
 (defgeneric pin-interface (cl)
   (:documentation "Return the list of slots in the pin interface of CL.")
   (:method ((cl synthesisable-component))
-    (slot-value cl 'pin-interface-slots)))
+    (slot-value cl 'pin-interface-slots))
+
+  (:method ((c component))
+    (pin-interface (class-of c))))
 
 
 (defgeneric parameters (cl)
   (:documentation "Return the list of slots that hold parameters of CL.")
   (:method ((cl synthesisable-component))
-    (slot-value cl 'parameter-slots)))
+    (slot-value cl 'parameter-slots))
+
+  (:method ((c component))
+    (parameters (class-of c))))
 
 
 (defgeneric subcomponents (cl)
   (:documentation "Return the list of slots of CL holding sub-components.")
   (:method ((cl synthesisable-component))
-    (slot-value cl 'subcomponent-slots)))
+    (slot-value cl 'subcomponent-slots))
+
+  (:method ((c component))
+    (sub-components (class-of c))))
 
 
 (defgeneric variables (cl)
   (:documentation "Return the list of slots of CL that are variables.")
   (:method ((cl synthesisable-component))
-    (slot-value cl 'variable-slots)))
+    (slot-value cl 'variable-slots))
+
+  (:method ((c component))
+    (variables (class-of c))))
 
 
 ;; ---------- Slot attributes ----------
 
-(defun find-slot-atttribte-in-slot-def (slot-def attr)
+(defun find-slot-attribute-in-slot-def (slot-def attr)
   "Return the value of ATTR in SLOT-DEF if it is bound."
   (if (slot-boundp slot-def attr)
-	(slot-value slot-def attr)))
+      (slot-value slot-def attr)))
 
 
 (defun find-slot-def-in-class (cl slot)
@@ -203,38 +215,25 @@ This is used internally to access slot attributes."
     (find-slot-atttribte-in-slot-def slot-def attr)))
 
 
-(defun slot-width (cl slot)
-  "Return the width of SLOT in CL."
-  (find-slot-attribute-in-class cl slot 'width))
+(defun slot-attribute (c slot attr)
+  "Return the value of ATTR for SLOT in the slots of class or component C."
+  (let ((cl (if (eql (class-of c)
+		     'synthesisable-component)
+		c
+		(class-of c))))
+    (find-slot-attribute-in-slot-def (find-slot-def-in-class cl slot) attr)))
 
 
-(defun slot-role (cl slot)
-  "Return the role of SLOT in CL."
-  (find-slot-attribute-in-class cl slot 'role))
+(defun slot-width (c slot)
+  "Return the width of SLOT in class or component C."
+  (slot-attribute c slot 'width))
 
 
-(defun slot-direction (cl slot)
-  "Return the direction of SLOT in CL."
-  (find-slot-attribute-in-class cl slot 'direction))
+(defun slot-representation (c slot)
+  "Return the representation of SLOT in class or component C."
+  (slot-attribute c slot 'as))
 
 
-(defun slot-type (cl slot)
-  "Return the type of SLOT in CL."
-  (if-let ((slot-def (find-slot-def-in-class cl slot)))
-    (slot-definition-type slot-def)))
-
-
-(defun slot-name (cl slot)
-  "Return the name of SLOT in CL."
-  (if-let ((slot-def (find-slot-def-in-class cl slot)))
-    (slot-definition-name slot-def)))
-
-
-(defun slot-exported (cl slot)
-  "Return wiether SLOT in CL is exported."
-  (find-slot-attribute-in-class cl slot 'exported))
-
-
-(defun slot-representation (cl slot)
-  "Return the representation of SLOT in CL."
-  (find-slot-attribute-in-class cl slot 'as))
+(defun slot-direction (c slot)
+  "Return the direction of SLOT in class or component C."
+  (slot-attribute c slot 'direction))
