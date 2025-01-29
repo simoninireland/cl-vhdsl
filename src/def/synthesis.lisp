@@ -22,25 +22,34 @@
 
 ;; ---------- Synthesising components ----------
 
-(defun synthesise-module-args (cl)
+(defun synthesise-module-args (c)
   "Return the RTLisp code to declare the module arguments.
 
-The module arguments are constructed from the pin interface of CL.
+The module arguments are constructed from the pin interface of C.
 
 The code is a list of declarations suitable for a LET form."
-  (flet ((pin-interface-to-arg (slot)
-	   (let ((name (slot-name cl slot))
-		 (width (slot-width cl slot))
-		 (rep (slot-representation cl slot))
-		 (direction (slot-direction cl slot)))
-	     `(,name ,@(if width
-			  `(:width ,width))
-		     ,@(if direction
-			  `(:direction ,direction))
-		     ,@(if rep
-			  `(:as ,rep))))))
+  (let ((cl (class-of c)))
 
-    (mapcar #'pin-interface-to-arg (pin-interface cl))))
+    (flet ((pin-interface-to-arg (slot)
+	     (let* ((slot-def (find-slot-def-in-class cl slot))
+		    (name (slot-definition-name slot-def))
+		    (b (slot-boundp c slot))
+		    (v (if b
+			   (slot-value c slot)
+			   0))
+		    (width (slot-width cl slot))
+		    (rep (slot-representation cl slot))
+		    (direction (slot-direction cl slot)))
+	       `(,name ,@(if width
+			     `(:width ,width))
+		       ,@(if direction
+			     `(:direction ,direction))
+		       ,@(if (/= v 0)
+			     `(:initial-value ,v))
+		       ,@(if rep
+			     `(:as ,rep))))))
+
+      (mapcar #'pin-interface-to-arg (pin-interface c)))))
 
 
 (defun synthesise-module-params (c)
@@ -50,16 +59,19 @@ The module parameters are constructed from the slots of CL that are
 exported from the component.
 
 The code is a list of declarations suitable for a LET form."
-  (flet ((slot-to-param (slot)
-	   (let ((name (slot-name cl slot))
-		 (initial-value (slot-value slot :initial-value))
-		 (width (slot-width cl slot))
-		 (rep (slot-representation cl slot))
-		 (direction (slot-direction cl slot)))
-	     `(,name ,@(if initial-value
-			  `(:initial-value ,initial-value))))))
+  (let ((cl (class-of c)))
 
-    (mapcar #'slot-to-param (parameters (class-of c)))))
+    (flet ((slot-to-param (slot)
+	     (let* ((slot-def (find-slot-def-in-class cl slot))
+		    (name (slot-definition-name slot-def))
+		    (v (slot-value c slot))
+		    (width (slot-width cl slot))
+		    (rep (slot-representation cl slot))
+		    (direction (slot-direction cl slot)))
+	       `(,name ,@(if (/= v 0)
+			     `(:initial-value ,v))))))
+
+      (mapcar #'slot-to-param (parameters c)))))
 
 
 (defun synthesise-module ()
