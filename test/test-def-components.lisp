@@ -68,3 +68,37 @@
 		   '((addr :width 8)
 		     (clk :width 1))
 		   :test #'equal))))
+
+
+(test test-mixins
+  "Test mixins have the expected pin interfaces."
+  (defclass mop-mixins-clocked (def:component def:clocked)
+    ((addr
+      :width 8
+      :exported t
+      :accessor addr))
+    (:metaclass def:synthesisable-component))
+
+  (defclass mop-mixins-enabled (def:component def:enabled)
+    ((addr
+      :width 8
+      :exported t
+      :accessor addr))
+    (:metaclass def:synthesisable-component))
+
+  (defclass mop-mixins-clocked-enabled (def:component def:clocked def:enabled)
+    ((addr
+      :width 8
+      :exported t
+      :accessor addr))
+    (:metaclass def:synthesisable-component))
+
+  (let ((mmc (make-instance 'mop-mixins-clocked))
+	(mme (make-instance 'mop-mixins-enabled))
+	(mmce (make-instance 'mop-mixins-clocked-enabled)))
+
+    (is (set-equal (def:pin-interface mmc) '(def::clk addr)))
+    (is (set-equal (def:pin-interface mme) '(def::en addr)))
+
+    ;; check two mixins together
+    (is (set-equal (def:pin-interface mmce) '(def::clk def::en addr)))))
