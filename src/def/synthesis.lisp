@@ -50,26 +50,30 @@ The module parameters are constructed from the slots of CL that are
 exported from the component.
 
 The code is a list of declarations suitable for a LET form."
-  (flet ((pin-interface-to-param (slot)
+  (flet ((slot-to-param (slot)
 	   (let ((name (slot-name cl slot))
+		 (initial-value (slot-value slot :initial-value))
 		 (width (slot-width cl slot))
 		 (rep (slot-representation cl slot))
 		 (direction (slot-direction cl slot)))
-	     `(,name ,@(if width
-			  `(:width ,width))
-		     ,@(if direction
-			  `(:direction ,direction))
-		     ,@(if rep
-			  `(:as ,rep))))))
+	     `(,name ,@(if initial-value
+			  `(:initial-value ,initial-value))))))
 
-    (mapcar #'pin-interface-to-param (parameters (class-of c)))))
+    (mapcar #'slot-to-param (parameters (class-of c)))))
 
 
 (defun synthesise-module ()
   "doc"
   )
 
-(defmethod synthesise ((c component))
+(defmethod synthesise ((c component) context)
+  (let ((modname (symbol-name (class-name (class-of c))))
+	(modparams (synthesise-module-params c))
+	(modargs (synthesise-module-args c))))
+  `(module ,modname ,modparams ,modargs
+
+	   (let ((a :width 8))
+	     (setq a (+ a 1))))
   )
 
 
