@@ -37,6 +37,7 @@ provide additional behaviour that is automatically synthesised."))
     :width 1
     :as :wire
     :initarg :clk
+    :role :clock
     :reader clk))
   (:metaclass synthesisable-component)
   (:documentation "Mixin for creating clocked components.
@@ -72,8 +73,9 @@ The behaviour should be given in RTLisp."))
     :documentation "The reset wire of the component."
     :width 1
     :as :wire
+    :role :trigger
     :initarg :rst
-    :reader clk))
+    :reader rst))
   (:metaclass synthesisable-component)
   (:documentation "Mixin for creating resetable components.
 
