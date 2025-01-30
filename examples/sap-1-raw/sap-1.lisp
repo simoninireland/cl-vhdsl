@@ -264,9 +264,9 @@
 				   :load ir_load :bus bus :out ir_out))
 	    (memory (make-instance 'memory :clk clk :rst rst
 					   :load mar_load :bus bus :out mem_out))
-	    (reg-a (make-instance 'reg_a :clk clk :rst rst
+	    (reg_a (make-instance 'reg_a :clk clk :rst rst
 					 :load a_load :bus bus :out a_out))
-	    (reg-b (make-instance 'reg_b :clk clk :rst rst
+	    (reg_b (make-instance 'reg_b :clk clk :rst rst
 					 :load b_load :bus bus :out b_out))
 	    (adder (make-instance 'adder :a a_out :b b_out
 					 :sub adder_sub :out adder_out))
