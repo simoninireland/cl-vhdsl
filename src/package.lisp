@@ -34,8 +34,9 @@
    #:foldr
    #:mapn
    #:n-copies
-   #:filter-by-predicate
+   #:filter-by-predicates
    #:sublist
+   #:successive-pairs
 
    ;; data structure manipulations
    #:safe-cadr
