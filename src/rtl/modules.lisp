@@ -151,6 +151,8 @@ values can't be defined in terms of other parameter values."
 (defmethod typecheck-sexp ((fun (eql 'module)) args env)
   (destructuring-bind (modname decls &rest body)
       args
+    (ensure-legal-identifier modname)
+
     (destructuring-bind (modargs modparams)
 	(split-args-params decls)
       ;; catch modules with no wires or registers
@@ -389,7 +391,7 @@ and causes a NOT-IMPORTABLE error if not."
       (as-literal ")"))))
 
 
-(defmethod synthesise-sexp ((fun (eql 'make-instance)) args (context (eql :inmodule)))
+(defmethod synthesise-sexp ((fun (eql 'make-instance)) args (context (eql :inexpression)))
   (labels ((args-to-alist (plist)
 	     "Convert a plist of arguments to an alist, respecting sub-lists. "
 	     (if (null plist)
@@ -408,16 +410,10 @@ and causes a NOT-IMPORTABLE error if not."
 	    (modargs (keys-to-arguments modname initargs))
 	    (modvar (gensym)))
 
-	(synthesise modname :indeclaration)
-	(as-literal " ")
-	(synthesise modvar :indeclaration)
-
 	;; arguments
 	(as-argument-list (arguments intf) :indeclaration
 			  :before "(" :after ");"
-			  :process (rcurry #'synthesise-arg-binding (args-to-alist initargs)))
-
-	(as-blank-line)))))
+			  :process (rcurry #'synthesise-arg-binding (args-to-alist initargs)))))))
 
 (defmethod synthesise-sexp ((fun (eql 'make-instance)) args (context (eql :inblock)))
   (synthesise-sexp fun args :inmodule))

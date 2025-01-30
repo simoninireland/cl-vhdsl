@@ -97,8 +97,9 @@ Signal VALUE-MISMATCH as an error if not."
 				  ;;(:width ,width)
 				  (:as ,as))
 			      env)))
+
       ;; otherwise we have a naked name, so apply the defaults
-      (typecheck-decl env `(,decl 0 :width ,*default-register-width*))))
+      (typecheck-decl env `(,decl 0 :width ,*default-register-width* :as :register))))
 
 
 (defun typecheck-env (decls env)
@@ -142,7 +143,8 @@ Signal VALUE-MISMATCH as an error if not."
   "Generate the declaration part for DECL."
   (destructuring-bind (n v &rest keys)
       decl
-    `(,n ,(if (array-value-p v)
+    `(,n ,(if (or (array-value-p v)
+		  (module-value-p v))
 	      ;; array initialisers are retained
 	      v
 
@@ -160,7 +162,8 @@ and where there is a sensible initialiser."
   (destructuring-bind (n v &key &allow-other-keys)
       decl
 
-    (if (and (not (array-value-p v))
+    (if (and (not (or (array-value-p v)
+		      (module-value-p v)))
 	     (null (eval-if-static v (empty-environment))))
 	`(setq ,n ,v))))
 
@@ -223,6 +226,12 @@ by LET and MODULE forms."
        (eql (car form) 'make-array)))
 
 
+(defun module-value-p (form)
+  "Test whether FORM is a module constructor."
+  (and (listp form)
+       (eql (car form) 'make-instance)))
+
+
 (defun synthesise-register (decl context)
   "Synthesise a register declaration within a LET block.
 
@@ -272,19 +281,39 @@ Constants turn into local parameters."
     (as-literal ";")))
 
 
+(defun synthesise-module-instance (decl)
+  "Synthesise DECL as a module instanciation."
+  (destructuring-bind (n v &key &allow-other-keys)
+      decl
+    (let ((modname (cadr v)))
+      ;; skip over leading quote of module name,
+      ;; for compatability with Common Lisp usage
+      (unquote modname)
+
+      (synthesise modname :inexpression)
+      (as-literal " ")
+      (synthesise n :inexpression)
+      (synthesise v :inexpression))))
+
+
 (defun synthesise-decl (decl context)
   "Synthesise DECL in CONTEXT."
   (destructuring-bind (n v &key width type as)
       decl
-    (case as
-      (:constant
-       (synthesise-constant decl context))
-      (:register
-       (synthesise-register decl context))
-      (:wire
-       (synthesise-wire decl context))
-      (t
-       (synthesise-register decl context)))))
+    (if (module-value-p v)
+	;; instanciating a module
+	(synthesise-module-instance decl)
+
+	;; otherwise, creating a variable
+	(case as
+	  (:constant
+	   (synthesise-constant decl context))
+	  (:register
+	   (synthesise-register decl context))
+	  (:wire
+	   (synthesise-wire decl context))
+	  (t
+	   (synthesise-register decl context))))))
 
 
 (defmethod synthesise-sexp ((fun (eql 'let)) args (context (eql :inmodule)))
