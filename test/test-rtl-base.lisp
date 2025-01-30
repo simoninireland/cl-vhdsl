@@ -66,13 +66,14 @@
   (is (not (rtl::legal-identifier-p "_")))
   (is (not (rtl::legal-identifier-p "0abc")))
   (is (not (rtl::legal-identifier-p "01")))
+  (is (not (rtl::legal-identifier-p "test-me")))
 
   ;; illegal identifiers (keywords)
   (is (not (rtl::legal-identifier-p "reg")))
   (is (not (rtl::legal-identifier-p "inout")))
 
   ;; check signalling
-  (signals (rtl:not-synthesisable)
+  (signals (rtl:bad-variable)
     (is (not (rtl::ensure-legal-identifier "reg")))))
 
 

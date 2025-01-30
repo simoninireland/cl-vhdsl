@@ -32,7 +32,7 @@ example 8, 16, 32, or 64 bits.")
 
 ;; ---------- Identifiers ----------
 
-(defvar *identifier-regexp* (create-scanner "^([A-Za-z][A-Za-z0-9_]*)|(_[A-Za-z0-9_]+)$")
+(defparameter *identifier-regexp* (create-scanner "([A-Za-z][A-Za-z0-9_]*)|(_[A-Za-z0-9_]+)")
   "The regexp scanner used for determining legal variable names.
 
 Legal names contains letters, digits, and underscores, not leading
@@ -96,10 +96,20 @@ The properties may include:
 
 This uses *IDENTIFIER-REGEXP* for legality while avoiding strings
 in *RESERVED-WORDS*."
-  (when (symbolp n)
-    (setq n (symbol-name n)))
-  (and (not (member n *reserved-words* :test #'string-equal))
-       (scan *identifier-regexp* n)))
+  (flet ((matches-all (s)
+	   (multiple-value-bind (start end regstart regend)
+	       (scan *identifier-regexp* s)
+	     (and (not (null start))
+		  (= start 0)
+		  (= end (length s))))))
+
+    ;; allow strings and symbols for names
+    (when (symbolp n)
+      (setq n (symbol-name n)))
+
+    (and (not (member n *reserved-words* :test #'string-equal))
+	 (matches-all n)   ; must match entire string
+	 t)))
 
 
 (defun ensure-legal-identifier (n)
@@ -107,7 +117,8 @@ in *RESERVED-WORDS*."
 
 Signals NOT-SYNTHESISABLE as an error if not."
   (unless (legal-identifier-p n)
-    (error 'not-synthesisable :hint "Change the identifier name to a legal one")))
+    (error 'bad-variable :name n
+			 :hint "Change the identifier name to a legal one")))
 
 
 (defun get-environment-properties (n env)

@@ -109,6 +109,22 @@ This is caused either by an undeclared variable or by use of a variable
 that should be declared in the architectural environment, such as a register."))
 
 
+(define-condition bad-variable (rtl-condition)
+  ((var
+    :documentation "The variable."
+    :initarg :variable
+    :reader variables))
+  (:report (lambda (c str)
+	     (format-condition-context (format nil "Badly-named variable or module ~a"
+					       (variable c))
+				       c str)))
+  (:documentation "Condition signalled when an unacceptable identifier is encountered.
+
+This is caused by using identifier names may be legal in Lisp (with
+its very permissive rules) but that can't be synthesised (because of
+limitations in the underlying technology)."))
+
+
 (define-condition unknown-module (rtl-condition)
   ((modname
     :documentation "The module."
