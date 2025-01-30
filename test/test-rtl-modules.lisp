@@ -111,3 +111,24 @@
 								    :clk-out clk)))
 				   (setq clk 1)))))))
 		      :toplevel)))
+
+
+(test test-module-instanciate-with-bitfields
+  "Test we can instanciate a module that uses bitfields in its wiring."
+
+  (rtl:clear-module-registry)
+
+  (rtl:defmodule clock ((clk_in  :direction :in  :as :wire :width 1)
+			(clk_out :direction :out :as :wire :width 1))
+    (setq clk_out clk_in))
+
+  (is (subtypep (rtl:typecheck (rtl::expand-macros
+				'(let ((ctrl 0 :width 4 :as :wire)
+				       (clk_in 0 :width 1 :as :wire))
+				  (rtl:with-bitfields (clk b2 b1 b0)
+				      ctrl
+				    (let ((clock (make-instance 'clock :clk_in clk_in
+								       :clk_out clk)))
+				      clock))))
+			       emptyenv)
+		'rtl::module-interface)))
