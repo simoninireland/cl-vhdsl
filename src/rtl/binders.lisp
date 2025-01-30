@@ -62,6 +62,13 @@ Signal VALUE-MISMATCH as an error if not."
     (error 'value-mismatch :expected (list :register :wire :constant) :got rep)))
 
 
+(defun name-in-decl (decl)
+  "Extract the name being defined by DECL."
+  (if (listp decl)
+      (car decl)
+      decl))
+
+
 ;; the lambda list is the "wrong way round" from "normal" to allow
 ;; this function to be folded across a list of declarations
 (defun typecheck-decl (env decl)
@@ -127,9 +134,8 @@ Signal VALUE-MISMATCH as an error if not."
     (let* ((rwdecls (mapcar (rcurry #'rewrite-variables-decl rewrite) decls))
 
 	   ;; remove any re-writes referring to shadowed variables
-	   (rwenv (typecheck-env rwdecls (empty-environment)))
-	   (rwrewrite (remove-if (rcurry #'variable-defined-p rwenv)
-				 rewrite :key #'car))
+	   (rwnames (mapcar #'name-in-decl rwdecls))
+	   (rwrewrite (remove-if (rcurry #'member rwnames) rewrite))
 
 	   ;; re-write the body with these new re-writes
 	   (rwbody (mapcar (rcurry #'rewrite-variables rwrewrite) body)))
