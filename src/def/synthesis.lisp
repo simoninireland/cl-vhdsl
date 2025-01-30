@@ -30,16 +30,15 @@ The module arguments are constructed from the pin interface of C.
 The code is a list of declarations suitable for a LET form."
   (let ((cl (class-of c)))
 
-    (flet ((pin-interface-to-arg (slot)
-	     (let* ((slot-def (find-slot-def-in-class cl slot))
+    (flet ((pin-interface-to-decl (slot)
+	     (let* ((slot-def (find-slot-def c slot))
 		    (name (slot-definition-name slot-def))
-		    (b (slot-boundp c slot))
-		    (v (if b
+		    (v (if (slot-boundp c slot)
 			   (slot-value c slot)
 			   0))
-		    (width (slot-width cl slot))
-		    (rep (slot-representation cl slot))
-		    (direction (slot-direction cl slot)))
+		    (width (slot-width c slot))
+		    (rep (slot-representation c slot))
+		    (direction (slot-direction c slot)))
 	       `(,name ,@(if width
 			     `(:width ,width))
 		       ,@(if direction
@@ -49,29 +48,24 @@ The code is a list of declarations suitable for a LET form."
 		       ,@(if rep
 			     `(:as ,rep))))))
 
-      (mapcar #'pin-interface-to-arg (pin-interface c)))))
+      (mapcar #'pin-interface-to-decl (pin-interface c)))))
 
 
 (defun synthesise-module-params (c)
   "Return the RTLisp code to declare the module parameters.
 
-The module parameters are constructed from the slots of CL that are
-exported from the component.
-
 The code is a list of declarations suitable for a LET form."
   (let ((cl (class-of c)))
 
-    (flet ((slot-to-param (slot)
+    (flet ((param-to-decl (slot)
 	     (let* ((slot-def (find-slot-def-in-class cl slot))
 		    (name (slot-definition-name slot-def))
-		    (v (slot-value c slot))
-		    (width (slot-width cl slot))
-		    (rep (slot-representation cl slot))
-		    (direction (slot-direction cl slot)))
-	       `(,name ,@(if (/= v 0)
-			     `(:initial-value ,v))))))
+		    (v (if (slot-boundp c slot)
+			   (slot-value c slot)
+			   0)))
+	       `(,name :initial-value ,v))))
 
-      (mapcar #'slot-to-param (parameters c)))))
+      (mapcar #'param-to-decl (parameters c)))))
 
 
 (defun synthesise-module ()

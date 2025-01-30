@@ -131,8 +131,8 @@ This tests whether the slot' representation is :parameter."
 
 Sub-components are simply slots that have a type that is
 a sub-class of `component'."
-  (subtypep (slot-definition-type slot-def)
-	    (find-class 'synthesisable-component)))
+  (and (slot-exists-and-bound-p slot-def 'as)
+       (eql (slot-value slot-def 'as) :subcomponent)))
 
 
 (defun slot-def-in-variables-p (slot-def)
@@ -187,34 +187,34 @@ or :parameter, and not exported."
       (slot-value slot-def attr)))
 
 
-(defun find-slot-def-in-class (cl slot)
-  "Return the slot definition associated with SLOT on class CL.
+(defun find-slot-def (c slot)
+  "Return the slot definition associated with SLOT on component C.
 
 This is used internally to access slot attributes."
-  (let ((slot-defs (class-slots cl)))
+  (let ((slot-defs (class-slots (class-of c))))
     (or (find slot slot-defs :key #'slot-definition-name
 			     :test #'string-equal)
-	(error "No slot ~a in ~a " slot cl))))
-
-
-(defun find-slot-attribute-in-class (cl slot attr)
-  "Return the attribute ATTR of SLOT in class CL."
-  (let ((slot-def (find-slot-def-in-class cl slot)))
-    (find-slot-atttribte-in-slot-def slot-def attr)))
+	(error "No slot ~a in ~a of class ~a " slot c (class-of c)))))
 
 
 (defun slot-attribute (c slot attr)
-  "Return the value of ATTR for SLOT in the slots of class or component C."
-  (let ((cl (if (eql (class-of c)
-		     'synthesisable-component)
-		c
-		(class-of c))))
-    (find-slot-attribute-in-slot-def (find-slot-def-in-class cl slot) attr)))
+  "Return the value of ATTR for SLOT in the slots of component C."
+  (find-slot-attribute-in-slot-def (find-slot-def c slot) attr))
 
 
 (defun slot-width (c slot)
   "Return the width of SLOT in class or component C."
   (slot-attribute c slot 'width))
+
+
+(defun slot-role (c slot)
+  "Return the role of SLOT in class or component C."
+  (slot-attribute c slot 'role))
+
+
+(defun slot-exported (c slot)
+  "Return whether SLOT in class or component C is exported."
+  (slot-attribute c slot 'exported))
 
 
 (defun slot-representation (c slot)
