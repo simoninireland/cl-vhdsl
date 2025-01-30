@@ -51,8 +51,10 @@ available for import.")
 
 (defun add-module-interface (modname intf)
   "Add module MODNAME with given INTF."
+  (ensure-legal-identifier modname)
+
   (when (known-module-interface-p modname)
-      (error 'duplicate-module :module modname))
+    (error 'duplicate-module :module modname))
 
   (appendf *module-interfaces* (list (list modname intf))))
 
@@ -73,8 +75,10 @@ available for import.")
 
 (defun add-module-for-synthesis (modname module)
   "Queue the module MODNAME with code MODULE for synthesis."
+  (ensure-legal-identifier modname)
+
   (when (synthesising-module-p modname)
-      (error 'duplicate-module :module modname))
+    (error 'duplicate-module :module modname))
 
   (appendf *module-list* (list (list modname module))))
 
