@@ -73,6 +73,7 @@
    ;; conditions
    #:not-synthesisable
    #:unknown-variable
+   #:bad-variable
    #:unknown-module
    #:duplicate-variable
    #:duplicate-module
