@@ -177,6 +177,26 @@ The name MAPN is supposed to bring to mind the behaviour of PROGN."
       (last l1 (1+ (- end start))))))
 
 
+(defun successive-pairs (l)
+  "Turn a list of elements into a list of successive pairs.
+
+The list (a b c d) transforms to the list ((a b) (b c) (c d)."
+  (labels ((pairup (l)
+	     (if (null l)
+		 nil
+		 (cons (list (car l) (cadr l))
+		       (if (> (length l) 2)
+			   (pairup (cdr l))
+			   nil)))))
+
+    (cond ((null l)
+	   nil)
+	  ((= (length l) 1)
+	   (error "No pairs to pair up in ~a" l))
+	  (t
+	   (pairup l)))))
+
+
 ;; ---------- String utilities ----------
 
 (defun string-times (str n)

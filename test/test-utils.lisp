@@ -82,7 +82,7 @@
 
 
 (test test-zip-null
-  "Test we can zip lists with nulls."
+  "Test we can zip lists with nulds."
   (is (equal (zip-without-null '(1 nil 3) '(4 5 6))
 	     '((1 4) (3 6))))
   (is (equal (zip-without-null '(1 2 3) '(4 5 nil))
@@ -105,45 +105,6 @@
   "Test we can zip one empty list."
   (is (null (zip-without-null '(1 2 3) nil)))
   (is (null (zip-without-null nil '(1 2 3)))))
-
-
-;; ---------- Predicate combinators ----------
-
-(test test-any
-  "Test we can construct any-of-p."
-
-  ;; with predicate symbols
-  (is (funcall (any-of-p evenp oddp) 2))
-  (is (not (funcall (any-of-p symbolp numberp) (list 1 2))))
-
-
-  ;; with inline function
-  (is (funcall (any-of-p evenp (lambda (n) (= n 15))) 15))
-  (is (funcall (any-of-p evenp (lambda (n) (= n 15))) 10))
-
-  ;; in a map
-  (is (equal (mapcar (any-of-p evenp oddp) (list 1 2 3))
-	     '(t t t))))
-
-
-(test test-all
-  "Test we can construct all-of-p."
-
-  ;; with predicate symbols
-  (is (funcall (all-of-p evenp) 2))
-
-
-  ;; with inline function
-  (is (funcall (all-of-p oddp (lambda (n) (= n 15))) 15))
-  (is (not (funcall (all-of-p evenp (lambda (n) (= n 15))) 10)))
-
-  ;; in a map
-  (is (equal (mapcar (all-of-p oddp (lambda (n) (= n 15))) (list 15 15))
-	     '(t t)))
-  (is (equal (mapcar (all-of-p oddp (lambda (n) (= n 15))) (list 15 14))
-	     '(t nil)))
-  (is (equal (mapcar (all-of-p evenp (lambda (n) (= n 15))) (list 15 15))
-	     '(nil nil))))
 
 
 ;; ---------- safe-cadr ----------
@@ -268,10 +229,28 @@
 
 (test test-sublist
   "Test we can extract sub-lists."
-  (is (equal (rtl::sublist '(1 2 3 4 5) 1 3)
+  (is (equal (sublist '(1 2 3 4 5) 1 3)
 	     '(2 3 4)))
-  (is (equal (rtl::sublist '(1 2 3 4 5) 1)
+  (is (equal (sublist '(1 2 3 4 5) 1)
 	     '(2 3 4 5)))
-  (is (equal (rtl::sublist '(1 2 3 4 5) 0)
+  (is (equal (sublist '(1 2 3 4 5) 0)
 	     '(1 2 3 4 5)))
-  (is (null (rtl::sublist '(1 2 3 4 5) 5))))
+  (is (null (sublist '(1 2 3 4 5) 5))))
+
+
+(test test-successive-pairs
+  "Test we correctly form successive pairs."
+  (is (null (successive-pairs nil)))
+
+  (is (equal (successive-pairs '(a b))
+	     '((a b))))
+  (is (equal (successive-pairs '(a b c d))
+	     '((a b) (b c) (c d))))
+
+  (is (equal (successive-pairs '((a b) (c d) (d e)))
+	     '(((a b) (c d)) ((c d) (d e)))))
+  (is (equal (successive-pairs '((a b) (c d) d))
+	     '(((a b) (c d)) ((c d) d))))
+
+  (signals (error)
+    (successive-pairs '(a))))
