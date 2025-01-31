@@ -28,8 +28,6 @@
     :type integer)
    (exported
     :type boolean)
-   (parameter
-    :type boolean)
    (as
     :type symbol)
    (direction
@@ -56,19 +54,16 @@
 
 (defclass synthesisable-component (pre-synthesisable-component)
   ((pin-interface-slots
-    :documentation "The slots forming the component's pin interface.
-
-These slots are all marked as :exported in the component."
+    :documentation "The slots forming the component's pin interface."
+    :initform nil
     :accessor pin-interface-slots)
    (subcomponent-slots
-    :documentation "The slots containing sub-components.
-
-These slots all have types that are sub-classes of COMPONENT."
+    :documentation "The slots containing sub-components."
+    :initform nil
     :accessor subcomponent-slots)
    (parameter-slots
-    :documentation "The parameters of the component.
-
-These slots are represented as :parameter in the component."
+    :documentation "The parameters of the component."
+    :initform nil
     :accessor parameter-slots)
    (variable-slots
     :documentation "The local variables of the component."
@@ -91,6 +86,7 @@ These slots are represented as :parameter in the component."
 						slot-defs))
 	 (variable-slot-defs (remove-if-not #'slot-def-in-variables-p
 					    slot-defs)))
+
     ;; populate the class' pin interface slots
     (setf (slot-value cl 'pin-interface-slots)
 	  (mapcar #'slot-definition-name pin-slot-defs))
@@ -135,22 +131,24 @@ a sub-class of `component'."
        (eql (slot-value slot-def 'as) :subcomponent)))
 
 
+(defun slot-def-in-synthesised-p (slot-def)
+  "Test whether SLOT-DEF gives rise to any synthesised variables.
+
+This includes all variables with representations of :WIRE of :REGISTER
+whether or not they are :EXPORTED, or is a sub-component."
+  (or (and (slot-exists-and-bound-p slot-def 'as)
+	   (member (slot-value slot-def 'as) '(:wire :register)))
+      (slot-def-in-subcomponents-p slot-def)))
+
+
 (defun slot-def-in-variables-p (slot-def)
-  "Test whether SLOT-DEF defines a slot available outside the component.
+  "Test whether SLOT-DEF defines a slot for state available only within the component.
 
-This tests whether the slot's representation is not :value
-or :parameter, and not exported."
-  (and
-   ;; slot is not exported
-   (or (and (slot-exists-and-bound-p slot-def 'exported)
-	    (not (slot-value slot-def 'exported)))
-       (not (slot-exists-and-bound-p slot-def 'exported)))
-
-   ;; slot has a representation, but not :value ;parameter
-   (or (and (slot-exists-and-bound-p slot-def 'as)
-	    (and (not (member (slot-value slot-def 'as)
-			      '(:value :parameter)))))
-       (not (slot-exists-and-bound-p slot-def 'as)))))
+Variables are the synthesised slots that are not exported and are not
+sub-components."
+  (and (slot-def-in-synthesised-p slot-def)
+       (not (slot-def-in-subcomponents-p slot-def))
+       (not (find-slot-attribute-in-slot-def slot-def 'exported))))
 
 
 ;; ---------- Interfaces ----------
