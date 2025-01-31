@@ -123,12 +123,27 @@
     (setq clk_out clk_in))
 
   (is (subtypep (rtl:typecheck (rtl::expand-macros
-				'(let ((ctrl 0 :width 4 :as :wire)
-				       (clk_in 0 :width 1 :as :wire))
-				  (rtl:with-bitfields (clk b2 b1 b0)
-				      ctrl
-				    (let ((clock (make-instance 'clock :clk_in clk_in
-								       :clk_out clk)))
-				      clock))))
+				'(rtl:module moduleinstanciatebitfields
+				  ((clk_in :width 1 :direction :in :as :wire))
+				  (let ((ctrl 0 :width 4 :as :wire))
+				    (rtl:with-bitfields (clk b2 b1 b0)
+					ctrl
+				      (let ((clock (make-instance 'clock :clk_in clk_in
+									 :clk_out clk)))
+					clock)))))
 			       emptyenv)
-		'rtl::module-interface)))
+		'rtl::module-interface))
+
+  (rtl:synthesise (rtl:simplify-progn (car (rtl:float-let-blocks
+					    (rtl:expand-macros
+					     '(rtl:module moduleinstanciatebitfields
+					       ((clk_in :width 1 :direction :in :as :wire))
+					       (let ((ctrl 0 :width 4 :as :wire))
+						 (rtl:with-bitfields (clk b2 b1 b0)
+						     ctrl
+						   (let ((clock (make-instance 'clock :clk_in clk_in
+										      :clk_out clk)))
+						     (setf ctrl 1)))))))))
+		  :toplevel)
+
+  )

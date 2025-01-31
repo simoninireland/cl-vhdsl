@@ -116,7 +116,7 @@ that should be declared in the architectural environment, such as a register."))
     :reader variables))
   (:report (lambda (c str)
 	     (format-condition-context (format nil "Badly-named variable or module ~a"
-					       (variable c))
+					       (variables c))
 				       c str)))
   (:documentation "Condition signalled when an unacceptable identifier is encountered.
 

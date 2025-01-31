@@ -73,12 +73,12 @@
     (is (set-equal (def::subcomponents c) '(sub)))
 
     ;; check parameter is synthesised correctly
-    (is (set-equal (def::synthesise-module-params c)
+    (is (set-equal (def::generate-module-params c)
 		   '((addr-width :initial-value 0))
 		   :test #'equal))
 
     ;; check only addr are clk are exported
-    (is (set-equal (def::synthesise-module-args c)
+    (is (set-equal (def::generate-module-args c)
 		   '((addr :width 8)
 		     (clk :width 1))
 		   :test #'equal))))
@@ -127,3 +127,75 @@
 
     ;; check the three mixins together
     (is (set-equal (def:pin-interface mmcer) '(def::clk def::en addr def::rst)))))
+
+
+(test test-component-wiring-diagram
+  "Test we can specify wiring disgrams."
+
+  (defclass mop-component-wiring-diagram (def:component)
+    ((addr
+      :width 16
+      :exported t
+      :as :wire
+      :direction :in
+      :role :io)
+     (internal
+      :width 16)
+     (external
+      :width 16
+      :as :wire
+      :direction :out
+      :exported t)
+     (another
+      :width 16))
+    (:wiring (addr internal)
+	     (external internal another))
+    (:metaclass def:synthesisable-component))
+
+  (let ((c (make-instance 'mop-component-wiring-diagram)))
+
+    ;; check diagram is saved
+    (is (equal (def:wiring-diagram c)
+	       '((addr internal)
+		 (external internal another))))
+
+    ;; check wires
+    (is (set-equal (def::generate-wiring c)
+		   '((setq addr internal)
+		     (setq external internal)
+		     (setq internal another))
+		   :test #'equal))))
+
+
+(test test-component-wiring-subcomponent
+  "Test we can wire to a sub-component's exported pins."
+
+  (defclass mop-component-sub (def:component)
+    ((external
+      :width 8
+      :as :wire
+      :exported t))
+    (:metaclass def:synthesisable-component))
+
+  (defclass mop-component-super (def:component)
+    ((outside
+      :width 8
+      :as :wire
+      :exported t)
+     (sub
+      :as :subcomponent
+      :initarg :sub))
+    (:wiring ((sub  external) outside))
+    (:metaclass def:synthesisable-component))
+
+  (let* ((csub (make-instance 'mop-component-sub))
+	 (c (make-instance 'mop-component-super :sub csub)))
+    (def::generate-wiring c)
+
+    )
+
+
+
+
+
+  )

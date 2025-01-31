@@ -94,10 +94,11 @@ values can't be defined in terms of other parameter values."
       ;; standard declaration
       (destructuring-bind (n v)
 	  decl
+
 	(let ((ty (typecheck v env))
-	      (val (eval v)))        ;; this might need to change to
-				     ;; make sure the environment makes
-				     ;; sense
+	      (val (eval v))) ;; this might need to change to
+	  ;; make sure the environment makes
+	  ;; sense
 	  (extend-environment n `((:initial-value ,val)
 				  (:type ,ty)
 				  (:as :parameter))

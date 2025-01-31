@@ -117,7 +117,7 @@ in *RESERVED-WORDS*."
 
 Signals NOT-SYNTHESISABLE as an error if not."
   (unless (legal-identifier-p n)
-    (error 'bad-variable :name n
+    (error 'bad-variable :variable n
 			 :hint "Change the identifier name to a legal one")))
 
 
