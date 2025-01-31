@@ -184,7 +184,7 @@
 	     (t
 	      (setq stage (+ 1 stage)))))
 
-    (@ (stage)
+    (@ ((posedge clk))
        (setq ctrl_word 0 :sync t)
 
        (case stage
