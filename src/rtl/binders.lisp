@@ -95,7 +95,7 @@ Signal VALUE-MISMATCH as an error if not."
 		(ensure-width-can-store w ty env)
 
 		;; widen the type to match the width
-		(setq ty (widen-fixed-width ty width))))
+		(setq ty (widen-fixed-width ty w))))
 
 	  (extend-environment n `((:initial-value ,v)
 				  (:type ,ty)
@@ -129,16 +129,22 @@ Signal VALUE-MISMATCH as an error if not."
 
 
 (defmethod rewrite-variables-sexp ((fun (eql 'let)) args rewrite)
+  (declare (optimize debug))
   (destructuring-bind (decls &rest body)
       args
     (let* ((rwdecls (mapcar (rcurry #'rewrite-variables-decl rewrite) decls))
 
 	   ;; remove any re-writes referring to shadowed variables
 	   (rwnames (mapcar #'name-in-decl rwdecls))
-	   (rwrewrite (remove-if (rcurry #'member rwnames) rewrite))
+	   (rwrewrite (remove-if (lambda (rw)
+				   (member (car rw) rwnames))
+				 rewrite))
 
 	   ;; re-write the body with these new re-writes
 	   (rwbody (mapcar (rcurry #'rewrite-variables rwrewrite) body)))
+
+      ;; rewrite the form to use re-written decls and the body
+      ;; re-written respecting shadowing
       `(let ,rwdecls
 	 ,@rwbody))))
 
