@@ -27,7 +27,7 @@
   (let ((counter 0 :width (+ bits delay))
 	(out 0 :width 5))
 
-    (@ (posedge clk)
+    (@ ((posedge clk))
        (setf counter (+ counter 1))
        (setf out (>> counter delay)))
 
