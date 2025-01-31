@@ -57,6 +57,13 @@
    #:resetable
    #:rst
    #:on-reset
+   #:readwrite
+   #:rw
+   #:on-read
+   #:on-write
+
+   ;; generating RTLisp from components
+   #:to-rtl
 
    ;; conditions
 
