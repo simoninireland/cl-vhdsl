@@ -24,23 +24,20 @@
   ((name
     :documentation "The readable name of the component."
     :initarg :name
-    :reader name))
+    :reader name)
+   (wiring
+    :documentation "The wiring of this component."
+    :accessor wiring-diagram)
+   (subcomponent-args
+    :documentation "Sub-component slot parameters and arguments."
+    :initform nil
+    :accessor subcomponent-args))
   (:metaclass synthesisable-component)
   (:documentation "A component in an architecture.
 
-Components encapsulate functions and offer a pin-based interface."))
-
-
-(defgeneric on-start (c)
-  (:method-combination append)
-  (:documentation "Behaviour on start-up.
-
-This behaviour happens at initialisation of the component.
-It typically involves permanent assignments of pins to
-other pins, registers, fixed values, or calculations
-performed on registers and constants.
-
-The behaviour should be given in RTLisp."))
+Components encapsulate functions and offer a pin-based interface as
+the only way it interats with other components. A component can also
+contain sub-components that are hidden within it."))
 
 
 ;; ---------- Interfaces ----------
