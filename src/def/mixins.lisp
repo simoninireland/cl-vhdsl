@@ -129,3 +129,36 @@ on a clock edge. If C is not clocked, the reset is asynchronous
 and happens as soon as the RST line is asserted.
 
 The behaviour should be given in RTLisp."))
+
+
+;; ---------- Read-write components ----------
+
+(defclass rw (mixin)
+  ((rw
+    :documentation "The readwrite select line of the component."
+    :width 1
+    :as :wire
+    :role :control
+    :exported t
+    :initarg :rw
+    :reader rw))
+  (:metaclass synthesisable-component)
+  (:documentation "Mixin for creating read/write components.
+
+The component has a single R/W line that, when asserted, causes the
+component to be \"written to\" and, when low, causes it to be \"read
+from\"."))
+
+
+(defgeneric on-read (c)
+  (:method-combination append)
+  (:documentation "Behaviour of C when being read.
+
+The behaviour should be given in RTLisp."))
+
+
+(defgeneric on-write (c)
+  (:method-combination append)
+  (:documentation "Behaviour of C when being written.
+
+The behaviour should be given in RTLisp."))
