@@ -39,19 +39,20 @@ PNR_OPTS = -q
 PROGRAM_OPTS =
 
 # Top module defaults to the stem of the name of the target bitstream
+TARGET_BASENAME = $(shell basename $(TARGET) .bin)
 ifeq ($(TOPMODULE),)
-TOPMODULE = $(shell basename $(TARGET) .bin)
+TOPMODULE = $(TARGET_BASENAME)
 endif
 
 # Generated files
-GENERATED_STEMS = $(foreach fn,$(SOURCES), $(shell basename $(fn) .v))
-GENERATED = $(foreach stem,$(GENERATED_STEMS),$(stem).asc $(stem).bin $(stem).json)
+GENERATED_STEMS = $(foreach fn,$(SOURCES), $(shell basename $(fn) .lisp))
+GENERATED = $(foreach stem,$(GENERATED_STEMS),$(stem).v $(stem).asc $(stem).bin $(stem).json)
 
 
 # ---------- Implicit rules ----------
 
-%.v: %.lisp
-	$(VHDSLC) $(VHDSLC_OPTS) -o $(OBJECT) %.lisp
+%.v: $(SOURCES)
+	$(VHDSLC) $(VHDSLC_OPTS) -o $*.v $(SOURCES)
 
 %.json: %.v
 	$(SYNTH) $(SYNTH_OPTS) -p "synth_ice40 -top $(TOPMODULE) -json $*.json" $<
