@@ -21,12 +21,11 @@
 
 (defpackage cl-vhdsl/def
   (:use :cl :alexandria
-	:cl-vhdsl                              ;; for utilities
-	:cl-vhdsl/rtl)                         ;; for RTLisp
-  (:import-from :slot-extra-options            ;; for extra slot metadata
+	:cl-vhdsl :cl-vhdsl/rtl)
+  (:import-from :slot-extra-options
 		#:def-extra-options-metaclass
 		#:slot-exists-and-bound-p)
-  (:import-from :closer-mop                    ;; to define the component metaclass
+  (:import-from :closer-mop
 		#:finalize-inheritance
 		#:class-slots
 		#:slot-boundp

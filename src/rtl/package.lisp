@@ -24,6 +24,8 @@
   (:use :cl :alexandria
 	:cl-vhdsl)
   (:import-from :cl-ppcre
+		#:create-scanner
+		#:scan
 		#:regex-replace-all)
   (:import-from :str
 		#:concat
