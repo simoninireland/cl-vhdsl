@@ -36,7 +36,6 @@
 This is also added to the front of any identifiers that clash
 with *RESERVED-WORDS*.")
 
-
 ;; There are probably more reserved words
 (defvar *reserved-words* '("module" "input" "output" "inout"
 			   "always" "posedge" "negedge" "assign"
