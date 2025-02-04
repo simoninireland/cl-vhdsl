@@ -61,8 +61,7 @@
     :accessor memory))
   (:documentation "The memory.
 
-The memory of the SAP-1 is read-only.
-"))
+The memory of the SAP-1 is read-only."))
 
 
 (defmethod on-reset ((mem memory))
