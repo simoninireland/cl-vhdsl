@@ -158,37 +158,25 @@ or :parameter, and not exported."
 (defgeneric pin-interface (cl)
   (:documentation "Return the list of slots in the pin interface of CL.")
   (:method ((cl synthesisable-component))
-    (slot-value cl 'pin-interface-slots))
-
-  (:method ((c component))
-    (pin-interface (class-of c))))
+    (slot-value cl 'pin-interface-slots)))
 
 
 (defgeneric parameters (cl)
   (:documentation "Return the list of slots that hold parameters of CL.")
   (:method ((cl synthesisable-component))
-    (slot-value cl 'parameter-slots))
-
-  (:method ((c component))
-    (parameters (class-of c))))
+    (slot-value cl 'parameter-slots)))
 
 
 (defgeneric subcomponents (cl)
   (:documentation "Return the list of slots of CL holding sub-components.")
   (:method ((cl synthesisable-component))
-    (slot-value cl 'subcomponent-slots))
-
-  (:method ((c component))
-    (sub-components (class-of c))))
+    (slot-value cl 'subcomponent-slots)))
 
 
 (defgeneric variables (cl)
   (:documentation "Return the list of slots of CL that are variables.")
   (:method ((cl synthesisable-component))
-    (slot-value cl 'variable-slots))
-
-  (:method ((c component))
-    (variables (class-of c))))
+    (slot-value cl 'variable-slots)))
 
 
 ;; ---------- Slot attributes ----------

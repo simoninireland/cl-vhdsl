@@ -41,3 +41,21 @@ other pins, registers, fixed values, or calculations
 performed on registers and constants.
 
 The behaviour should be given in RTLisp."))
+
+
+;; ---------- Interfaces ----------
+
+(defmethod pin-interface ((c component))
+  (pin-interface (class-of c)))
+
+
+(defmethod parameters ((c component))
+  (parametsr (class-of c)))
+
+
+(defmethod subcomponents ((c component))
+  (subcomponents (class-of c)))
+
+
+(defmethod variables ((c component))
+  (variables (class-of c)))
