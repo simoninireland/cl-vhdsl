@@ -26,7 +26,7 @@
   (:import-from :slot-extra-options            ;; for extra slot metadata
 		#:def-extra-options-metaclass
 		#:slot-exists-and-bound-p)
-  (:import-from :closer-mop                    ;; to define metaclasses
+  (:import-from :closer-mop                    ;; to define the component metaclass
 		#:finalize-inheritance
 		#:class-slots
 		#:slot-boundp

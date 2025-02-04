@@ -1,4 +1,4 @@
-;; Synthesising synthesisable components
+;; Synthesising synthesisable components to RTLisp
 ;;
 ;; Copyright (C) 2024--2025 Simon Dobson
 ;;
@@ -20,71 +20,124 @@
 (in-package :cl-vhdsl/def)
 (declaim (optimize debug))
 
-;; ---------- Synthesising components ----------
 
-(defun synthesise-module-args (c)
+;; ---------- Module arguments and parameters ----------
+
+(defun generate-module-args (c)
   "Return the RTLisp code to declare the module arguments.
 
 The module arguments are constructed from the pin interface of C.
 
 The code is a list of declarations suitable for a LET form."
-  (let ((cl (class-of c)))
+  (flet ((pin-interface-to-decl (slot)
+	   (let* ((slot-def (find-slot-def c slot))
+		  (name (slot-definition-name slot-def))
+		  (v (if (slot-boundp c slot)
+			 (slot-value c slot)
+			 0))
+		  (width (slot-width c slot))
+		  (rep (slot-representation c slot))
+		  (direction (slot-direction c slot)))
+	     `(,name ,@(if width
+			   `(:width ,width))
+		     ,@(if direction
+			   `(:direction ,direction))
+		     ,@(if (/= v 0)
+			   `(:initial-value ,v))
+		     ,@(if rep
+			   `(:as ,rep))))))
 
-    (flet ((pin-interface-to-decl (slot)
-	     (let* ((slot-def (find-slot-def c slot))
-		    (name (slot-definition-name slot-def))
-		    (v (if (slot-boundp c slot)
-			   (slot-value c slot)
-			   0))
-		    (width (slot-width c slot))
-		    (rep (slot-representation c slot))
-		    (direction (slot-direction c slot)))
-	       `(,name ,@(if width
-			     `(:width ,width))
-		       ,@(if direction
-			     `(:direction ,direction))
-		       ,@(if (/= v 0)
-			     `(:initial-value ,v))
-		       ,@(if rep
-			     `(:as ,rep))))))
-
-      (mapcar #'pin-interface-to-decl (pin-interface c)))))
+    (mapcar #'pin-interface-to-decl (pin-interface c))))
 
 
-(defun synthesise-module-params (c)
+;; ---------- Sub-components ----------
+
+(defun generate-module-params (c)
   "Return the RTLisp code to declare the module parameters.
 
 The code is a list of declarations suitable for a LET form."
-  (let ((cl (class-of c)))
+  (flet ((param-to-decl (slot)
+	   (let* ((slot-def (find-slot-def c slot))
+		  (name (slot-definition-name slot-def))
+		  (v (if (slot-boundp c slot)
+			 (slot-value c slot)
+			 0)))
+	     `(,name :initial-value ,v))))
 
-    (flet ((param-to-decl (slot)
-	     (let* ((slot-def (find-slot-def-in-class cl slot))
-		    (name (slot-definition-name slot-def))
-		    (v (if (slot-boundp c slot)
-			   (slot-value c slot)
-			   0)))
-	       `(,name :initial-value ,v))))
-
-      (mapcar #'param-to-decl (parameters c)))))
+    (mapcar #'param-to-decl (parameters c))))
 
 
-(defun synthesise-module ()
-  "doc"
-  )
-
-(defmethod synthesise ((c component) context)
-  (let ((modname (symbol-name (class-name (class-of c))))
-	(modparams (synthesise-module-params c))
-	(modargs (synthesise-module-args c))))
-  `(module ,modname ,modparams ,modargs
-
-	   (let ((a :width 8))
-	     (setq a (+ a 1))))
+(defun generate-subcomponents (c)
+  "Generate the sub-components of C by importing them."
   )
 
 
-;; ---------- Synthesising mixins ----------
+;; ---------- Wiring ----------
 
-(defmethod synthesise ((c clocked) context)
+(defun generate-wire-to-subcomponent (c to from)
+  "Generate wiring of TO on component C to FROM.
 
-  )
+Functionally this involves changing the arguments to C when it is instanciated."
+  (set-subcomponent-arg c to from))
+
+
+(defun generate-wire (wires cs)
+  "Return the assignments needed to wire-up the elements in CS onto WIRES."
+  (flet ((wire-up (ws w)
+	   (destructuring-bind (from to)
+	       w
+	     (cond ((and (listp from)
+			 (not (listp to)))
+		    ;; from sub-component to wires
+		    (destructuring-bind (c cw)
+			from
+		      (generate-wire-to-subcomponent c cw to)
+		      ws))
+
+		   ((and (listp to)
+			 (not (listp from)))
+		    ;; from wires to sub-component
+		    (destructuring-bind (c t)
+			to
+		      (generate-wire-to-subcomponent c cw from)
+		      ws))
+
+		   ((and (not (listp from))
+			 (not (listp to)))
+		    ;; between wires
+		    (append ws (list`(setq ,from ,to))))
+
+		   (t
+		    (error 'unsupported :feature "Wiring components directly together"
+					:hint "Add an explicit wire to connect to"))))))
+
+    (let ((ws (successive-pairs cs)))
+      (append wires (foldr #'wire-up ws '())))))
+
+
+(defun generate-wiring (c)
+  "Return the RTLisp code for wiring component C.
+
+This code is inserted as the \"asynchronous assignments\" at the
+end of the module's code block."
+  (let ((diag (wiring-diagram c)))
+    (foldr #'generate-wire diag nil)))
+
+
+;;---------- Components ----------
+
+(defmethod to-rtl ((c component))
+  (let* ((modname (class-name (class-of c)))
+	 (modparams (generate-module-params c))
+	 (modargs (generate-module-args c))
+	 (modheader (if modparams
+			`(,modparams ,modargs)
+			modargs))
+	 (wiring (generate-wiring c)))
+
+    `(module ,modname ,modheader
+	     ,@wiring
+	     )))
+
+
+;; ---------- Mixins ----------
