@@ -22,6 +22,8 @@
 (declaim (optimize debug))
 
 
+;; ---------- Components and mixins ----------
+
 (test test-mop-create-simple
   "Test we can create a simple component."
   (defclass mop-create-simple (def:component)
@@ -51,10 +53,10 @@
     (is (set-equal (def::pin-interface (class-of c))
 		   '(addr clk))
 
-    ;; check clock is defined and only a wire
-    (is (= (def::slot-width c 'clk) 1))
-    (is (def::slot-exported c 'clk))
-    (is (eql (def::slot-role c 'clk) :clock)))
+	;; check clock is defined and only a wire
+	(is (= (def::slot-width c 'clk) 1))
+	(is (def::slot-exported c 'clk))
+	(is (eql (def::slot-role c 'clk) :clock)))
 
     ;; check parameters
     (is (set-equal (def::parameters c) '(addr-width)))
@@ -129,6 +131,8 @@
     (is (set-equal (def:pin-interface mmcer) '(def::clk def::en addr def::rst)))))
 
 
+;; ---------- Wiring ----------
+
 (test test-component-wiring-diagram
   "Test we can specify wiring disgrams."
 
@@ -149,7 +153,7 @@
      (another
       :width 16))
     (:wiring (addr internal)
-	     (external internal another))
+     (external internal another))
     (:metaclass def:synthesisable-component))
 
   (let ((c (make-instance 'mop-component-wiring-diagram)))
@@ -185,7 +189,7 @@
      (sub
       :as :subcomponent
       :initarg :sub))
-    (:wiring ((sub  external) outside))
+    (:wiring ((sub external) outside))
     (:metaclass def:synthesisable-component))
 
   (let* ((csub (make-instance 'mop-component-sub))
@@ -193,9 +197,6 @@
     (def::generate-wiring c)
 
     )
-
-
-
 
 
   )
