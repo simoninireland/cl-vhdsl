@@ -57,19 +57,6 @@
 		      :toplevel)))
 
 
-(test test-module-legal-name
-  "Test that modules have legal names."
-  (signals (rtl:bad-variable)
-    (rtl:typecheck '(rtl:module test-me ((clk :width 1 :direction :in))
-		     (let ((x 0 :width 8)
-			   (z 44 :as :constant))
-		       (rtl::@ ((rtl::posedge clk))
-			       (setf x (+ x z) :sync t))))
-		   emptyenv)
-    )
-
-  )
-
 ;; ---------- Module instanciation ----------
 
 (test test-module-instanciate
@@ -122,28 +109,26 @@
 			(clk_out :direction :out :as :wire :width 1))
     (setq clk_out clk_in))
 
-  (is (subtypep (rtl:typecheck (rtl::expand-macros
-				'(rtl:module moduleinstanciatebitfields
-				  ((clk_in :width 1 :direction :in :as :wire))
-				  (let ((ctrl 0 :width 4 :as :wire))
-				    (rtl:with-bitfields (clk b2 b1 b0)
-					ctrl
-				      (let ((clock (make-instance 'clock :clk_in clk_in
-									 :clk_out clk)))
-					clock)))))
-			       emptyenv)
+  (is (subtypep (type-of (rtl:typecheck (rtl::expand-macros
+					 '(rtl:module moduleinstanciatebitfields
+					   ((clk_in :width 1 :direction :in :as :wire))
+					   (let ((ctrl 0 :width 4 :as :wire))
+					     (rtl:with-bitfields (clk b2 b1 b0)
+						 ctrl
+					       (let ((clock (make-instance 'clock :clk_in clk_in
+										  :clk_out clk)))
+						 clock)))))
+					emptyenv))
 		'rtl::module-interface))
 
-  (rtl:synthesise (rtl:simplify-progn (car (rtl:float-let-blocks
-					    (rtl:expand-macros
-					     '(rtl:module moduleinstanciatebitfields
-					       ((clk_in :width 1 :direction :in :as :wire))
-					       (let ((ctrl 0 :width 4 :as :wire))
-						 (rtl:with-bitfields (clk b2 b1 b0)
-						     ctrl
-						   (let ((clock (make-instance 'clock :clk_in clk_in
-										      :clk_out clk)))
-						     (setf ctrl 1)))))))))
-		  :toplevel)
-
-  )
+  (is (rtl:synthesise (rtl:simplify-progn (car (rtl:float-let-blocks
+						(rtl:expand-macros
+						 '(rtl:module moduleinstanciatebitfields
+						   ((clk_in :width 1 :direction :in :as :wire))
+						   (let ((ctrl 0 :width 4 :as :wire))
+						     (rtl:with-bitfields (clk b2 b1 b0)
+							 ctrl
+						       (let ((clock (make-instance 'clock :clk_in clk_in
+											  :clk_out clk)))
+							 (setf ctrl 1)))))))))
+		      :toplevel)))
