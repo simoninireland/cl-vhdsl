@@ -1,0 +1,17 @@
+* Blink in RTLisp
+
+  This is one of the classic "blink the LEDs" programs written in
+  RTLisp, closely modelled on the many Verilog examples of the same
+  functionality available online.
+
+  The program is intended for the Lattice IceStick FPGA development
+  board, which has a small number of on-board LEDs. The file ~blink.pcf~
+  is a constraints file that binds variables (in the program) to pins
+  (one the board) to make sure that they control the LEDs. These could
+  be changed very simply to drive off-board LEDs.
+
+  The ~Makefile~ includes targets to build the program and upload it. It
+  uses the ~icestorm.mk~ rules that drive the ~icestorm~ toolchain,
+  consisting of the ~yosys~ synthesis tool, ~nextpnr~ placement and
+  routing tool, and 5the ~icepack~ and ~iceprog~ tools used to create and
+  upload the resulting bitstream to the FPGA.

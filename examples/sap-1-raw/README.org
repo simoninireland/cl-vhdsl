@@ -1,0 +1,11 @@
+* The Simple-As-Possible-1 processor
+
+  This directory contains an RTLisp definition of the SAP-1 processor
+  as defined in:
+
+  Albert Paul Malvino and Jerald Brown. /Digital Computer Electronics/.
+  McGraw-Hill. ISBN 0-02-800594-5. 1999.
+
+  The SAP-1 has four instructions and 16 bytes of RAM. The example
+  runs a program defined in ~program.bin~ to add two numbers together
+  and store the result back.

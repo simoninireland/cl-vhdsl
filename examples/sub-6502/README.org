@@ -1,0 +1,5 @@
+* A sub-6502
+
+  This directory contains some experiments in defining parts of the
+  micro-architecture and micro-instructions of the 6502
+  microprocessor, as an example of a "real" processor.
