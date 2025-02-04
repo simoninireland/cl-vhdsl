@@ -91,6 +91,6 @@ The code is a list of declarations suitable for a LET form."
 
 ;; ---------- Synthesising mixins ----------
 
-(defmethod synthesise ((c clocked))
+(defmethod synthesise ((c clocked) context)
 
   )
