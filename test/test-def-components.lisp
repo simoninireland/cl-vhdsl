@@ -51,12 +51,12 @@
 
     ;; check the pin interface (exported pins)
     (is (set-equal (def::pin-interface (class-of c))
-		   '(addr clk))
+		   '(addr clk)))
 
-	;; check clock is defined and only a wire
-	(is (= (def::slot-width c 'clk) 1))
-	(is (def::slot-exported c 'clk))
-	(is (eql (def::slot-role c 'clk) :clock)))
+    ;; check clock is defined and only a wire
+    (is (= (def::slot-width c 'clk) 1))
+    (is (def::slot-exported c 'clk))
+    (is (eql (def::slot-role c 'clk) :clock))
 
     ;; check parameters
     (is (set-equal (def::parameters c) '(addr-width)))
