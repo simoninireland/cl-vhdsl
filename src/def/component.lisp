@@ -25,9 +25,6 @@
     :documentation "The readable name of the component."
     :initarg :name
     :reader name)
-   (wiring
-    :documentation "The wiring of this component."
-    :accessor wiring-diagram)
    (subcomponent-args
     :documentation "Sub-component slot parameters and arguments."
     :initform nil
@@ -47,7 +44,7 @@ contain sub-components that are hidden within it."))
 
 
 (defmethod parameters ((c component))
-  (parametsr (class-of c)))
+  (parameters (class-of c)))
 
 
 (defmethod subcomponents ((c component))
@@ -56,3 +53,7 @@ contain sub-components that are hidden within it."))
 
 (defmethod variables ((c component))
   (variables (class-of c)))
+
+
+(defmethod wiring-diagram ((c component))
+  (wiring-diagram (class-of c)))
