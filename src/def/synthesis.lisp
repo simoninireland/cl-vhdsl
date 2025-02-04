@@ -97,7 +97,7 @@ Functionally this involves changing the arguments to C when it is instanciated."
 		   ((and (listp to)
 			 (not (listp from)))
 		    ;; from wires to sub-component
-		    (destructuring-bind (c t)
+		    (destructuring-bind (c cw)
 			to
 		      (generate-wire-to-subcomponent c cw from)
 		      ws))
