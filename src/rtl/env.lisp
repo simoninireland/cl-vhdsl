@@ -30,27 +30,6 @@ generally reflect the word size of the desired circuit, for
 example 8, 16, 32, or 64 bits.")
 
 
-;; ---------- Identifiers ----------
-
-(defparameter *identifier-regexp* (create-scanner "([A-Za-z][A-Za-z0-9_]*)|(_[A-Za-z0-9_]+)")
-  "The regexp scanner used for determining legal variable names.
-
-Legal names contains letters, digits, and underscores, not leading
-with a digit, and not consisting solely of an underscore. This is a
-/lot/ more restrictive than Lisp's legal names, and is intentionally
-quite conservative with respect to Verilog identifier names.")
-
-
-;; There are probably more reserved words
-(defvar *reserved-words* '("module" "input" "output" "inout"
-			   "always" "posedge" "assign"
-			   "parameter" "localparam" "reg" "signed")
-  "Reserved words in Verilog.
-
-These are used to prevent poor choices of variable name: they
-all match *IDENTIFIER-REGEXP* but still can't be used.")
-
-
 ;; ---------- Type checking ----------
 
 (defun ensure-subtype (ty1 ty2)
@@ -87,38 +66,7 @@ The properties may include:
    - :direction -- for arguments to modules, the direction of information
      flow, which should be :in, :out, or :inout
    - :parameter -- T if the value is a module parameter"
-  (ensure-legal-identifier n)
   (cons (cons n props) env))
-
-
-(defun legal-identifier-p (n)
-  "Ensure N is a legal identifier.
-
-This uses *IDENTIFIER-REGEXP* for legality while avoiding strings
-in *RESERVED-WORDS*."
-  (flet ((matches-all (s)
-	   (multiple-value-bind (start end regstart regend)
-	       (scan *identifier-regexp* s)
-	     (and (not (null start))
-		  (= start 0)
-		  (= end (length s))))))
-
-    ;; allow strings and symbols for names
-    (when (symbolp n)
-      (setq n (symbol-name n)))
-
-    (and (not (member n *reserved-words* :test #'string-equal))
-	 (matches-all n)   ; must match entire string
-	 t)))
-
-
-(defun ensure-legal-identifier (n)
-  "Ensure that N is a legal identifier.
-
-Signals NOT-SYNTHESISABLE as an error if not."
-  (unless (legal-identifier-p n)
-    (error 'bad-variable :variable n
-			 :hint "Change the identifier name to a legal one")))
 
 
 (defun get-environment-properties (n env)

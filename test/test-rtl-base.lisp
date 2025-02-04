@@ -53,28 +53,28 @@
   "Test legal and illegal identifiers."
 
   ;; legal identifiers
-  (is (rtl::legal-identifier-p "a"))
-  (is (rtl::legal-identifier-p "abc"))
-  (is (rtl::legal-identifier-p "abc1"))
-  (is (rtl::legal-identifier-p "a1Bc"))
-  (is (rtl::legal-identifier-p "_a"))
-  (is (rtl::legal-identifier-p "a_"))
-  (is (rtl::legal-identifier-p "_123"))
-  (is (rtl::legal-identifier-p "_camelCase"))
+  (dolist (s '("a" "abc" "abc1" "a1Bc" "_a" "a_" "_123" "_camelCase" "_reg"))
+    (is (string-equal (rtl::ensure-legal-identifier s) s)))
 
   ;; illegal idenfiers (bad characters or arrangements)
-  (is (not (rtl::legal-identifier-p "_")))
-  (is (not (rtl::legal-identifier-p "0abc")))
-  (is (not (rtl::legal-identifier-p "01")))
-  (is (not (rtl::legal-identifier-p "test-me")))
+  (dolist (from-to '(("0abc" "_0abc")
+		     ("01" "_01")
+		     ("test-me" "test_me")
+		     ("1test-me" "_1test_me")))
+    (destructuring-bind (from to)
+	from-to
+      (is (string-equal (rtl::ensure-legal-identifier from) to))))
 
   ;; illegal identifiers (keywords)
-  (is (not (rtl::legal-identifier-p "reg")))
-  (is (not (rtl::legal-identifier-p "inout")))
+  (dolist (from-to '(("reg" "_reg")
+		     ("inout" "_inout")))
+    (destructuring-bind (from to)
+	from-to
+      (is (string-equal (rtl::ensure-legal-identifier from) to))))
 
-  ;; check signalling
+  ;; check signalling of really bad variable name choice
   (signals (rtl:bad-variable)
-    (is (not (rtl::ensure-legal-identifier "reg")))))
+    (rtl::ensure-legal-identifier "_")))
 
 
 (test test-filter-env
