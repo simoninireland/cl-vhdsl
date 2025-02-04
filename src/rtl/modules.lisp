@@ -100,13 +100,13 @@ values can't be defined in terms of other parameter values."
 				     ;; sense
 	  (extend-environment n `((:initial-value ,val)
 				  (:type ,ty)
-				  (:parameter t))
+				  (:as :parameter))
 			      env)))
 
       ;; naked paramater
       (extend-environment decl `((:initial-value 0)
 				 (:type (fixed-width-unsigned 1))
-				 (:parameter t))
+				 (:as :parameter))
 			  env)))
 
 
