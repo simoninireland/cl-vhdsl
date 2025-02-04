@@ -54,7 +54,9 @@ of *IDENTIFIER-ILLEGAL-CHARACTER-REPLACEMENT*."
 
   ;; replace any unacceptable characters
   (let ((no-illegal (regex-replace-all *identifier-illegal-character-regexp*
-				       n
+				       (if (symbolp n)
+					   (symbol-name n)
+					   n)
 				       *identifier-illegal-character-replacement*)))
 
     ;; prepend any keywords
