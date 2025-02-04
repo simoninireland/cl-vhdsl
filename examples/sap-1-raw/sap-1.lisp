@@ -258,42 +258,32 @@
 		     ir_en a_load a_en b_load adder_sub addr_en)
 	ctrl
 
-      (make-instance 'clock :hlt hlt :clk_in clk_in :clk_out clk)
+      (let ((clock (make-instance 'clock :hlt hlt :clk_in clk_in :clk_out clk))
+	    (pc (make-instance 'pc :clk clk :rst rst :inc pc_inc :out pc_out))
+	    (ir (make-instance 'ir :clk clk :rst rst
+				   :load ir_load :bus bus :out ir_out))
+	    (memory (make-instance 'memory :clk clk :rst rst
+					   :load mar_load :bus bus :out mem_out))
+	    (reg-a (make-instance 'reg_a :clk clk :rst rst
+					 :load a_load :bus bus :out a_out))
+	    (reg-b (make-instance 'reg_b :clk clk :rst rst
+					 :load b_load :bus bus :out b_out))
+	    (adder (make-instance 'adder :a a_out :b b_out
+					 :sub adder_sub :out adder_out))
+	    (controller (make-instance 'controller :clk clk :rst rst
+						   :opcode (bits ir_out 7 :width 4)
+						   :out ctrl)))
 
-      (make-instance 'pc :clk clk :rst rst :inc pc_inc :out pc_out)
-
-      (make-instance 'ir :clk clk :rst rst
-			 :load ir_load :bus bus :out ir_out)
-
-      (make-instance 'memory :clk clk :rst rst
-			     :load mar_load :bus bus :out mem_out)
-
-      (make-instance 'reg_a :clk clk :rst rst
-			    :load a_load :bus bus :out a_out)
-
-      (make-instance 'reg_b :clk clk :rst rst
-			    :load b_load :bus bus :out b_out)
-
-      (make-instance 'adder :a a_out :b b_out
-			    :sub adder_sub :out adder_out)
-
-      (make-instance 'memory :clk clk :rst rst
-			     :load ir_load :bus bus :out ir_out)
-
-      (make-instance 'controller :clk clk :rst rst
-				 :opcode (bits ir_out 7 :width 4)
-				 :out ctrl)
-
-      (@ (ir_en addr_en a_en mem_en pc_en)
-	 (cond (ir_en
-		(setq bus ir_out))
-	       (addr_en
-		(setq bus addr_out))
-	       (a_en
-		(setq bus a_out))
-	       (mem_en
-		(setq bus mem_out))
-	       (pc_en
-		(setq bus pc_out))
-	       (t
-		(setq bus 0)))))))
+	(@ (ir_en addr_en a_en mem_en pc_en)
+	   (cond (ir_en
+		  (setq bus ir_out))
+		 (addr_en
+		  (setq bus addr_out))
+		 (a_en
+		  (setq bus a_out))
+		 (mem_en
+		  (setq bus mem_out))
+		 (pc_en
+		  (setq bus pc_out))
+		 (t
+		  (setq bus 0))))))))
