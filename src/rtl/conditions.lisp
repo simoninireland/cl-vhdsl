@@ -1,6 +1,6 @@
 ;; Conditions for synthesis
 ;;
-;; Copyright (C) 2024 Simon Dobson
+;; Copyright (C) 2024--2025 Simon Dobson
 ;;
 ;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
 ;;
