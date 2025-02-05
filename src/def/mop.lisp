@@ -126,9 +126,12 @@ This tests whether the slot' representation is :parameter."
   "Test whether SLOT-DEF defines a sub-component.
 
 Sub-components are simply slots that have a type that is
-a sub-class of `component'."
-  (and (slot-exists-and-bound-p slot-def 'as)
-       (eql (slot-value slot-def 'as) :subcomponent)))
+a sub-class of `component' or are explicitly marked with
+a representation of :SUBCOMPONENT."
+  (or (and (slot-exists-and-bound-p slot-def 'as)
+	   (eql (slot-value slot-def 'as) :subcomponent))
+      (subtypep (slot-definition-type slot-def)
+		'component)))
 
 
 (defun slot-def-in-synthesised-p (slot-def)
@@ -223,3 +226,10 @@ This is used internally to access slot attributes."
 (defun slot-direction (c slot)
   "Return the direction of SLOT in class or component C."
   (slot-attribute c slot 'direction))
+
+
+(defun slot-subcomponent-type (c slot)
+  "Return the type of subcomponent SLOT on C."
+  (let* ((slot-def (find-slot-def c slot))
+	 (ty (slot-definition-type slot-def)))
+    ty))
