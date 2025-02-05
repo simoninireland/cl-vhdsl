@@ -32,20 +32,6 @@
 		      :inblock)))
 
 
-
-;; ---------- Trigger expressions ----------
-
-(test test-typecheck-edges
-  "Test we can type-check edge trigger expressions."
-  (is (subtypep (rtl:typecheck '(let ((clk 0 :as :wire)
-				      (a 0))
-				 (rtl::@ ((rtl::posedge clk)))
-				 (setq a clk))
-			       emptyenv)
-		'(rtl::fixed-width-unsigned 1)))
-  )
-
-
 ;; ---------- @ ----------
 
 (test test-typecheck-at
@@ -76,3 +62,33 @@
 		     (rtl::@ ((rtl::posedge clk))
 		      (setf a 1)))
 		   emptyenv)))
+
+
+(test test-typecheck-edges
+  "Test we can type-check edge trigger expressions."
+  (is (subtypep (rtl:typecheck '(let ((clk 0 :as :wire)
+				      (a 0))
+				 (rtl::@ ((rtl::posedge clk))
+				  (setq a clk)))
+			       emptyenv)
+		'(rtl::fixed-width-unsigned 1))))
+
+
+(test test-typecheck-wire-singleton
+  "Test we can type-check single-wire triggers."
+  (is (subtypep (rtl:typecheck '(let ((clk 0 :as :wire)
+				      (a 0))
+				 (rtl::@ clk
+				  (setq a clk)))
+			       emptyenv)
+		'(rtl::fixed-width-unsigned 1))))
+
+
+(test test-typecheck-wire-trigger
+  "Test we can type-check an edge trigger as a singleton, not in a list."
+  (is (subtypep (rtl:typecheck '(let ((clk 0 :as :wire)
+				      (a 0))
+				 (rtl::@ (rtl::posedge clk)
+				  (setq a clk)))
+			       emptyenv)
+		'(rtl::fixed-width-unsigned 1))))

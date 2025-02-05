@@ -59,9 +59,25 @@
 (defmethod typecheck-sexp ((fun (eql '@)) args env)
   (destructuring-bind (sensitivities &rest body)
       args
-    ;; check all sensitivities are single bits
-    (dolist (s sensitivities)
-      (ensure-subtype (typecheck s env) 'fixed-width-unsigned))
+    ;; We accept single variables or lists of variables as senasitivity,
+    ;; but there's an ambiguity over posedge and negedge operators, so
+    ;; we explicity check the car of any list to see whether it's
+    ;; "really" an atom
+    ;;
+    ;; These checks actually need to be slightly different, to make
+    ;; sure we identify something with wires and not just a value.
+    ;; That's not quite "typechecking" in the sense we use it.
+    (if (listp sensitivities)
+	(if (member (car sensitivities) '(posedge negedge))
+	    ;; a single instance of a trigger operator
+	    (typecheck sensitivities env)
+
+	    ;; a list of sensitivities
+	    (dolist (s sensitivities)
+	      (typecheck s env)))
+
+	;; an atom
+	(typecheck sensitivities env))
 
     ;; check the body in the outer environment
     (mapn (rcurry #'typecheck env) body)))
