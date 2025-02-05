@@ -131,6 +131,31 @@
     (is (set-equal (def:pin-interface mmcer) '(def::clk def::en addr def::rst)))))
 
 
+(test test-component-subcomponents
+  "Test we can identify sub-component slots correctly."
+
+  (defclass mop-component-subcomponents (def:component)
+    ((outside
+      :width 8
+      :as :wire
+      :exported t)
+     (not-a-subcomponent
+      :type integer)
+     (sub
+      :as :subcomponent	;; by explicit marker
+      :initarg :sub)
+     (othersub
+      :type def:component     ;; by type
+      :initarg :othersub))
+    (:metaclass def:synthesisable-component))
+
+  (let ((c (make-instance 'mop-component-subcomponents)))
+    (is (set-equal (def:subcomponents (find-class 'mop-component-subcomponents))
+		   '(sub othersub)))
+    (is (set-equal (def:subcomponents c)
+		   '(sub othersub)))))
+
+
 ;; ---------- Wiring ----------
 
 (test test-component-wiring-diagram
@@ -188,7 +213,10 @@
       :exported t)
      (sub
       :as :subcomponent
-      :initarg :sub))
+      :initarg :sub)
+     (othersub
+      :type def:component
+      :initarg :othersub))
     (:wiring ((sub external) outside))
     (:metaclass def:synthesisable-component))
 
