@@ -92,3 +92,30 @@
 				  (setq a clk)))
 			       emptyenv)
 		'(rtl::fixed-width-unsigned 1))))
+
+
+(test test-synthesise-edges
+  "Test synthesis of sensitivies using edges."
+  (is (rtl:synthesise '(let ((clk 0 :as :wire)
+			     (a 0))
+			(rtl::@ ((rtl::posedge clk) a)
+			 (setq a clk)))
+		      :inblock)))
+
+
+(test test-synthesise-wire-singleton
+  "Test synthesis of sensitivies using edges."
+  (is (rtl:synthesise '(let ((clk 0 :as :wire)
+			     (a 0))
+			(rtl::@ clk
+			 (setq a clk)))
+		      :inblock)))
+
+
+(test test-synthesise-wire-trigger
+  "Test synthesis of sensitivies using a single trigger."
+  (is (rtl:synthesise '(let ((clk 0 :as :wire)
+			     (a 0))
+			(rtl::@ (rtl:posedge clk)
+			 (setq a clk)))
+		      :inblock)))

@@ -21,7 +21,11 @@
 (declaim (optimize debug))
 
 
-;; ---------- Helper ----------
+;; ---------- PROGN ----------
+
+(defmethod typecheck-sexp ((fun (eql 'progn)) args env)
+  (mapn (rcurry #'typecheck env) args))
+
 
 (defun simplify-progn-body (body)
   "Simplify the body of a PROGN or implied PROGN block."
@@ -32,12 +36,6 @@
 	       (append l (list arg))))
 	 body
 	 '()))
-
-
-;; ---------- PROGN ----------
-
-(defmethod typecheck-sexp ((fun (eql 'progn)) args env)
-  (mapn (rcurry #'typecheck env) args))
 
 
 (defmethod simplify-progn-sexp ((fun (eql 'progn)) args)
@@ -68,7 +66,7 @@
     ;; sure we identify something with wires and not just a value.
     ;; That's not quite "typechecking" in the sense we use it.
     (if (listp sensitivities)
-	(if (member (car sensitivities) '(posedge negedge))
+	(if (edge-trigger-p sensitivities)
 	    ;; a single instance of a trigger operator
 	    (typecheck sensitivities env)
 
@@ -91,9 +89,20 @@
 
 
 (defmethod synthesise-sexp ((fun (eql '@)) args (context (eql :inblock)))
-  (destructuring-bind ((&rest sensitivities) &rest body)
+  (declare (optimize debug))
+  (destructuring-bind (sensitivities &rest body)
       args
-    (as-list sensitivities :inexpression
+    (as-list (if (listp sensitivities)
+		 (if (edge-trigger-p sensitivities)
+		     ;; an edge trigger, synthesise as an operator
+		     (list sensitivities)
+
+		     ;; a list of triggers, synthesise as a list
+		     sensitivities)
+
+		 ;; a single trigger, synthesise as a list
+		 (list sensitivities))
+	     :inexpression
 	     :before "always @(" :after ")")
     (as-newline)
 
@@ -106,6 +115,12 @@
 
 
 ;; ---------- Triggers ----------
+
+(defun edge-trigger-p (form)
+  "Test whether FORM is an edge trigger expression."
+  (and (listp form)
+       (member (car form) '(posedge negedge))))
+
 
 (defmethod typecheck-sexp ((fun (eql 'posedge)) args env)
   (destructuring-bind (pin)
