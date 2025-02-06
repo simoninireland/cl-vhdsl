@@ -1,6 +1,6 @@
 ;; Conditions
 ;;
-;; Copyright (C) 2024 Simon Dobson
+;; Copyright (C) 2024--2025 Simon Dobson
 ;;
 ;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
 ;;
@@ -20,29 +20,22 @@
 (in-package :cl-vhdsl/def)
 
 
-;; ---------- Instruction and addressing mode conditions ----------
-
-(define-condition bad-addressing-mode (error)
-  ((ins
-    :documentation "The instruction."
-    :type abstract-instruction
-    :initarg :instruction)
-   (mode
-    :documentation "The addressing mode."
-    :type addressing-mode
-    :initarg :addressing-mode))
+(define-condition subcomponent-mismatch (vhdsl-condition)
+  ((component
+    :documentation "The component."
+    :initarg :component
+    :reader component)
+   (slot
+    :documentation "The sub-component slot name."
+    :initarg :slot
+    :reader slot-name))
   (:report (lambda (c str)
-	     (format str "Instruction ~s does not accept mode ~s"
-		     (slot-value c 'ins)
-		     (slot-value c 'mode))))
-  (:documentation "Error signalled when an instruction is passed an addressing mode it can't use."))
+	     (format-condition-context (format nil "Can't instanciate sub-component ~a on ~a"
+					       (component c)
+					       (slot-name c))
+				       c str)))
+  (:documentation "Condition signalled when a sub-component can't be instanciated.
 
-
-(define-condition unknown-mnemonic (error)
-  ((mnemonic
-    :documentation "The mnemonic."
-    :initarg :mnemonic))
-  (:report (lambda (c str)
-	     (format str "Unkown instruction mnemonic ~s"
-		     (slot-value c 'moemonic))))
-  (:documentation "Error signalled when an unrecognised instruction mnemonic is encountered."))
+This is usually because there is no type provided for the
+sub-component and no explicit instance given; it can also be because
+the type given doesn't refer to a COMPONENT sub-class."))
