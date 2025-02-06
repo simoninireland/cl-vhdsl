@@ -38,18 +38,14 @@ The fragment is the code that gave rise to the condition, and is
 used to add contxt to the report."))
 
 
-(defvar *maximum-code-fragment-length* 40
+(defvar *maximum-code-fragment-length* 60
   "Length of code fragment to be reported in conditions.
 
 This only changes the printed length: the entire fragment is retained.")
 
 
 (defmethod format-condition-context (detail (c rtl-condition) str)
-  "Format the hint and code context of C on STR
-
-DETAIL should be the detailed description of the condition. This
-will be followed by a hint (if available) and the code context
-(if available)."
+  ;; generate the basic report
   (call-next-method)
 
   ;; add context if known
