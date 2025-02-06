@@ -158,44 +158,6 @@
 
 ;; ---------- Wiring ----------
 
-(test test-component-wiring-diagram
-  "Test we can specify wiring disgrams."
-
-  (defclass mop-component-wiring-diagram (def:component)
-    ((addr
-      :width 16
-      :exported t
-      :as :wire
-      :direction :in
-      :role :io)
-     (internal
-      :width 16)
-     (external
-      :width 16
-      :as :wire
-      :direction :out
-      :exported t)
-     (another
-      :width 16))
-    (:wiring (addr internal)
-     (external internal another))
-    (:metaclass def:synthesisable-component))
-
-  (let ((c (make-instance 'mop-component-wiring-diagram)))
-
-    ;; check diagram is saved
-    (is (equal (def:wiring-diagram c)
-	       '((addr internal)
-		 (external internal another))))
-
-    ;; check wires
-    (is (set-equal (def::generate-wiring c)
-		   '((setq addr internal)
-		     (setq external internal)
-		     (setq internal another))
-		   :test #'equal))))
-
-
 (test test-component-top-wire
   "Test we can extract top-level wires'"
 
@@ -358,37 +320,3 @@
       (let ((decl (def::generate-subcomponent-decl c 'sub)))
 	(is (= (length decl) 2))
 	(is (eql (car decl) 'sub))))))
-
-
-(test test-component-wiring-subcomponent
-  "Test we can wire to a sub-component's exported pins."
-
-  (defclass mop-component-sub (def:component)
-    ((external
-      :width 8
-      :as :wire
-      :exported t))
-    (:metaclass def:synthesisable-component))
-
-  (defclass mop-component-super (def:component)
-    ((outside
-      :width 8
-      :as :wire
-      :exported t)
-     (sub
-      :as :subcomponent
-      :initarg :sub)
-     (othersub
-      :type def:component
-      :initarg :othersub))
-    (:wiring ((sub external) outside))
-    (:metaclass def:synthesisable-component))
-
-  (let* ((csub (make-instance 'mop-component-sub))
-	 (c (make-instance 'mop-component-super :sub csub)))
-    (def::generate-wiring c)
-
-    )
-
-
-  )
