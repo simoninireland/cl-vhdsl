@@ -228,6 +228,12 @@ This is used internally to access slot attributes."
   (slot-attribute c slot 'direction))
 
 
+(defun slot-subcomponent-instance (c slot)
+  "Return the instance in SLOT of C, if there is one."
+  (if (slot-boundp c slot)
+      (slot-value c slot)))
+
+
 (defun slot-subcomponent-type (c slot)
   "Return the type of subcomponent SLOT on C."
   (let* ((slot-def (find-slot-def c slot))
