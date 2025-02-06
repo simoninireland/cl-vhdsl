@@ -24,11 +24,7 @@
   ((name
     :documentation "The readable name of the component."
     :initarg :name
-    :reader name)
-   (subcomponent-args
-    :documentation "Sub-component slot parameters and arguments."
-    :initform nil
-    :accessor subcomponent-args))
+    :reader name))
   (:metaclass synthesisable-component)
   (:documentation "A component in an architecture.
 
@@ -38,6 +34,9 @@ contain sub-components that are hidden within it."))
 
 
 ;; ---------- Interfaces ----------
+
+;; These methods simply re-direct a request on a component to a
+;; request on its class, since slots are defined class-wide.
 
 (defmethod pin-interface ((c component))
   (pin-interface (class-of c)))
