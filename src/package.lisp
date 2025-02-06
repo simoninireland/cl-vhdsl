@@ -44,4 +44,7 @@
 
    ;; string functions
    #:string-times
+
+   ;; conditions
+   #:vhdsl-condition
    ))

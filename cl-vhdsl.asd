@@ -33,6 +33,7 @@
   :serial t
   :components ((:file "package")
 	       (:file "utils")
+	       (:file "conditions")
 	       (:module "dsl"
 		:components ((:file "package")
 			     (:file "dsl")

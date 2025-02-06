@@ -23,7 +23,7 @@
 
 ;; ---------- Base condition ----------
 
-(define-condition rtl-condition ()
+(define-condition rtl-condition (vhdsl-condition)
   ((fragment
     :documentation "The code giving rise to the condition.
 
@@ -31,24 +31,11 @@ This is extracted automatically from the current function
 form queue, or can be provided explicitly using the :FRAGMENT key."
     :initform (current-form)
     :initarg :fragment
-    :reader fragment)
-   (hint
-    :documentation "A hint as to how to fix the condition."
-    :initarg :hint
-    :initform nil
-    :reader hint)
-   (underlying-condition
-    :documentation "Any underlying condition that was converted to this.
-
-This allows RTL-CONDITION to be used to mask other, typically
-implementation-specific, conditions encountered during processing."
-    :initform nil
-    :initarg :underlying-condition
-    :reader underlying-condition))
+    :reader fragment))
   (:documentation "Base class for RTLisp conditions.
 
-The fragment is the code that gave rise to the condition. A
-hint can be given to suggest how to fix the issue."))
+The fragment is the code that gave rise to the condition, and is
+used to add contxt to the report."))
 
 
 (defvar *maximum-code-fragment-length* 40
@@ -57,24 +44,19 @@ hint can be given to suggest how to fix the issue."))
 This only changes the printed length: the entire fragment is retained.")
 
 
-(defun format-condition-context (detail c str)
+(defmethod format-condition-context (detail (c rtl-condition) str)
   "Format the hint and code context of C on STR
 
 DETAIL should be the detailed description of the condition. This
 will be followed by a hint (if available) and the code context
 (if available)."
-  (format str "~a" detail)
-
-  ;; add hint if present
-  (if-let ((hint (hint c)))
-    (format str " (~a)" hint))
+  (call-next-method)
 
   ;; add context if known
   (if-let ((code (fragment c)))
     (format str "~%Context: ~a" (shorten *maximum-code-fragment-length*
 					 (format nil "~a" code)
 					 :ellipsis "..."))))
-
 
 
 ;; ---------- Synthesis ----------
