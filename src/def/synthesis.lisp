@@ -50,8 +50,6 @@ The code is a list of declarations suitable for a LET form."
     (mapcar #'pin-interface-to-decl (pin-interface c))))
 
 
-;; ---------- Sub-components ----------
-
 (defun generate-module-params (c)
   "Return the RTLisp code to declare the module parameters.
 
@@ -62,66 +60,140 @@ The code is a list of declarations suitable for a LET form."
 		  (v (if (slot-boundp c slot)
 			 (slot-value c slot)
 			 0)))
-	     `(,name :initial-value ,v))))
+	     `(,name ,v))))
 
     (mapcar #'param-to-decl (parameters c))))
 
 
-(defun generate-subcomponents (c)
-  "Generate the sub-components of C by importing them."
-  )
+;; ---------- Sub-components ----------
+
+(defun instanciate-subcomponent (c slot)
+  "Instanciate the sub-component of C in SLOT.
+
+If a new sub-component instance is created, it is saved in SLOT."
+  (or (slot-subcomponent-instance c slot)
+
+      ;; no instance, try to create one
+      (let ((ty (slot-subcomponent-type c slot)))
+	(if (eql ty t)
+	    ;; no type either, fail
+	    (error 'subcomponent-mismatch :component c :slot slot
+					  :hint "Provide an instance or type for the slot.")
+
+	    (if (subtypep ty 'component)
+		;; instanciate and save
+		(let ((subcomponent (make-instance ty)))
+		  (setf (slot-value c slot) subcomponent))
+
+		;; not a valid component type
+		(error 'subcomponent-mismatch :component c :slot slot
+					      :hint "Sub-component must be a sub-type of component."))))))
+
+
+(defun instanciate-subcomponents (c)
+  "Instanciate all the sub-components of C.
+
+For each sub-component slot, if there is no instance existing, use
+the slot type to create one. If successful, this will result in
+sub-component object instances in all sub-component slots, with the
+corret types."
+  (dolist (slot (subcomponents c))
+    (instanciate-subcomponent c slot)))
+
+
+(defun generate-subcomponent-decl (c slot)
+  "Return the declaration of the sub-component SLOT on C."
+  (declare (optimize debug))
+  (let* ((subcomponent (slot-value c slot))
+	 (ty (type-of subcomponent))
+	 (keys (foldr (lambda (ks k)
+			(let ((kw (make-keyword k)))
+			  (append ks `(,kw ,(slot-value subcomponent k)))))
+		      (append (subcomponents subcomponent)
+			      (pin-interface subcomponent))
+		      '())))
+
+    `(,slot (make-instance ',ty ,@keys))))
 
 
 ;; ---------- Wiring ----------
 
-(defun generate-wire-to-subcomponent (c to from)
-  "Generate wiring of TO on component C to FROM.
+;; Wiring is a fundamentally different concept to that in Verilog. We need
+;; to construct a mapping from components to their initial arguments and values,
+;; which we then use when synthesising the RTLisp module instanciation.
 
-Functionally this involves changing the arguments to C when it is instanciated."
-  (set-subcomponent-arg c to from))
-
-
-(defun generate-wire (wires cs)
-  "Return the assignments needed to wire-up the elements in CS onto WIRES."
-  (flet ((wire-up (ws w)
-	   (destructuring-bind (from to)
-	       w
-	     (cond ((and (listp from)
-			 (not (listp to)))
-		    ;; from sub-component to wires
-		    (destructuring-bind (c cw)
-			from
-		      (generate-wire-to-subcomponent c cw to)
-		      ws))
-
-		   ((and (listp to)
-			 (not (listp from)))
-		    ;; from wires to sub-component
-		    (destructuring-bind (c cw)
-			to
-		      (generate-wire-to-subcomponent c cw from)
-		      ws))
-
-		   ((and (not (listp from))
-			 (not (listp to)))
-		    ;; between wires
-		    (append ws (list`(setq ,from ,to))))
-
-		   (t
-		    (error 'unsupported :feature "Wiring components directly together"
-					:hint "Add an explicit wire to connect to"))))))
-
-    (let ((ws (successive-pairs cs)))
-      (append wires (foldr #'wire-up ws '())))))
+(defun new-wire-name ()
+  "Return a name for a new wire."
+  (gensym "wire-"))
 
 
-(defun generate-wiring (c)
-  "Return the RTLisp code for wiring component C.
+(defun wire-contains-module-connector-p (w)
+  "Test whether W contains a module-level connector.
 
-This code is inserted as the \"asynchronous assignments\" at the
-end of the module's code block."
-  (let ((diag (wiring-diagram c)))
-    (foldr #'generate-wire diag nil)))
+A module-level connectoris one represented by just a symbol, not a list (i.e.,
+not to a sub-component).
+
+Return the index of the module-level connector in W, or NIL."
+  (position-if #'atom w))
+
+
+(defun extract-module-connector-to-wire (w i)
+  "Extract the  module conector at position I in W.
+
+Return a two-element list consisting of the module connector
+and the rest of the connectors."
+  (let ((wire (elt w i))
+	(connectors (append (butlast w (- (length w) i))
+			    (last w (- (length w) (1+ i))))))
+    (list wire connectors)))
+
+
+(defun create-module-connector-to-wire (w)
+  "Create a new module connector to W.
+
+Return a two-element list consisting of a new module connector
+and the other connectors."
+  (let ((wire (new-wire-name)))
+    (list wire w)))
+
+
+(defun find-or-create-module-connector (w)
+  "Search W for a module-level conenctor.
+
+If such a connector is found, return a list consisting of two elements,
+that wire and the rest of the connectors. Otherwise, create a new wire
+name and return that and all the connectors."
+  (if (null w)
+      ;; no connectors, no wire
+      (list nil nil)
+
+      ;; extract or create wire
+      (if-let ((i (wire-contains-module-connector-p w)))
+	(extract-module-connector-to-wire w i)
+	(create-module-connector-to-wire w))))
+
+
+(defun connect-subcomponents-on-wire (c w)
+  "Wire-up connectors of W to sub-components and slots of C.
+
+Set the appropriate slots to contain the correct symbols.
+Return a new wire name if one needs to be created."
+  (let* ((i (wire-contains-module-connector-p w))
+	 (wcs (if i
+		  (extract-module-connector-to-wire w i)
+		  (create-module-connector-to-wire w))))
+
+    (destructuring-bind (wire connectors)
+	wcs
+      (dolist (connector connectors)
+	(destructuring-bind (subcomponent-slot slot)
+	    connector
+	  (let ((subcomponent (slot-value c subcomponent-slot)))
+	    (setf (slot-value subcomponent slot) wire))))
+
+      ;; return the new wire, if there was one
+      (if (null i)
+	  wire))))
 
 
 ;;---------- Components ----------

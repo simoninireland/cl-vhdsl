@@ -196,6 +196,170 @@
 		   :test #'equal))))
 
 
+(test test-component-top-wire
+  "Test we can extract top-level wires'"
+
+  ;; if there are no connectors, return two nils
+  (destructuring-bind (wire connectors)
+      (def::find-or-create-module-connector '())
+    (is (and (null wire)
+	     (null connectors))))
+
+  ;; create a new wire when there's none appropriate
+  (let ((w '((sub a) (sub b) (super a))))
+    (is (equal (cadr (def::find-or-create-module-connector w))
+	       w)))
+
+  ;; use a wire when there is one
+  (let ((w '((sub a) b (super a))))
+    (destructuring-bind (wire connectors)
+	(def::find-or-create-module-connector w)
+      (is (and (equal wire 'b)
+	       (equal connectors '((sub a) (super a)))))))
+
+  ;; if there are two possible wires, use the first
+  (let ((w '((sub a) b c (super a))))
+    (destructuring-bind (wire connectors)
+	(def::find-or-create-module-connector w)
+      (is (and (equal wire 'b)
+	       (equal connectors '((sub a) c (super a))))))))
+
+
+(test test-component-instanciate-subcomponents
+  "Test we can instanciate sub-components when needed."
+
+  (defclass mop-component-instanciate-sub (def:component)
+    ((external
+      :width 8
+      :as :wire
+      :exported t))
+    (:metaclass def:synthesisable-component))
+
+  (defclass mop-component-instanciate (def:component)
+    ((outside
+      :width 8
+      :as :wire
+      :exported t)
+     (sub
+      :type mop-component-instanciate-sub)
+     (othersub
+      :as :subcomponent)
+     (wrongsub
+      :type integer))
+    (:metaclass def:synthesisable-component))
+
+  (let ((c (make-instance 'mop-component-instanciate)))
+    (def::instanciate-subcomponent c 'sub)
+
+    ;; make sure the value was cached
+    (is (subtypep (type-of (slot-value c 'sub))
+		  'mop-component-instanciate-sub))
+
+    ;; make sure it doesn't get re-created
+    (let ((v (slot-value c 'sub)))
+      (is (equal (def::instanciate-subcomponent c 'sub)
+		 v)))
+
+    ;; can't instanciate without a type
+    (signals (def::subcomponent-mismatch)
+      (def::instanciate-subcomponent c 'othersub))
+
+    ;; can't instanciate a sub-component with a non-component type
+    (signals (def::subcomponent-mismatch)
+      (def::instanciate-subcomponent c 'wrongsub))))
+
+
+(test test-component-generate-wires
+  "Test we can generate wires to sub-components according to a wiring diagram."
+
+  (defclass mop-component-wires-sub (def:component)
+    ((external
+      :width 8
+      :as :wire
+      :exported t))
+    (:metaclass def:synthesisable-component))
+
+  (defclass mop-component-wires-one (def:component)
+    ((outside
+      :width 8
+      :as :wire
+      :exported t)
+     (sub
+      :type mop-component-instanciate-sub))
+    (:wiring ((sub external) outside))
+    (:metaclass def:synthesisable-component))
+
+  (defclass mop-component-wires-two (def:component)
+    ((outside
+      :width 8
+      :as :wire
+      :exported t)
+     (sub
+      :type mop-component-instanciate-sub)
+     (othersub
+      :type mop-component-instanciate-sub))
+    (:wiring ((sub external) (othersub external)))
+    (:metaclass def:synthesisable-component))
+
+  (let ((c (make-instance 'mop-component-wires-one)))
+    (def::instanciate-subcomponents c)
+
+    (let ((w (car (def::wiring-diagram c))))
+      ;; no new wire created by wiring
+      (is (null (def::connect-subcomponents-on-wire c w)))
+
+      ;; ensure we wired the slot
+      (is (eql (slot-value (slot-value c 'sub) 'external)
+	       'outside))))
+
+  (let ((c (make-instance 'mop-component-wires-two)))
+    (def::instanciate-subcomponents c)
+
+    (let ((w (car (def::wiring-diagram c))))
+      (let ((nw (def::connect-subcomponents-on-wire c w)))
+	;; new wire needed
+	(is (not (null nw)))
+
+	;; ensure we wired both slots to the same new wire
+	 (is (eql (slot-value (slot-value c 'sub) 'external)
+		  nw))
+	 (is (eql (slot-value (slot-value c 'othersub) 'external)
+		  nw))))))
+
+
+(test test-component-create-wire-subcomponent
+  "Test that we can create the declarations for sub-com,ponents with the correct wiring."
+
+  (defclass mop-component-create-wires-sub (def:component)
+    ((external
+      :width 8
+      :as :wire
+      :initarg :external
+      :exported t))
+    (:metaclass def:synthesisable-component))
+
+  (defclass mop-component-create-wires-one (def:component)
+    ((outside
+      :width 8
+      :as :wire
+      :initarg :outside
+      :exported t)
+     (sub
+      :type mop-component-create-wires-sub))
+    (:wiring ((sub external) outside))
+    (:metaclass def:synthesisable-component))
+
+  (let ((c (make-instance 'mop-component-create-wires-one)))
+    (def::instanciate-subcomponents c)
+
+    (let ((w (car (def::wiring-diagram c))))
+      (def::connect-subcomponents-on-wire c w)
+
+      (let ((decl (def::generate-subcomponent-decl c 'sub)))
+	(is (= (length decl) 2))
+	(is (eql (car decl) 'sub))))))
+
+
 (test test-component-wiring-subcomponent
   "Test we can wire to a sub-component's exported pins."
 
