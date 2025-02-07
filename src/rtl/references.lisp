@@ -38,7 +38,7 @@ with *RESERVED-WORDS*.")
 
 ;; There are probably more reserved words
 (defvar *reserved-words* '("module" "input" "output" "inout"
-			   "always" "posedge" "negedge" "assign"
+			   "always" "@"  "posedge" "negedge" "assign"
 			   "parameter" "localparam" "reg" "wire"
 			   "signed")
   "Reserved words in Verilog.")
