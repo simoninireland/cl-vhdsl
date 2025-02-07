@@ -150,7 +150,7 @@ See https://en.wikipedia.org/wiki/ISO_8601"
 	(second minute hour date month year day-of-week dst-p tz)
       (get-decoded-time)
     (declare (ignore day-of-week dst-p))
-    (format nil "~4,'0d-~2,'0d-~dT~2,'0d:~2,'0d:~2,'0d+~2,'0d:00"
+    (format nil "~4,'0d-~2,'0d-~2,'0dT~2,'0d:~2,'0d:~2,'0d+~2,'0d:00"
 	    year month date
 	    hour minute second
 	    tz)))
