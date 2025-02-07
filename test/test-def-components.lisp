@@ -76,7 +76,7 @@
 
     ;; check parameter is synthesised correctly
     (is (set-equal (def::generate-module-params c)
-		   '((addr-width :initial-value 0))
+		   '((addr-width 0))
 		   :test #'equal))
 
     ;; check only addr are clk are exported
