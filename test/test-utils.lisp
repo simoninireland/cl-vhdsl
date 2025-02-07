@@ -178,9 +178,10 @@
     (is (equal (n-copies nil 4)
 	       '(() () () ())))
 
-    (let ((rep (n-copies l 3)))
+    (let* ((l2 '(1 2 3))
+	   (rep  (n-copies l2 3)))
       ;; changing the original doesn't change the replicas
-      (setf (car l) 4)
+      (setf (car l2) 4)
       (is (equal rep
 		 '((1 2 3) (1 2 3) (1 2 3))))
 
