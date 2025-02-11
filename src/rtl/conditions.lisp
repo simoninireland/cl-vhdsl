@@ -188,49 +188,49 @@ include terms that are only known at run-time."))
 					       (expected-values c)
 					       (received-value c))
 				       c str)))
-  (:documentation "Condition signalled when a mis-matched value is received."))
+  (:documentation "Condition signalled when a mis-matched value is received.")
 
 
-(define-condition direction-mismatch (rtl-condition)
-  ((expected
-    :documentation "The direction(s) allowed."
-    :initarg :expected
-    :reader expected-values)
-   (received
-    :documentation "The direction received."
-    :initarg :got
-    :reader received-value))
-  (:report (lambda (c str)
-	     (format-condition-context (format nil "Expected a direction that is one of ~s, got ~s"
-					       (expected-values c)
-					       (received-value c))
-				       c str)))
-  (:documentation "Condition signalled when a mis-matched direction is received.
+  (define-condition direction-mismatch (rtl-condition)
+    ((expected
+      :documentation "The direction(s) allowed."
+      :initarg :expected
+      :reader expected-values)
+     (received
+      :documentation "The direction received."
+      :initarg :got
+      :reader received-value))
+    (:report (lambda (c str)
+	       (format-condition-context (format nil "Expected a direction that is one of ~s, got ~s"
+						 (expected-values c)
+						 (received-value c))
+					 c str)))
+    (:documentation "Condition signalled when a mis-matched direction is received.
 
 This is usually caused by assigning to a module argument denoteed :IN."))
 
 
-(define-condition type-mismatch (rtl-condition)
-  ((expected
-    :documentation "The expected type."
-    :initarg :expected
-    :reader expected-type)
-   (received
-    :documentation "The received type."
-    :initarg :got
-    :reader received-type))
-  (:report (lambda (c str)
-	     (format-condition-context (format nil "Expected a value of type ~a, got one of type ~a"
-					       (expected-type c)
-					       (received-type c))
-				       c str)))
-  (:documentation "Condition signalled when types don't match.
+  (define-condition type-mismatch (rtl-condition)
+    ((expected
+      :documentation "The expected type."
+      :initarg :expected
+      :reader expected-type)
+     (received
+      :documentation "The received type."
+      :initarg :got
+      :reader received-type))
+    (:report (lambda (c str)
+	       (format-condition-context (format nil "Expected a value of type ~a, got one of type ~a"
+						 (expected-type c)
+						 (received-type c))
+					 c str)))
+    (:documentation "Condition signalled when types don't match.
 
 The most common case is making an assignment of an expression to a
 variable that is too narrow to accommodate all its possible values.
 This is usually signalled as a warning, as there is a
 sometimes-acceptable default action to risk the loss of precision
-caused by the assignment."))
+caused by the assignment.")))
 
 
 (define-condition bitfield-mismatch (rtl-condition)
@@ -263,3 +263,18 @@ This is usually caused by non-consecutive uses of variables in the pattern."))
 This means that the initial contents of an array are not in the right
 shape for the array. Usually this can be fixed by simply reformatting
 the data, and/or making sure there's the right amount of it."))
+
+
+(define-condition state-machine-mismatch (rtl-condition)
+  ((state
+    :documentation "The state."
+    :initarg :state
+    :reader state))
+  (:report (lambda (c str)
+	     (format-condition-context (format nil "Unrecognised state ~a"
+					       (state c))
+				       c str)))
+  (:documentation "Condition signalled when an unrecognised state is encountered.
+
+This usualy happens when a state is targeted as the next state (using the
+NEXT macro) that isn;t defined in the surrounding state machine.")

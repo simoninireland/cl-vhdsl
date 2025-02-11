@@ -60,6 +60,7 @@
    #:0=
    #:0/=
    #:2*
+   #:state-machine
 
    ;; compiler nanopasses
    #:typecheck
@@ -92,4 +93,5 @@
    #:type-mismatch
    #:bitfield-mismatch
    #:shape-mismatch
+   #:state-machine-mismatch
    ))
