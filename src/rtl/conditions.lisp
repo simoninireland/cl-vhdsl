@@ -91,16 +91,22 @@ that should be declared in the architectural environment, such as a register."))
   ((var
     :documentation "The variable."
     :initarg :variable
-    :reader variables))
+    :reader variable)
+   (newvar
+    :documentation "The new re-written variable."
+    :initarg :rewritten-to
+    :reader rewritten-variable))
   (:report (lambda (c str)
-	     (format-condition-context (format nil "Badly-named variable or module ~a"
-					       (variables c))
+	     (format-condition-context (format nil "Re-wrote variable ~a to ~a"
+					       (variable c)
+					       (rewritten-variable c))
 				       c str)))
   (:documentation "Condition signalled when an unacceptable identifier is encountered.
 
 This is caused by using identifier names may be legal in Lisp (with
 its very permissive rules) but that can't be synthesised (because of
-limitations in the underlying technology)."))
+limitations in the underlying technology). Te variable name is usually
+re-written to something legal."))
 
 
 (define-condition unknown-module (rtl-condition)
