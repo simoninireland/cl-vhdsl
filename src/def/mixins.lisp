@@ -37,7 +37,7 @@ provide additional behaviour that is automatically synthesised."))
     :width 1
     :as :wire
     :initarg :en
-    :role :clock
+    :role :control
     :exported t
     :reader en))
   (:metaclass synthesisable-component)
@@ -106,7 +106,7 @@ The behaviour should be given in RTLisp."))
     :documentation "The reset wire of the component."
     :width 1
     :as :wire
-    :role :trigger
+    :role :control
     :exported t
     :initarg :rst
     :reader rst))
