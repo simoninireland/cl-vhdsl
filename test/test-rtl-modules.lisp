@@ -27,7 +27,7 @@
 (test test-typecheck-module
   "Test we can typecheck a module definition."
   (is (equal (type-of (rtl:typecheck '(rtl:module test ((clk :width 1 :direction :in)
-							:key (p 1))
+							&key (p 1))
 				       (let ((a 1))
 					 (setq a 0)))
 				     emptyenv))
@@ -37,7 +37,7 @@
 (test test-module-no-wires
   "Test modules always need a wire."
   (signals (rtl:not-synthesisable)
-    (rtl:typecheck '(rtl:module test (:key (p 1))
+    (rtl:typecheck '(rtl:module test (&key (p 1))
 		     (let ((a 0))
 		       (setq a 1)))
 		   emptyenv)))
@@ -48,7 +48,7 @@
   (is (rtl:synthesise '(rtl::module test ((clk :width 1 :direction :in)
 					  (a :width 8 :direction :in)
 					  (b :width 4 :direction :in)
-					  :key e (f 45))
+					  &key e (f 45))
 			(let ((x 0 :width 8)
 			      (y 10 :width 8)
 			      (z 44 :as :constant))
