@@ -47,3 +47,22 @@ in many applications."
     (as-literal " == ")
     (synthesise r :inexpression)
     (as-literal ")")))
+
+
+(defmethod typecheck-sexp ((fun (eql '/=)) args env)
+  (destructuring-bind (l r)
+      args
+    (ensure-boolean (typecheck l env) env)
+    (ensure-boolean (typecheck r env) env)
+
+    '(fixed-width-unsigned 1)))
+
+
+(defmethod synthesise-sexp ((fun (eql '/=)) args (context (eql :inexpression)))
+  (destructuring-bind (l r)
+      args
+    (as-literal "(")
+    (synthesise l :inexpression)
+    (as-literal " != ")
+    (synthesise r :inexpression)
+    (as-literal ")")))
