@@ -57,6 +57,9 @@
    #:negedge
    #:bits
    #:with-bitfields
+   #:0=
+   #:0/=
+   #:2*
 
    ;; compiler nanopasses
    #:typecheck
