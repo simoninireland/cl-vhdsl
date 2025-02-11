@@ -73,7 +73,7 @@
       (is (string-equal (rtl::ensure-legal-identifier from) to))))
 
   ;; check signalling of really bad variable name choice
-  (signals (rtl:bad-variable)
+  (signals (rtl:not-synthesisable)
     (rtl::ensure-legal-identifier "_")))
 
 
