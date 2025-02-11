@@ -69,8 +69,11 @@ of *IDENTIFIER-ILLEGAL-CHARACTER-REPLACEMENT*."
 
     ;; bomb-out if the identifier is still illegal
     (if (string-equal no-illegal "_")
-	(error 'bad-variable :variable n
-			     :hint "Use meaningful variable names :-)"))
+	(error 'not-synthesisable :hint "Use meaningful variable names :-)"))
+
+    ;; signal if the variable has been re-written
+    (if (not (string-equal n no-illegal))
+	(signal 'bad-variable :variable n :rewritten-to no-illegal))
 
     ;; return the legalised identifier
     no-illegal))
