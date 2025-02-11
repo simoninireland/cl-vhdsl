@@ -66,7 +66,7 @@ Signal VALUE-MISMATCH as an error if not."
 Arguments come first, and can either be bare symbols or lists of name
 and properties. Parameters come after any :key marker and consists of
 either bare names ot lists of names and values."
-  (let ((i (position ':key decls)))
+  (let ((i (position '&key decls)))
     (if i
 	;; parameters (and possibly arguments)
 	(list (subseq decls 0 i)
@@ -152,7 +152,6 @@ values can't be defined in terms of other parameter values."
 (defmethod typecheck-sexp ((fun (eql 'module)) args env)
   (destructuring-bind (modname decls &rest body)
       args
-    (ensure-legal-identifier modname)
 
     (destructuring-bind (modargs modparams)
 	(split-args-params decls)
