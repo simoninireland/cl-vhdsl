@@ -22,7 +22,6 @@ include ../icestick.mk
 
 # Bitstream
 TARGET = blink.bin
-TOPMODULE =
 
 # Sources
 SOURCES = package.lisp blink.lisp
