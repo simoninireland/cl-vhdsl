@@ -50,6 +50,7 @@
 			     (:file "operators")
 			     (:file "comparisons")
 			     (:file "bits")
+			     (:file "with-bitfields")
 			     (:file "arrays")
 			     (:file "control-flow")
 			     (:file "conditionals")

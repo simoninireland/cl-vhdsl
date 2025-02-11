@@ -222,8 +222,17 @@ well as PROGNs nested inside other PROGNs.")
 
 ;; ---------- Macro expansion ----------
 
-(defparameter *macros* '(cond when unless cond with-bitfields)
+(defparameter *macros* nil
   "List of macros expanded within RTLisp forms.")
+
+
+(defun add-macro (name &optional real-name)
+  "Add NAME as a macro in RTLisp.
+
+The macros will be expanded during the expansion pass (if enabled).
+If REAL-NAME is given, then NAME acts as a pseudonym for it. Otherwise
+NAME is assuemd to be the \"real\" name of the macro."
+  (appendf *macros* (list (list name (or real-name nil)))))
 
 
 (defgeneric expand-macros (form)
@@ -239,25 +248,29 @@ well as PROGNs nested inside other PROGNs.")
 (defgeneric expand-macros-sexp (fun args)
   (:documentation "Expand macros in FUN applied to ARGS.")
   (:method (fun args)
+    (declare (optimize debug))
     (with-rtl-errors-not-synthesisable
       (flet ((expand-descend (fun args)
 	       `(,fun ,@(remove-if #'null (mapcar (lambda (arg)
 						    (unless (null arg)
 						      (expand-macros arg)))
 						  args)))))
-	(if (member fun *macros*)
-	    ;; macro is expandable
+
+	(if-let ((m (assoc fun *macros*)))
+	    ;; macro is expandable, replace with real name if there is one
+	  (let ((realfun (or (safe-cadr m)
+			      fun)))
 	    (multiple-value-bind (expansion expanded)
-		(macroexpand (cons fun args))
+		(macroexpand-1 (cons realfun args))
 	      (if expanded
 		  ;; form was expanded by macro, expand the expansion
 		  (expand-macros expansion)
 
 		  ;; form wasn't expanded, descend into the form
-		  (expand-descend fun args)))
+		  (expand-descend fun args))))
 
-	    ;; macro is not expandable, descend into the form
-	    (expand-descend fun args))))))
+	  ;; macro is not expandable, descend into the form
+	  (expand-descend fun args))))))
 
 
 ;; ---------- Synthesis ----------

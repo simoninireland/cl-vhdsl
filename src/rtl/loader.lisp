@@ -21,6 +21,28 @@
 (declaim (optimize debug))
 
 
+;; ---------- Macros we allow in RTLisp ----------
+
+;; conditionals
+(add-macro 'cond)
+(add-macro 'when 'when/rtl)
+(add-macro 'unless 'unless/rtl)
+
+;; places
+(add-macro 'incf 'incf/rtl)
+(add-macro 'decf 'decf/rtl)
+
+;; tests and maths
+(add-macro '0=)
+(add-macro '0/=)
+(add-macro '1+ '1+/rtl)
+(add-macro '1- '1-/rtl)
+(add-macro '2* '2*)
+
+;; variable introduction and aliasing
+(add-macro 'with-bitfields)
+
+
 ;; ---------- Module registry ----------
 
 (defparameter *module-list* nil
