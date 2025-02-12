@@ -47,4 +47,5 @@
 
    ;; conditions
    #:vhdsl-condition
+   #:format-condition-context
    ))

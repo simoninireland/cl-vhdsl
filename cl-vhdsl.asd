@@ -57,6 +57,8 @@
 			     (:file "binders")
 			     (:file "casting")
 			     (:file "modules")
+			     (:file "macros")
+			     (:file "state-machine")
 			     (:file "eval")
 			     (:file "loader")
 			     (:file "embedding")

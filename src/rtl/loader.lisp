@@ -23,6 +23,19 @@
 
 ;; ---------- Macros we allow in RTLisp ----------
 
+(defparameter *macros* nil
+  "List of macros expanded within RTLisp forms.")
+
+
+(defun add-macro (name &optional real-name)
+  "Add NAME as a macro in RTLisp.
+
+The macros will be expanded during the expansion pass (if enabled).
+If REAL-NAME is given, then NAME acts as a pseudonym for it. Otherwise
+NAME is assuemd to be the \"real\" name of the macro."
+  (appendf *macros* (list (list name (or real-name nil)))))
+
+
 ;; conditionals
 (add-macro 'cond)
 (add-macro 'when 'when/rtl)
@@ -41,6 +54,11 @@
 
 ;; variable introduction and aliasing
 (add-macro 'with-bitfields)
+
+;; state machines
+(add-macro 'state-machine)
+(add-macro 'next 'next/rtl)
+(add-macro 'exit 'exit/rtl)
 
 
 ;; ---------- Module registry ----------

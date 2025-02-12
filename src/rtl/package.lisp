@@ -61,6 +61,8 @@
    #:0/=
    #:2*
    #:state-machine
+   #:next
+   #:exit
 
    ;; compiler nanopasses
    #:typecheck
