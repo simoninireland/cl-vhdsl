@@ -67,7 +67,7 @@ Signal a STATE-MACHINE-MISMATCH error if STATE is invalid as a next
 state, either because it is unknown or because it is special.."
   (unless (next-state-p state labels)
     (error 'state-machine-mismatch :state state
-				   :hint "Make sure the state is part of the state machine")))
+				   :hint "Make sure the target state is defined in the state machine")))
 
 
 (defun action-for-state (state body)
@@ -81,7 +81,34 @@ states."
 
 ;; ---------- Top-level macros ----------
 
-(defmacro state-machine (&body body)
+;; We make use of the DSL and intercept the macro-expander directly
+;; so we can contextually expand the macros within.
+;;
+;; It's still a macro, though, because it expands the RTLisp source
+;; into more RTLisp source, and doesn't complicate the core. It does
+;; however need more macro-expansion machinery than normal.
+
+(defvar *current-machine-state* nil
+  "Variable holding the current state of the current state machine.")
+
+
+(defvar *current-machine-initial-state* nil
+  "Variable holding the initial state of the current state machine.")
+
+
+(defvar *current-machine-states* nil
+  "Variable holding all the states of the current state machine.")
+
+
+(defvar *surrounding-machine-state* nil
+  "Variable holding the current state of the enclosing state machine.")
+
+
+(defvar *surrounding-machine-states* nil
+  "Variable holding all the state of the enclosing state machine.")
+
+
+(defmethod expand-macros-sexp ((fun (eql 'state-machine)) args)
   "Construct a state machine.
 
 BODY defines a set of state/action pairs roughly in the style of CASE.
@@ -97,32 +124,60 @@ There are two labels reserved for special purposes. The actions in
 the :BEFORE state happen before each turn of the state machine, and
 so can affect the state that will execute. The :AFTER state happens
 every time the machine turns."
-  (let* ((user-state-labels (extract-user-state-labels body))
-	 (initial-state (car user-state-labels))
-	 (user-state-decls (mapcar (lambda (state i)
-				     (list state i :as :constant))
-				   user-state-labels
-				   (iota (length user-state-labels))))
-	 (before-forms (action-for-state :before body))
-	 (after-forms (action-for-state :after body))
-	 (state-actions (remove-if (lambda (clause)
-				     (special-state-p (car clause)))
-				   body)))
+  (declare (optimize debug))
+  (destructuring-bind (&rest body)
+      args
+    (let* ((user-state-labels (extract-user-state-labels body))
+	   (initial-state (car user-state-labels))
+	   (user-state-decls (mapcar (lambda (state i)
+				       (list state i :as :constant))
+				     user-state-labels
+				     (iota (length user-state-labels))))
+	   (before-forms (action-for-state :before body))
+	   (after-forms (action-for-state :after body))
+	   (state-actions (remove-if (lambda (clause)
+				       (special-state-p (car clause)))
+				     body)))
 
-    (with-gensyms (state)
-      (macrolet ((next (next-state)
-		   (ensure-next-state next-state user-state-labels)
-		   `(setq ,state ,next-state)))
+      (with-gensyms (state)
+	(let* ((*surrounding-machine-state* *current-machine-state*)
+	       (*surrounding-machine-states* *current-machine-states*)
+	       (*current-machine-state* state)
+	       (*current-machine-initial-state* initial-state)
+	       (*current-machine-states* user-state-labels))
 
-	`(let ,user-state-decls
-	   (let ((,state ,initial-state))
+	  ;; recursively expand the body forms
+	  (expand-macros `(let ,user-state-decls
+			    (let ((,state ,initial-state))
 
-	     ;; actions always performed before each turn (if any)
-	     ,@before-forms
+			      ;; actions always performed before each turn (if any)
+			      ,@before-forms
 
-	     ;; the state machine proper
-	     (case ,state
-	       ,@state-actions)
+			      ;; the state machine proper
+			      (case ,state
+				,@state-actions)
 
-	     ;; actions always performed after each turn (if any)
-	     ,@after-forms))))))
+			      ;; actions always performed after each turn (if any)
+			      ,@after-forms))))))))
+
+
+(defmacro next/rtl (next-state)
+  "Move the current machine to NEXT-STATE."
+  (ensure-next-state next-state *current-machine-states*)
+  `(setq ,*current-machine-state* ,next-state))
+
+
+(defmacro exit/rtl (&optional exit-state)
+  "Exit the current machine to EXIT-STATE of the surrounding machine.
+
+The current machine is returned to its initial state.
+
+If EXIT-STATE is omitted, the state of the surrounding machine is left
+unchanged. The net result will be that, the next time the surrounding
+machine turns, it will re-enter the current machine in that machine's
+initial state."
+  `(progn
+     (setq ,*current-machine-state* ,*current-machine-initial-state*)
+     ,(when exit-state
+	  (ensure-next-state exit-state *surrounding-machine-states*)
+	  `(setq ,*surrounding-machine-state* ,exit-state))))

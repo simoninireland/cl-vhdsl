@@ -1,4 +1,4 @@
-;; Tests of STATE-MACHINE macro
+;; Tests of STATE-MACHINE macros
 ;;
 ;; Copyright (C) 2024--2025 Simon Dobson
 ;;
@@ -22,16 +22,132 @@
 (declaim (optimize debug))
 
 
+;; It's tricky to test the output automatically, so we
+;; only test for errors.
+
 (test test-state-machine-jumps
   "Test we can jump within a state machine."
-  (rtl:expand-macros '(rtl:state-machine
-		       (test-even
-			(incf a)
-			(next test-odd))
-		       (test-odd
-			(incf a)
-			(if (> a 10)
-			    (rtl::next test-idle)
-			    (rtl::next test-even)))
-		       (test-idle)))
-  )
+  (is (rtl:expand-macros '(rtl:state-machine
+			   (test-even
+			    (incf a)
+			    (rtl::next test-odd))
+			   (test-odd
+			    (incf a)
+			    (if (> a 10)
+				(rtl::next test-idle)
+				(rtl::next test-even)))
+			   (test-idle)))))
+
+
+(test test-state-machine-nested
+  "Test we can expand a nested pair of a state machines."
+  (is (rtl:expand-macros '(rtl:state-machine
+			(test-even
+			 (incf a)
+			 (rtl::next test-odd))
+			(test-odd
+			 (incf a)
+			 (if (> a 10)
+			     (rtl::next test-idle)
+
+			     (rtl:state-machine
+			       (nested-one
+				(rtl::next nested-two))
+			       (nested-two
+				(setq a 5)
+				(rtl::exit test-even)))))))))
+
+
+(test test-state-machine-reenter
+  "Test we can re-enter a nested machine."
+  (is (rtl:expand-macros '(rtl:state-machine
+			    (test-even
+			     (incf a)
+			     (rtl::next test-odd))
+			    (test-odd
+			     (incf a)
+			     (if (> a 10)
+				 (rtl::next test-idle)
+
+				 (rtl:state-machine
+				   (nested-one
+				    (rtl::next nested-two))
+				   (nested-two
+				    (setq a 5)
+				    (rtl::exit)))))))))
+
+
+(test test-state-machine-before-after
+  "Test we include state machine before and after code."
+  (is (rtl:expand-macros '(rtl:state-machine
+			   (:before
+			    (setf a 0))
+			   (:after
+			    (setf a 255))
+			   (test-even
+			    (incf a)
+			    (rtl::next test-odd))
+			   (test-odd
+			    (incf a)
+			    (if (> a 10)
+				(rtl::next test-odd)
+				(rtl::next test-even)))))))
+
+
+(test test-state-machine-not-state
+  "Test we detect jumping to an undefined state."
+  (signals (rtl:state-machine-mismatch)
+    (rtl:expand-macros '(rtl:state-machine
+			 (test-even
+			  (incf a)
+			  (rtl::next test-ttt))
+			 (test-odd
+			  (incf a))))))
+
+
+(test test-state-machine-not-before
+  "Test we detect jumping to a special state."
+  (signals (rtl:state-machine-mismatch)
+    (rtl:expand-macros '(rtl:state-machine
+			 (test-even
+			  (incf a)
+			  (rtl::next test-ttt))
+			 (:before
+			  (setf a 0))
+			 (test-odd
+			  (incf a)
+			  (rtl::next :before))))))
+
+
+(test test-state-machine-not-surrounding-state
+  "Test we detect exiting to an undefined state in the surrounding machine."
+  (signals (rtl:state-machine-mismatch)
+    (rtl:expand-macros '(rtl:state-machine
+			 (test-even
+			  (incf a)
+			  (rtl::next test-odd))
+			 (test-odd
+			  (incf a)
+			  (rtl:state-machine
+			      (nested-one
+			       (rtl::next nested-two))
+			      (nested-two
+			       (setq a 5)
+			       (rtl::exit test-ttt))))))))
+
+
+(test test-state-machine-not-next-state
+  "Test we detect trying to jump (rather than exit) to a state in the surrounding machine."
+  (signals (rtl:state-machine-mismatch)
+    (rtl:expand-macros '(rtl:state-machine
+			 (test-even
+			  (incf a)
+			  (rtl::next test-odd))
+			 (test-odd
+			  (incf a)
+			  (rtl:state-machine
+			    (nested-one
+			     (rtl::next nested-two))
+			    (nested-two
+			     (setq a 5)
+			     (rtl::next test-even))))))))
