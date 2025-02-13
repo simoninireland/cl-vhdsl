@@ -54,7 +54,7 @@
 		 (rx-byte         :width 8 :direction :out)
 		 (is-receiving    :width 1 :direction :out)
 		 (is-transmitting :width 1 :direction :out)
-		 (rx-error        :width 1 :direction :out)
+		 (recv-error      :width 1 :direction :out)
 		 &key
 		 (clk-divide 1302))   ;; (/ clock-rate (* baud-rate 4))
 
@@ -62,8 +62,8 @@
   (let ((rx-idle 0 :as :constant)
 	(rx-check-start 1 :as :constant)
 	(rx-read-bits 2 :as :constant)
-	(rx-check-stop :as :constant)
-	(rx-delay-restart :as :constant)
+	(rx-check-stop 3 :as :constant)
+	(rx-delay-restart 4 :as :constant)
 	(rx-error 5 :as :constant)
 	(rx-received 6 :as :constant)
 
@@ -78,16 +78,16 @@
 	  (rx-state rx-idle :width 3)
 	  (rx-countdown 0 :width 6)
 	  (rx-bits-remaining 0 :width 4)
-	  (rx-data :width 8)
+	  (rx-data 0 :width 8)
 
 	  (tx-state tx-idle :width 3)
 	  (tx-countdown 0 :width 6)
-	  (tx-bits-remaining :width 4)
-	  (tx-data :width 8))
+	  (tx-bits-remaining 0 :width 4)
+	  (tx-data 0 :width 8))
 
       ;; make status visible
       (setq received (= rx-state rx-received))
-      (setq rx-error (= rx-state rx-error))
+      (setq recv-error (= rx-state rx-error))
       (setq is-receiving (/= rx-state rx-idle))
       (setq is-transmitting (/= tx-state tx-idle))
 
@@ -116,7 +116,7 @@
 	    (when (0= rx)
 	      (setq rx-clk-divider clk-divide)
 	      (setq rx-countdown 2)
-	      (seta rx-state rx-check-start)))
+	      (setq rx-state rx-check-start)))
 
 	   (rx-check-start
 	    (when (0= rx-countdown)
@@ -138,7 +138,7 @@
 				 rx-check-stop))))
 
 	   (rx-check-stop
-	    (when (=0 rx-countdown)
+	    (when (0= rx-countdown)
 	      (setq rx-state (if rx
 				 rx-received
 				 rx-error))))
@@ -162,7 +162,7 @@
 	      (setq tx-data tx-byte)
 	      (setq tx-clk-divider clk-divide)
 	      (setq tx-countdown 4)
-	      (setq tx-out 0)
+	      (setq tx 0)
 	      (setq tx-bits-remaining 8)
 	      (setq tx-state tx-sending)))
 
@@ -171,14 +171,14 @@
 	      (if tx-bits-remaining
 		  (progn
 		    (decf tx-bits-remaining)
-		    (setq tx-out (bit tx-data 0))
+		    (setq tx (bit tx-data 0))
 		    (setq tx-data (>> tx-data 1))
 		    (setq tx-countdown 4)
 		    (setq tx-state tx-sending))
 
 		  (progn
-		    (setq tx-out 1)
-		    (setq txcountdown 0)
+		    (setq tx 1)
+		    (setq tx-countdown 0)
 		    (setq tx-state tx-idle)))))
 
 	   (tx-delay-restart
