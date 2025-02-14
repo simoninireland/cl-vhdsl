@@ -96,4 +96,5 @@
    #:bitfield-mismatch
    #:shape-mismatch
    #:state-machine-mismatch
+   #:width-mismatch
    ))

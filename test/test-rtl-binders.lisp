@@ -57,7 +57,7 @@
 
 (test test-let-too-narrow
   "Test we pick up too-wide initial values."
-  (signals (rtl:type-mismatch)
+  (signals (rtl:width-mismatch)
     (rtl:typecheck '(let ((a 100 :width 5))
 		     (+ 1 a))
 		   emptyenv)))

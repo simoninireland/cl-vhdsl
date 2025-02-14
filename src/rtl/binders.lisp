@@ -39,7 +39,7 @@
 (defun ensure-width-can-store (w ty env)
   "Ensure that W bits can accommodate the values of TY in ENV."
   (unless (width-can-store-p w ty env)
-    (error 'type-mismatch :expected ty :got w)))
+    (error 'width-mismatch :expected (bitwidth ty env) :got w)))
 
 
 (deftype representation ()
@@ -69,10 +69,9 @@ Signal VALUE-MISMATCH as an error if not."
       decl))
 
 
-;; the lambda list is the "wrong way round" from "normal" to allow
-;; this function to be folded across a list of declarations
 (defun typecheck-decl (env decl)
   "Typecheck DECL in ENV, returning ENV extended by DECL."
+  (declare (optimize debug))
   (if (listp decl)
       ;; full declaration
       (destructuring-bind (n v &key width type (as :register))

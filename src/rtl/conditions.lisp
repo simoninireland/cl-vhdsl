@@ -278,3 +278,23 @@ the data, and/or making sure there's the right amount of it."))
 
 This usualy happens when a state is targeted as the next state (using the
 NEXT macro) that isn;t defined in the surrounding state machine."))
+
+
+(define-condition width-mismatch (rtl-condition)
+  ((expected
+    :documentation "The width expected."
+    :initarg :expected
+    :reader expected-values)
+   (received
+    :documentation "The width received."
+    :initarg :got
+    :reader received-value))
+  (:report (lambda (c str)
+	     (format-condition-context (format nil "Expected a width of at least ¬a, got ¬a"
+					       (expected-values c)
+					       (received-value c))
+				       c str)))
+  (:documentation "Condition signalled when widths are mis-matched..
+
+This can be a hard error or just a warning, and is caused by trying to assign
+a value to a variable that is too narrow to accept it completely."))
