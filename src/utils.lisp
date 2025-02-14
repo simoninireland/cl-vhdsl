@@ -166,6 +166,34 @@ The name MAPN is supposed to bring to mind the behaviour of PROGN."
   (reduce fun l :initial-value init))
 
 
+(defun foldr-over-null (fun l init)
+  "Fold FUN right over L starting with INIT, ignoring nulls.
+
+This is like FOLDR except that a null in either the accumulated total
+or one of the values automatically returns the other value."
+  (flet ((fun-null (a v)
+	   (cond ((null a)
+		  v)
+		 ((null v)
+		  a)
+		 (t
+		  (funcall fun a v)))))
+
+    (foldr #'fun-null l init)))
+
+
+;; ---------- max and min in the presence of null ----------
+
+(defun max-null (&rest vs)
+  "Return the maximum of values VS, where NIL is less than any value."
+  (foldr-over-null #'max vs nil))
+
+
+(defun min-null (&rest vs)
+  "Return the minimum of values VS, where NIL is greater than any value."
+  (foldr-over-null #'min vs nil))
+
+
 ;; ---------- Sub-lists ----------
 
 (defun sublist (l start &optional end)
