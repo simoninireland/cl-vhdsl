@@ -81,7 +81,7 @@ constant or an input parameter."
 
 ;; ---------- setf (generalised places) ----------
 
-(defgeneric generalised-place-p (form ENV)
+(defgeneric generalised-place-p (form env)
   (:documentation "Test whether FORM is a generalised place in ENV.
 
 Generalised places can appear as the target of SETF forms. (In other
@@ -139,8 +139,6 @@ The default is for a form /not/ to be a generalised place.")
     tyval))
 
 
-;; Not yet synthesising generalised places
-
 (defmethod synthesise-sexp ((fun (eql 'setf)) args (context (eql :inblock)))
   (destructuring-bind (var val &key (sync nil))
       args
@@ -149,7 +147,7 @@ The default is for a form /not/ to be a generalised place.")
 	(as-literal " = ")
 	(as-literal " <= "))
     (synthesise val :inexpression)
-    (format *synthesis-stream* ";")))
+    (as-literal ";")))
 
 
 (defmethod synthesise-sexp ((fun (eql 'setf)) args (context (eql :inmodule)))

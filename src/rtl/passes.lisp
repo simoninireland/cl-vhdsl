@@ -265,7 +265,7 @@ well as PROGNs nested inside other PROGNs.")
 ;; ---------- Synthesis ----------
 
 ;; In an expression-oriented language like Lisp, any form can
-;; be used wihtin the body or arguments of any other form.
+;; be used within the body or arguments of any other form.
 ;; In statement-oriented languages like Verilog, however, there
 ;; are more restrictions on what can appear where and often
 ;; specific syntax to be used for the same concepts in different
