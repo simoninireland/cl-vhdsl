@@ -32,6 +32,9 @@
    #:remove-nulls
    #:foldl
    #:foldr
+   #:foldr-over-null
+   #:max-null
+   #:min-null
    #:mapn
    #:n-copies
    #:filter-by-predicates

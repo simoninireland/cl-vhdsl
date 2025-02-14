@@ -298,3 +298,19 @@
 				 :merge #'merge-by-adding)
 		   '((a 1) (b 7) (c 3) (d 4) (f 6))
 		   :test #'equal))))
+
+
+;; ---------- Folding over null values ----------
+
+(test test-max-null
+  "Test we can do a max in the presence of nulls."
+  (is (null (max-null '())))
+  (is (= (max-null 1 2 3) 3))
+  (is (= (max-null 1 2 nil 4 3) 4)))
+
+
+(test test-min-null
+  "Test we can do a min in the presence of nulls."
+  (is (null (min-null '())))
+  (is (= (min-null 1 2 3) 1))
+  (is (= (min-null 5 2 nil 4 1) 1)))
