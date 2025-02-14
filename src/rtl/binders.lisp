@@ -71,41 +71,41 @@ Signal VALUE-MISMATCH as an error if not."
 
 (defun typecheck-decl (env decl)
   "Typecheck DECL in ENV, returning ENV extended by DECL."
-  (declare (optimize debug))
-  (if (listp decl)
-      ;; full declaration
-      (destructuring-bind (n v &key width type (as :register))
-	  decl
-	(ensure-representation as)
+  (with-current-form decl
+      (if (listp decl)
+	  ;; full declaration
+	  (destructuring-bind (n v &key width type (as :register))
+	      decl
+	    (ensure-representation as)
 
-	(let ((ty (typecheck v env)))
-	  (if type
-	      ;; if a type is provided, make sure the initial
-	      ;; value fits in it and then use that as the type
-	      ;; for the binding
-	      (progn
-		(ensure-subtype ty type)
-		(setq ty type)))
+	    (let ((ty (typecheck v env)))
+	      (if type
+		  ;; if a type is provided, make sure the initial
+		  ;; value fits in it and then use that as the type
+		  ;; for the binding
+		  (progn
+		    (ensure-subtype ty type)
+		    (setq ty type)))
 
-	  (if width
-	      (let ((w (eval-in-static-environment width env)))
-		;; if a width is provided, make sure it's enough to
-		;; accommodate the type
-		(ensure-width-can-store w ty env)
+	      (if width
+		  (let ((w (eval-in-static-environment width env)))
+		    ;; if a width is provided, make sure it's enough to
+		    ;; accommodate the type
+		    (ensure-width-can-store w ty env)
 
-		;; widen the type to match the width
-		(setq ty (widen-fixed-width ty w))))
+		    ;; widen the type to match the width
+		    (setq ty (widen-fixed-width ty w))))
 
-	  (extend-environment n `((:initial-value ,v)
-				  (:type ,ty)
-				  ,(if width
-				       `(:width ,width))
-				  ;;(:width ,width)
-				  (:as ,as))
-			      env)))
+	      (extend-environment n `((:initial-value ,v)
+				      (:type ,ty)
+				      ,(if width
+					   `(:width ,width))
+				      ;;(:width ,width)
+				      (:as ,as))
+				  env)))
 
-      ;; otherwise we have a naked name, so apply the defaults
-      (typecheck-decl env `(,decl 0 :width ,*default-register-width* :as :register))))
+	  ;; otherwise we have a naked name, so apply the defaults
+	  (typecheck-decl env `(,decl 0 :width ,*default-register-width* :as :register)))))
 
 
 (defun typecheck-env (decls env)
