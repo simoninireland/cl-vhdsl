@@ -255,3 +255,46 @@
 
   (signals (error)
     (successive-pairs '(a))))
+
+
+;; ---------- Merging alists ----------
+
+(test test-merge-alists-empty
+  "Test we can merge alists where one or both are empty."
+  (is (set-equal (merge-alists '((a 1) (b 2) (c 3))
+			       nil)
+		 '((a 1) (b 2) (c 3))
+		 :test #'equal))
+  (is (set-equal (merge-alists nil
+			       '((a 1) (b 2) (c 3)))
+		 '((a 1) (b 2) (c 3))
+		 :test #'equal))
+  (is (null (merge-alists nil nil))))
+
+
+(test test-merge-alist-unique
+  "Test merging two alists without shared keys."
+  (is (set-equal (merge-alists '((a 1) (b 2) (c 3))
+			       '((d 4) (e 5) (f 6)))
+		 '((a 1) (b 2) (c 3) (d 4) (e 5) (f 6))
+		 :test #'equal)))
+
+
+(test test-merge-alists-default-override
+  "Test merging alists with the default overide behaviour."
+  (is (set-equal (merge-alists '((a 1) (b 2) (c 3))
+			       '((d 4) (b 5) (f 6)))
+		 '((a 1) (b 5) (c 3) (d 4) (f 6))
+		 :test #'equal)))
+
+
+(test test-merge-alists-override
+  "Test merging alists with a specific overide behaviour."
+  (flet ((merge-by-adding (v1 v2)
+	   (list (+ (car v1) (car v2)))))
+
+    (is (set-equal (merge-alists '((a 1) (b 2) (c 3))
+				 '((d 4) (b 5) (f 6))
+				 :merge #'merge-by-adding)
+		   '((a 1) (b 7) (c 3) (d 4) (f 6))
+		   :test #'equal))))

@@ -202,3 +202,44 @@ The list (a b c d) transforms to the list ((a b) (b c) (c d)."
 (defun string-times (str n)
   "Return a string consisting of N copies of STR."
   (apply #'concatenate (cons 'string (mapcar (lambda (i) str) (iota n)))))
+
+
+;; ---------- Alist merging ----------
+
+(defun alist-keys (al)
+  "Return the keys in alist AL."
+  (mapcar #'car al))
+
+
+(defun merge-alists (a1 a2 &key merge)
+  "Merge the values in A1 and A2 to form a new composite alist.
+
+Keys unique to either alist are added unchanged. Common keys have their
+CDRs passed to the MERGE function, which should return the new value.
+By default MERGE simply returns the value from A2, so common keys in
+get their value in A2."
+  (flet ((default-merge (v1 v2)
+	   "Return V2 as the merged value."
+	   (declare (ignore v1))
+	   v2))
+
+    (let* ((ks1 (alist-keys a1))
+	   (ks2 (alist-keys a2))
+	   (ks1only (remove-if #'(lambda (k)
+				   (member k ks2))
+			       ks1))
+	   (ks2only (remove-if #'(lambda (k)
+				   (member k ks1))
+			       ks2))
+	   (ks (remove-if #'(lambda (k)
+			      (null (member k ks2)))
+			  ks1)))
+
+      (append (mapcar (rcurry #'assoc a1) ks1only)
+	      (mapcar (rcurry #'assoc a2) ks2only)
+	      (mapcar #'(lambda (k)
+			  (cons k
+				(funcall (or merge #'default-merge)
+					 (cdr (assoc k a1))
+					 (cdr (assoc k a2)))))
+		      ks)))))

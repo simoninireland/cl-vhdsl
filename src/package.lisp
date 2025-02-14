@@ -41,6 +41,7 @@
    ;; data structure manipulations
    #:safe-cadr
    #:mapappend
+   #:merge-alists
 
    ;; string functions
    #:string-times
