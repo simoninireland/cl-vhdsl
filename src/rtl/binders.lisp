@@ -148,6 +148,39 @@ Signal VALUE-MISMATCH as an error if not."
 	 ,@rwbody))))
 
 
+(defun expand-macros-key (kv)
+  "Expand macros in the value part of a key-value pair KV."
+  (destructuring-bind (k v)
+      kv
+    (let ((nv (expand-macros v)))
+      (list k nv))))
+
+
+(defun expand-macros-decl (decl)
+  "Expand macros in the value of DECL."
+  (if (listp decl)
+      ;; full declaration, expand the value and keys
+      (destructuring-bind (n v &rest keys)
+	  decl
+	(let ((newkeys (foldr #'append
+			      (mapcar #'expand-macros-key
+				      (successive-pairs keys))
+			      '())))
+	  `(,n ,(expand-macros v) ,@newkeys)))
+
+      ;; naked name, leave it alone
+      decl))
+
+
+(defmethod expand-macros-sexp ((fun (eql 'let)) args)
+  (destructuring-bind (decls &rest body)
+      args
+    (let ((newdecls (mapcar #'expand-macros-decl decls))
+	  (newbody (expand-macros (cons 'progn body))))
+      `(let ,newdecls
+	 ,newbody))))
+
+
 ;; These two functions should only re-write non-constant initial values
 
 (defun float-let-blocks-decl (decl)
