@@ -204,20 +204,22 @@ values can't be defined in terms of other parameter values."
       ;; parameter with an initial value
       (destructuring-bind (n v)
 	  decl
-	(as-literal (format nil "parameter ~(~a~) = ~a"
-			    n
-			    v)))
+	(as-literal "parameter ")
+	(synthesise n :indeclaration)
+	(as-literal " = ")
+	(synthesise v :inexpression))
 
       ;; naked parameter
-      (format *synthesis-stream* "parameter ~(~a~)"
-	      decl)))
+      (progn
+	(as-literal "parameter ")
+	(synthesise n :indeclaration))))
 
 
 (defun synthesise-arg (decl)
   "Return the code for argument DECL."
   (destructuring-bind (n &key direction width (as :wire))
       decl
-    (as-literal (format nil "~a ~a~(~a~)"
+    (as-literal (format nil "~a ~a"
 			(case direction
 			  (:in    "input")
 			  (:out   "output")
@@ -225,8 +227,8 @@ values can't be defined in terms of other parameter values."
 			(if (and (integerp width)
 				 (= width 1))
 			    ""
-			    (format nil "[ ~(~a~) - 1 : 0 ] " width))
-			n))))
+			    (format nil "[ ~(~a~) - 1 : 0 ] " width))))
+    (synthesise n :indeclaration)))
 
 
 (defmethod synthesise-sexp ((fun (eql 'module)) args (context (eql :toplevel)))
