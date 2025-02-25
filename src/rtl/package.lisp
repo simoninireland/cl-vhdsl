@@ -57,6 +57,7 @@
    #:negedge
    #:bits
    #:with-bitfields
+   #:make-bitfields
    #:0=
    #:0/=
    #:2*
