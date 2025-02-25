@@ -206,9 +206,9 @@ or one of the values automatically returns the other value."
 
 
 (defun successive-pairs (l)
-  "Turn a list of elements into a list of successive pairs.
+  "Turn a list L into a list of successive pairs.
 
-The list (a b c d) transforms to the list ((a b) (b c) (c d)."
+The list (a b c d) transforms to the list ((a b) (b c) (c d))."
   (labels ((pairup (l)
 	     (if (null l)
 		 nil
@@ -223,6 +223,23 @@ The list (a b c d) transforms to the list ((a b) (b c) (c d)."
 	   (error "No pairs to pair up in ~a" l))
 	  (t
 	   (pairup l)))))
+
+
+(defun adjacent-pairs (l)
+  "Turn a list L into a list of adjacent pairs.
+
+The list (a b c d) transforms to the list ((a b) (c d))."
+  (labels ((pairup (l)
+	     (cond ((null l)
+		    nil)
+		   ((= (length l) 1)
+		    (error "Uneven list ~a" l))
+		   (t (cons (list (car l) (cadr l))
+			    (pairup (cddr l)))))))
+
+    (if (null l)
+	nil
+	(pairup l))))
 
 
 ;; ---------- String utilities ----------

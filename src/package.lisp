@@ -40,6 +40,7 @@
    #:filter-by-predicates
    #:sublist
    #:successive-pairs
+   #:adjacent-pairs
 
    ;; data structure manipulations
    #:safe-cadr

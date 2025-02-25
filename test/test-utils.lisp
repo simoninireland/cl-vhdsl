@@ -257,6 +257,21 @@
     (successive-pairs '(a))))
 
 
+(test test-adjacent-pairs
+  "Test we can form adjacent pairs."
+  (is (null (adjacent-pairs '())))
+  (is (equal (adjacent-pairs '(1 2))
+	     '((1 2))))
+  (is (equal (adjacent-pairs '(1 2 3 4))
+	     '((1 2) (3 4))))
+
+  (is (equal (adjacent-pairs '((1) 2 3 (4)))
+	     '(((1) 2) (3 (4)))))
+
+  (signals (error)
+    (adjacent-pairs '(1 2 3))))
+
+
 ;; ---------- Merging alists ----------
 
 (test test-merge-alists-empty
