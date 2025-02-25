@@ -148,12 +148,12 @@ Signal VALUE-MISMATCH as an error if not."
 	 ,@rwbody))))
 
 
-(defun expand-macros-key (kv)
-  "Expand macros in the value part of a key-value pair KV."
+(defun expand-macros-key (l kv)
+  "Expand macros in the value part of a key-value pair KV to build L."
   (destructuring-bind (k v)
       kv
     (let ((nv (expand-macros v)))
-      (list k nv))))
+      (append l (list k nv)))))
 
 
 (defun expand-macros-decl (decl)
@@ -162,9 +162,8 @@ Signal VALUE-MISMATCH as an error if not."
       ;; full declaration, expand the value and keys
       (destructuring-bind (n v &rest keys)
 	  decl
-	(let ((newkeys (foldr #'append
-			      (mapcar #'expand-macros-key
-				      (successive-pairs keys))
+	(let ((newkeys (foldr #'expand-macros-key
+			      (adjacent-pairs keys)
 			      '())))
 	  `(,n ,(expand-macros v) ,@newkeys)))
 
