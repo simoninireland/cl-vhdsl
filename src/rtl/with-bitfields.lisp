@@ -26,6 +26,13 @@
 ;; incorrect 0s and 1s. My current idea is don't execute the body,
 ;; but that'd be a silent failure on the hardware (although it could
 ;; be checked in simulation)
+;;
+;; A better idea is to refator and have IF-LET-BITFIELDS with a failure
+;; branch.
+;;
+;; Might also want to expand the pattern language to allow, for example,
+;; (a a a (b 3) c c) as an alternative to (a a a b b b c c). The count
+;; would need to be statically known.
 
 (defun extract-runs (pattern)
   "Extract consecutive runs of a symbol from PATTERN.

@@ -1,4 +1,4 @@
-;; Tests of CONDWITH-BITFIERLSmacro
+;; Tests of WITH-BITFIELDS macro
 ;;
 ;; Copyright (C) 2024--2025 Simon Dobson
 ;;
