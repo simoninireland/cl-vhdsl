@@ -162,9 +162,10 @@ plus the number of other arguments."
     `(ash ,(car vals) (- ,(cadr vals)))))
 
 
-;; ---------- Logical operators ----------
+;; ---------- Bitwise operators ----------
 
-(defmethod typecheck-sexp ((fun (eql 'logand)) args env)
+(defun typecheck-bitwise-operator (args env)
+  "Typecheck the arguments ARGS to a logical operator in ENV."
   (let ((ty (foldr (lambda (ty1 arg)
 		     (lub ty1 (typecheck arg env) env))
 		   args nil)))
@@ -173,5 +174,64 @@ plus the number of other arguments."
     ty))
 
 
+(defmethod typecheck-sexp ((fun (eql 'logand)) args env)
+  (typecheck-bitwise-operator args env))
+
+
 (defmethod synthesise-sexp ((fun (eql 'logand)) args (context (eql :inexpression)))
   (as-infix '& args))
+
+
+(defmethod typecheck-sexp ((fun (eql 'logior)) args env)
+  (typecheck-bitwise-operator args env))
+
+
+(defmethod synthesise-sexp ((fun (eql 'logior)) args (context (eql :inexpression)))
+  (as-infix '|\|| args))
+
+
+(defmethod typecheck-sexp ((fun (eql 'logxor)) args env)
+  (typecheck-bitwise-operator args env))
+
+
+(defmethod synthesise-sexp ((fun (eql 'logxor)) args (context (eql :inexpression)))
+  (as-infix '^ args))
+
+
+;; ---------- Logical ----------
+
+(defun typecheck-logical-operator (args env)
+  "Typecheck the arguments ARGS to a logical operator in ENV.
+
+All arguments must be booleans."
+  (mapc (rcurry #'ensure-boolean env) args)
+  '(fixed-width-unsigned 1))
+
+
+(defmethod typecheck-sexp ((fun (eql 'and)) args env)
+  (typecheck-logical-operator args env))
+
+
+(defmethod synthesise-sexp ((fun (eql 'and)) args (context (eql :inexpression)))
+  (as-infix '&& args))
+
+
+(defmethod typecheck-sexp ((fun (eql 'or)) args env)
+  (typecheck-logical-operator args env))
+
+
+(defmethod synthesise-sexp ((fun (eql 'or)) args (context (eql :inexpression)))
+  (as-infix '|\|\|| args))
+
+
+(defmethod typecheck-sexp ((fun (eql 'not)) args env)
+  (ensure-number-of-arguments 'not args 1)
+  (ensure-boolean (car args) env)
+  '(fixed-width-unsigned 1))
+
+
+(defmethod synthesise-sexp ((fun (eql 'not)) args (context (eql :inexpression)))
+  (as-literal "(")
+  (as-literal "(!")
+  (synthesise (car args) :inexpression)
+  (as-literal ")"))
