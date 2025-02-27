@@ -142,51 +142,51 @@
 			(logand aluIn1 aluIn2)))))
 
 	    ;; the state machine
-	    (let ((writeBackData (if (or (isJAL isJALR))
-				     (+ pc 4)
-				     aluOut))
-		  (writeBackEn (and (= state 2)
-				    (or (isALUReg
-					 isALUImm
-					 isJALisJALR))))
-		  (nextpc (cond (isJAL
-				 (+ pc Jimm))
-				(isJALR
-				 (+ rs1 Iimm))
-				(t
-				 (+ PC 4))))
-
-		  (FETCH-INSTR 0 :as :constant)
+	    (let ((FETCH-INSTR 0 :as :constant)
 		  (FETCH-REGS  1 :as :constant)
 		  (EXECUTE     2 :as :constant)
 		  (state       0 :width 3))
+	      (let ((writeBackData (if (or isJAL isJALR)
+				       (+ pc 4)
+				       aluOut))
+		    (writeBackEn (and (= state 2)
+				      (or isALUReg
+					  isALUImm
+					  isJAL
+					  isJALR)))
+		    (nextpc (cond (isJAL
+				   (+ pc Jimm))
+				  (isJALR
+				   (+ rs1 Iimm))
+				  (t
+				   (+ PC 4)))))
 
-	      (@ (posedge clk)
-		 (if reset
-		     (progn
-		       (setq pc 0)
-		       (setq state FETCH-INSTR))
+		(@ (posedge clk)
+		   (if reset
+		       (progn
+			 (setq pc 0)
+			 (setq state FETCH-INSTR))
 
-		     (if (and (writeBackEn
-			       (/= rtId 0)))
-			 (progn
-			   (setf (aref RegisterBank rdId) writeBackData)
+		       (if (and writeBackEn
+				(/= rdId 0))
+			   (progn
+			     (setf (aref RegisterBank rdId) writeBackData)
 
-			   ;; update the LEDS if writing to R1
-			   (if (= rdId 1)
-			       (setq leds writeBackData)))))
+			     ;; update the LEDS if writing to R1
+			     (if (= rdId 1)
+				 (setq leds writeBackData)))))
 
-		 (case state
-		   (FETCH-INSTR
-		    (setq instr (aref mem (bits pc 32 :end 2)))
-		    (setq state FETCH-REGS))
+		   (case state
+		     (FETCH-INSTR
+		      (setq instr (aref mem (bits pc 32 :end 2)))
+		      (setq state FETCH-REGS))
 
-		   (FETCH-REGS
-		    (setq rs1 (aref RegisterBank rs1Id))
-		    (setq rs2 (aref RegisterBank rs2Id))
-		    (setq state EXECUTE))
+		     (FETCH-REGS
+		      (setq rs1 (aref RegisterBank rs1Id))
+		      (setq rs2 (aref RegisterBank rs2Id))
+		      (setq state EXECUTE))
 
-		   (EXECUTE
-		    (if (not isSystem)
-			(setq pc nextpc))
-		    (setq state FETCH-INSTR)))))))))))
+		     (EXECUTE
+		      (if (not isSystem)
+			  (setq pc nextpc))
+		      (setq state FETCH-INSTR))))))))))))
