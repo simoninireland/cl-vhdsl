@@ -58,6 +58,7 @@
    #:bits
    #:with-bitfields
    #:make-bitfields
+   #:repeat-bits
    #:0=
    #:0/=
    #:2*

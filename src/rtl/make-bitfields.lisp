@@ -23,17 +23,21 @@
 
 ;; ---------- make-bitfields ----------
 
+(defun typecheck-pattern (pat env)
+  "Typecheck bitfield pattern PAT in ENV."
+  (let ((typ (typecheck pat env)))
+    (ensure-fixed-width typ)
+    typ))
+
+
 (defmethod typecheck-sexp ((fun (eql 'make-bitfields)) args env)
   (destructuring-bind (&rest pats)
       args
-    (let ((tys (mapcar (rcurry #'typecheck env) pats)))
-      (mapc #'ensure-fixed-width tys)
-
+    (let ((tys (mapcar (rcurry #'typecheck-pattern env) pats)))
       ;; work out the bit width of the result
       (let ((w (foldr #'+
 		      (mapcar (rcurry #'bitwidth env) tys)
 		      0)))
-
 	`(fixed-width-unsigned ,w)))))
 
 
@@ -41,3 +45,29 @@
   (as-list args :inexpression
 	   :before "{"
 	   :after "}"))
+
+
+;; ---------- repeat-bits ----------
+
+(defmethod typecheck-sexp ((fun (eql 'repeat-bits)) args env)
+  (destructuring-bind (reps bs)
+      args
+    (let ((tyr (typecheck reps env))
+	  (tyb (typecheck bs env)))
+      (ensure-fixed-width tyr)
+      (ensure-fixed-width tyb)
+
+      ;; evaluate the repetitions, whcih must be statically determined
+      (let ((w (bitwidth tyb env))
+	    (r (ensure-static reps env)))
+	`(fixed-width-unsigned ,(* w r))))))
+
+
+(defmethod synthesise-sexp ((fun (eql 'repeat-bits)) args (context (eql :inexpression)))
+  (destructuring-bind (reps bs)
+      args
+    (as-literal "{")
+    (synthesise reps :inexpression)
+    (as-literal "{")
+    (synthesise bs :inexpression)
+    (as-literal "}}")))
