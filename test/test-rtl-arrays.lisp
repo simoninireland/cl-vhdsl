@@ -29,13 +29,13 @@
   (is (subtypep (rtl:typecheck '(make-array '(16)
 				 :element-type (rtl:fixed-width-unsigned 8))
 			       emptyenv)
-		'(array (rtl:fixed-width-unsigned 8) 16)))
+		'(array (rtl:fixed-width-unsigned 8) (16))))
 
   ;; version without the Lisp-compatible quote on the shape
   (is (subtypep (rtl:typecheck '(make-array (16)
 				 :element-type (rtl:fixed-width-unsigned 8))
 			       emptyenv)
-		'(array (rtl:fixed-width-unsigned 8) 16)))
+		'(array (rtl:fixed-width-unsigned 8) (16))))
 
   ;; at the moment we only allow one dimension
   (signals (rtl:type-mismatch)

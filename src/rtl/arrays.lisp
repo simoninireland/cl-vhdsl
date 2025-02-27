@@ -105,7 +105,7 @@ RTLisp, but don't /require/ it."
        (setq ,place (cadr ,place))))
 
 
-; shape needs to be made up of constants (or parameters)
+; shape needs to be statically determinable
 
 (defmethod typecheck-sexp ((fun (eql 'make-array)) args env)
   (destructuring-bind (shape &key
@@ -161,7 +161,7 @@ RTLisp, but don't /require/ it."
 		   (dolist (c initial-contents)
 		     (ensure-subtype (typecheck c env) element-type))))))
 
-    `(array ,element-type ,@shape)))
+    `(array ,element-type ,shape)))
 
 
 ;; Only works for one-dimensional arrays at the moment
