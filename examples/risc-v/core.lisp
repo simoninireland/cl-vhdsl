@@ -113,7 +113,7 @@
 		      (shamt (if isALUreg
 				 (bits rs2 4)
 				 (bits instr 24 :end 20))
-			     :width 4))
+			     :width 5))
 
 	    (@ (*)
 	       (case funct3
