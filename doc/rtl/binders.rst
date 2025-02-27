@@ -35,3 +35,9 @@ Keyword arguments
 ``:as`` *representation*
   Specifies how the variable is represented. Options include
   ``:register`` for a register, and ``:wire`` for wires.
+
+
+.. note::
+
+   RTLisp also has :ref:`rtl-rep-spec-binders` to save entering
+   representations for all variables.

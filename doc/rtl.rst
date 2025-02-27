@@ -41,6 +41,7 @@ on the types passed to operators.
 .. toctree::
 
    rtl/binders
+   rtl/rep-spec-binders
    rtl/assignment
    rtl/control-flow
    rtl/operators
