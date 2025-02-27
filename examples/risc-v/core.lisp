@@ -1,4 +1,4 @@
-;; RISC-V core
+;; 32-bit integer-onlt RISC-V core
 ;;
 ;; Copyright (C) 2024--2025 Simon Dobson
 ;;
@@ -27,8 +27,8 @@
 		(rxd      :as :wire :width 1 :direction :in)
 		(txd      :as :wire :width 1 :direction :out))
 
-  (let ((clk 0   :as :wire)
-	(reset 0 :as :wire)
+  (let ((clk 0   :as :wire :width 1)
+	(reset 0 :as :wire :width 1)
 
 	;; plug in to the output to visualise
 	(leds 0 :width 5 :as :register)
@@ -50,45 +50,51 @@
     ;; instruction decoding
     (with-bitfields (i i i i i i i)
 	instr
-      (let-wires ((isALUreg (= i #2r0110011))
-		  (isALUimm (= i #2r0010011))
-		  (isBranch (= i #2r1100011))
-		  (isJALR   (= i #2r1100111))
-		  (isJAL    (= i #2r1101111))
-		  (isAIUPC  (= i #2r0010111))
-		  (isLUT    (= i #2r0110111))
-		  (isLoad   (= i #2r0000011))
-		  (isStore  (= i #2r0100011))
-		  (isSystem (= i #2r1110011))
+      (let-wires ((isALUreg (= i #2r0110011) :width 1)
+		  (isALUimm (= i #2r0010011) :width 1)
+		  (isBranch (= i #2r1100011) :width 1)
+		  (isJALR   (= i #2r1100111) :width 1)
+		  (isJAL    (= i #2r1101111) :width 1)
+		  (isAIUPC  (= i #2r0010111) :width 1)
+		  (isLUT    (= i #2r0110111) :width 1)
+		  (isLoad   (= i #2r0000011) :width 1)
+		  (isStore  (= i #2r0100011) :width 1)
+		  (isSystem (= i #2r1110011) :width 1)
 
 		  ;; intermediate formats
 		  (Uimm (make-bitfields (bit instr 31)
 					(bits instr 30 :end 12)
-					(repeat-bits 12 0)))
+					(repeat-bits 12 0))
+			:width 32)
 		  (Iimm (make-bitfields (repeat-bits 21 (bit instr 31))
-					(bits instr 30 :end 20)))
+					(bits instr 30 :end 20))
+			:width 32)
 		  (Simm (make-bitfields (repeat-bits 21 (bit instr 31))
 					(bits instr 30 :end 25)
-					(bits instr 11 :end 7)))
+					(bits instr 11 :end 7))
+			:width 32)
 		  (Bimm (make-bitfields (repeat-bits 20 (bit instr 31))
 					(bit instr 7)
 					(bits instr 30 :end 25)
 					(bits instr 11 :end 8)
-					0))
+					0)
+
+			:width 32)
 		  (Jimm (make-bitfields (repeat-bits 12 (bit instr 31))
 					(bits instr 19 :end 12)
 					(bit instr 20)
 					(bits instr 30 :end 21)
-					0))
+					0)
+			:width 32)
 
 		  ;; source and destination registers
-		  (rs1Id (bits instr 19 :end 15))
-		  (rs2Id (bits instr 24 :end 20))
-		  (rdId  (bits instr 11 :end 7))
+		  (rs1Id (bits instr 19 :end 15) :width 5)
+		  (rs2Id (bits instr 24 :end 20) :width 5)
+		  (rdId  (bits instr 11 :end 7)  :width 5)
 
 		  ;; function codes
-		  (funct3 (bits instr 14 :end 12))
-		  (funct7 (bits instr 31 :end 25)))
+		  (funct3 (bits instr 14 :end 12) :width 3)
+		  (funct7 (bits instr 31 :end 25) :width 7))
 
 	;; register bank
 	(let ((RegisterBank  (make-array '(32) :element-type (fixed-width-integer 32)))
@@ -98,14 +104,16 @@
 	      (writeBackEn   0 :width 1  :as :wire))
 
 	  ;; the ALU
-	  (let-wires ((aluIn1 rs1)
+	  (let-wires ((aluIn1 rs1 :width 32)
 		      (aluIn2 (if isALUreg
 				  rs2
-				  Iimm))
+				  Iimm)
+			      :width 32)
 		      (aluOut 0 :width 32)
 		      (shamt (if isALUreg
 				 (bits rs2 4)
-				 (bits instr 24 :end 20))))
+				 (bits instr 24 :end 20))
+			     :width 4))
 
 	    (@ (*)
 	       (case funct3
@@ -144,22 +152,21 @@
 		  (EXECUTE     2 :as :constant)
 		  (state       0 :width 3))
 
-	      (let ((writeBackData (if (or isJAL isJALR)
-				       (+ pc 4)
-				       aluOut)
-				   :as :wire)
-		    (writeBackEn (and (= state 2)
-				      (or isALUReg
-					  isALUImm
-					  isJAL
-					  isJALR))
-				 :as :wire)
-		    (nextpc (cond (isJAL
+	      (let ((nextpc (cond (isJAL
 				   (+ pc Jimm))
 				  (isJALR
 				   (+ rs1 Iimm))
 				  (t
 				   (+ PC 4)))))
+
+		(setq writeBackData (if (or isJAL isJALR)
+					(+ pc 4)
+					aluOut))
+		(setq writeBackEn (and (= state 2)
+				       (or isALUReg
+					   isALUImm
+					   isJAL
+					   isJALR)))
 
 		(@ (posedge clk)
 		   (if reset
