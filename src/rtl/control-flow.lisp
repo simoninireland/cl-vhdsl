@@ -54,6 +54,14 @@
 
 ;; ---------- Triggered blocks ----------
 
+(defun combiatorial-trigger-p (form)
+  "Test whether FORM is a combinatorial trigger.
+
+Combinatorial triggers are sensitive to all the wires in the
+block, and are represented by the symbol *."
+  (eql form '*))
+
+
 (defmethod typecheck-sexp ((fun (eql '@)) args env)
   (destructuring-bind (sensitivities &rest body)
       args
@@ -66,13 +74,19 @@
     ;; sure we identify something with wires and not just a value.
     ;; That's not quite "typechecking" in the sense we use it.
     (if (listp sensitivities)
-	(if (edge-trigger-p sensitivities)
-	    ;; a single instance of a trigger operator
-	    (typecheck sensitivities env)
+	(cond ((and (= (length sensitivities) 1)
+		    (combiatorial-trigger-p (car sensitivities)))
+	       ;; sensitive to everything
+	       nil)
 
-	    ;; a list of sensitivities
-	    (dolist (s sensitivities)
-	      (typecheck s env)))
+	      ((edge-trigger-p sensitivities)
+	       ;; a single instance of a trigger operator
+	       (typecheck sensitivities env))
+
+	      (t
+	       ;; a list of sensitivities
+	       (dolist (s sensitivities)
+		 (typecheck s env))))
 
 	;; an atom
 	(typecheck sensitivities env))
