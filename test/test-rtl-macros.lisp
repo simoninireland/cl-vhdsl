@@ -75,12 +75,14 @@
   (is (equal (rtl::expand-macros '(let ((a 1))
 				   (incf a)))
 	     '(let ((a 1))
-	       (setf a (+ a 1)))))
+	       (progn
+		 (setf a (+ a 1))))))
 
   (is (equal (rtl::expand-macros '(let ((a 1))
 				   (incf (bit a 5))))
 	     '(let ((a 1))
-	       (setf (bit a 5) (+ (bit a 5) 1))))))
+	       (progn
+		 (setf (bit a 5) (+ (bit a 5) 1)))))))
 
 
 (test test-expand-decf
@@ -88,12 +90,14 @@
   (is (equal (rtl::expand-macros '(let ((a 1))
 				   (decf a)))
 	     '(let ((a 1))
-	       (setf a (+ a 1)))))
+	       (progn
+		 (setf a (+ a 1))))))
 
   (is (equal (rtl::expand-macros '(let ((a 1))
 				   (decf (bit a 5))))
 	     '(let ((a 1))
-	       (setf (bit a 5) (+ (bit a 5) 1))))))
+	       (progn
+		 (setf (bit a 5) (+ (bit a 5) 1)))))))
 
 
 (test test-expand-maths
