@@ -199,9 +199,10 @@ Otheriwse it is read as a literal list."
     (unquote shape)
     (unquote initial-contents)
 
-    (as-literal "[ ")
+    ;; 1d arrays only for now
+    (as-literal "[ 0 : ")
     (synthesise (car shape) :inexpression)
-    (as-literal " - 1 : 0 ]")
+    (as-literal " - 1 ]")
 
     (when initial-contents
       (as-literal " = " :newline t)
