@@ -290,7 +290,7 @@ NEXT macro) that isn;t defined in the surrounding state machine."))
     :initarg :got
     :reader received-value))
   (:report (lambda (c str)
-	     (format-condition-context (format nil "Expected a width of at least ¬a, got ¬a"
+	     (format-condition-context (format nil "Expected a width of at least ~a, got ~a"
 					       (expected-values c)
 					       (received-value c))
 				       c str)))
