@@ -50,110 +50,110 @@
     ;; instruction decoding
     (with-bitfields (i i i i i i i)
 	instr
-      (let ((isALUreg (= i #2r0110011))
-	    (isALUimm (= i #2r0010011))
-	    (isBranch (= i #2r1100011))
-	    (isJALR   (= i #2r1100111))
-	    (isJAL    (= i #2r1101111))
-	    (isAIUPC  (= i #2r0010111))
-	    (isLUT    (= i #2r0110111))
-	    (isLoad   (= i #2r0000011))
-	    (isStore  (= i #2r0100011))
-	    (isSystem (= i #2r1110011))
+      (let-wires ((isALUreg (= i #2r0110011))
+		  (isALUimm (= i #2r0010011))
+		  (isBranch (= i #2r1100011))
+		  (isJALR   (= i #2r1100111))
+		  (isJAL    (= i #2r1101111))
+		  (isAIUPC  (= i #2r0010111))
+		  (isLUT    (= i #2r0110111))
+		  (isLoad   (= i #2r0000011))
+		  (isStore  (= i #2r0100011))
+		  (isSystem (= i #2r1110011))
 
-	    ;; intermediate formats
-	    (Uimm (make-bitfields (bit instr 31)
-				  (bits instr 30 :end 12)
-				  (repeat-bits 12 0)))
-	    (Iimm (make-bitfields (repeat-bits 21 (bit instr 31))
-				  (bits instr 30 :end 20)))
-	    (Simm (make-bitfields (repeat-bits 21 (bit instr 31))
-				  (bits instr 30 :end 25)
-				  (bits instr 11 :end 7)))
-	    (Bimm (make-bitfields (repeat-bits 20 (bit instr 31))
-				  (bit instr 7)
-				  (bits instr 30 :end 25)
-				  (bits instr 11 :end 8)
-				  0))
-	    (Jimm (make-bitfields (repeat-bits 12 (bit instr 31))
-				  (bits instr 19 :end 12)
-				  (bit instr 20)
-				  (bits instr 30 :end 21)
-				  0))
+		  ;; intermediate formats
+		  (Uimm (make-bitfields (bit instr 31)
+					(bits instr 30 :end 12)
+					(repeat-bits 12 0)))
+		  (Iimm (make-bitfields (repeat-bits 21 (bit instr 31))
+					(bits instr 30 :end 20)))
+		  (Simm (make-bitfields (repeat-bits 21 (bit instr 31))
+					(bits instr 30 :end 25)
+					(bits instr 11 :end 7)))
+		  (Bimm (make-bitfields (repeat-bits 20 (bit instr 31))
+					(bit instr 7)
+					(bits instr 30 :end 25)
+					(bits instr 11 :end 8)
+					0))
+		  (Jimm (make-bitfields (repeat-bits 12 (bit instr 31))
+					(bits instr 19 :end 12)
+					(bit instr 20)
+					(bits instr 30 :end 21)
+					0))
 
-	    ;; source and destination registers
-	    (rs1Id (bits instr 19 :end 15))
-	    (rs2Id (bits instr 24 :end 20))
-	    (rdId  (bits instr 11 :end 7))
+		  ;; source and destination registers
+		  (rs1Id (bits instr 19 :end 15))
+		  (rs2Id (bits instr 24 :end 20))
+		  (rdId  (bits instr 11 :end 7))
 
-	    ;; function codes
-	    (funct3 (bits instr 14 :end 12))
-	    (funct7 (bits instr 31 :end 25)))
+		  ;; function codes
+		  (funct3 (bits instr 14 :end 12))
+		  (funct7 (bits instr 31 :end 25)))
 
 	;; register bank
 	(let ((RegisterBank  (make-array '(32) :element-type (fixed-width-integer 32)))
 	      (rs1           0 :width 32)
 	      (rs2           0 :width 32)
 	      (writeBackData 0 :width 32 :as :wire)
-	      (writeBackEn   0 :width 1 :as :wire))
+	      (writeBackEn   0 :width 1  :as :wire))
 
 	  ;; the ALU
-	  (let ((aluIn1 rs1 :as :wire)
-		(aluIn2 (if isALUreg
-			    rs2
-			    Iimm)
-			:as :wire)
-		(aluOut 0 :width 32)
-		(shamt (if isALUreg
-			   (bits rs2 4)
-			   (bits instr 24 :end 20))
-		       :as :wire))
+	  (let-wires ((aluIn1 rs1)
+		      (aluIn2 (if isALUreg
+				  rs2
+				  Iimm))
+		      (aluOut 0 :width 32)
+		      (shamt (if isALUreg
+				 (bits rs2 4)
+				 (bits instr 24 :end 20))))
 
 	    (@ (*)
-	       (setq aluOut
-		     (case funct3
-		       (#2r000
-			(if (logand (bit funct7 5)
-				    (bit instr 5))
-			    (- aluIn1 aluIn2)
-			    (+ aluIn1 aluIn2)))
+	       (case funct3
+		 (#2r000
+		  (if (logand (bit funct7 5)
+			      (bit instr 5))
+		      (setq aluOut (- aluIn1 aluIn2))
+		      (setq aluOut (+ aluIn1 aluIn2))))
 
-		       (#2r001
-			(<< aluIn1 shamt))
+		 (#2r001
+		  (setq aluOut (<< aluIn1 shamt)))
 
-		       (#2r010
-			(< aluIn1 aluIn2)) ;; signed
+		 (#2r010
+		  (setq aluOut (< aluIn1 aluIn2))) ;; signed
 
-		       (#2r011
-			(< aluIn1 aluIn2)) ;; unsigned
+		 (#2r011
+		  (setq aluOut (< aluIn1 aluIn2))) ;; unsigned
 
-		       (#2r100
-			(logxor aluIn1 aluIn2))
+		 (#2r100
+		  (setq aluOut (logxor aluIn1 aluIn2)))
 
-		       (#2r101
-			(if (bit funct7 5)
-			    (>> aluIn1 shamt)    ;; sign-extended
-			    (>> aluIn1 shamt)))  ;; unsigned
+		 (#2r101
+		  (if (bit funct7 5)
+		      (setq aluOut (>> aluIn1 shamt))    ;; sign-extended
+		      (setq aluOut (>> aluIn1 shamt))))  ;; unsigned
 
-		       (#2r110
-			(logior aluIn1 aluIn2))
+		 (#2r110
+		  (setq aluOut (logior aluIn1 aluIn2)))
 
-		       (#2r111
-			(logand aluIn1 aluIn2)))))
+		 (#2r111
+		  (setq aluOut (logand aluIn1 aluIn2)))))
 
 	    ;; the state machine
 	    (let ((FETCH-INSTR 0 :as :constant)
 		  (FETCH-REGS  1 :as :constant)
 		  (EXECUTE     2 :as :constant)
 		  (state       0 :width 3))
+
 	      (let ((writeBackData (if (or isJAL isJALR)
 				       (+ pc 4)
-				       aluOut))
+				       aluOut)
+				   :as :wire)
 		    (writeBackEn (and (= state 2)
 				      (or isALUReg
 					  isALUImm
 					  isJAL
-					  isJALR)))
+					  isJALR))
+				 :as :wire)
 		    (nextpc (cond (isJAL
 				   (+ pc Jimm))
 				  (isJALR
