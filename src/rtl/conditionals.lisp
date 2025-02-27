@@ -139,3 +139,34 @@ The type is the lub of the clause types."
 
 (defmethod synthesise-sexp ((fun (eql 'case)) args (context (eql :inmodule)))
   (synthesise-sexp fun args :inblock))
+
+
+(defun synthesise-nested-if (condition clauses)
+  "Synthesise a nested IF cvorresponding to CLAUSES applied to testing CONDITION."
+  (let* ((clause (car clauses))
+	 (val (car clause))
+	 (body (cdr clause)))
+
+    ;; can only operate with single-clause bodies
+    (when (> (length body) 1)
+      (error 'not-synthesisable :hint "CASE statements in assignments must have simple (one-form) bodies"))
+
+    (if (> (length clauses) 1)
+	`(if (= ,condition ,val)
+	     ,(car body)
+
+	     ,(synthesise-nested-if condition (cdr clauses)))
+
+	;; if we're the last clause, last alternative is 0
+	`(if (= ,condition ,val)
+	     ,(car body)
+
+	     0))))
+
+
+(defmethod synthesise-sexp ((fun (eql 'case)) args (context (eql :inexpression)))
+  (destructuring-bind (condition &rest clauses)
+      args
+    ;; synthsise a nested if expression and synthesisise that
+    ;; (almost like we're a macro, but just for this particular context)
+    (synthesise (synthesise-nested-if condition clauses) :inexpression)))

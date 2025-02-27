@@ -117,3 +117,30 @@
 			  (t
 			   (setf b 0))))
 		      :inblock)))
+
+
+(test test-synthesise-case-assignment
+  "Test we can assign to the results of a CASE block."
+  (is (rtl:synthesise '(let ((a 1)
+			     (b 2))
+			(setq a
+			 (case b
+			   (1 12)
+			   (2 (+ a 1))
+			   (t 0))))
+		      :inblock)))
+
+
+(test test-synthesise-case-complex-bodies
+  "Test we can't synthesise CASE assignments where the bodies are too complicated."
+  (signals (rtl:not-synthesisable)
+    (rtl:synthesise '(let ((a 1)
+			     (b 2))
+		      (setq a
+		       (case b
+			 (1 12)
+			 (2
+			  (setq b 12)
+			  (+ a 1))
+			 (t 0))))
+		    :inblock))
