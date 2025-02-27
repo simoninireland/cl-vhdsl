@@ -182,49 +182,62 @@ Signal VALUE-MISMATCH as an error if not."
 
 ;; These two functions should only re-write non-constant initial values
 
-(defun float-let-blocks-decl (decl)
-  "Generate the declaration part for DECL."
-  (destructuring-bind (n v &rest keys)
-      decl
-    `(,n ,(if (or (array-value-p v)
-		  (module-value-p v))
-	      ;; array initialisers are retained
-	      v
+;; (defun float-let-blocks-decl (decl)
+;;   "Generate the declaration part for DECL."
+;;   (destructuring-bind (n v &rest keys)
+;;       decl
+;;     `(,n ,(if (or (array-value-p v)
+;;		  (module-value-p v))
+;;	      ;; array initialisers are retained
+;;	      v
 
-	      ;; non-arrays, check for constant
-	      (let ((sv (eval-if-static v (empty-environment)))) ; this is too strong
-		(or sv 0)))
-	 ,@keys)))
+;;	      ;; non-arrays, check for constant
+;;	      (let ((sv (eval-if-static v (empty-environment)))) ; this is too strong
+;;		(or sv 0)))
+;;	 ,@keys)))
 
 
-(defun float-let-blocks-init (decl)
-  "Generate a SETF to set DECL an appropriate initial value.
+;; (defun float-let-blocks-init (decl)
+;;   "Generate a SETF to set DECL an appropriate initial value.
 
-This is only required if DECL's value is not an array, not a constant,
-and where there is a sensible initialiser."
-  (destructuring-bind (n v &key &allow-other-keys)
-      decl
+;; This is only required if DECL's value is not an array, not a constant,
+;; and where there is a sensible initialiser."
+;;   (destructuring-bind (n v &key &allow-other-keys)
+;;       decl
 
-    (if (and (not (or (array-value-p v)
-		      (module-value-p v)))
-	     (null (eval-if-static v (empty-environment))))
-	`(setq ,n ,v))))
+;;     (if (and (not (or (array-value-p v)
+;;		      (module-value-p v)))
+;;	     (null (eval-if-static v (empty-environment))))
+;;	`(setq ,n ,v))))
 
+
+;; (defmethod float-let-blocks-sexp ((fun (eql 'let)) args)
+;;   (destructuring-bind (decls &rest body)
+;;       args
+
+;;     ;; turn initial values into assignments
+;;     (let ((basedecls (remove-nulls (mapcar #'float-let-blocks-decl decls)))
+;;	  (assignments (remove-nulls (mapcar #'float-let-blocks-init decls))))
+;;       ;; extract the body and decls of the body
+;;       (destructuring-bind (newbody newdecls)
+;;	  (float-let-blocks `(progn ,@assignments ,@body))
+
+;;	;; return the re-written body and decls
+;;	(list newbody
+;;	      (append basedecls newdecls))))))
+
+;; Simplified floating, keeping the initial values -- which I think is fine
 
 (defmethod float-let-blocks-sexp ((fun (eql 'let)) args)
   (destructuring-bind (decls &rest body)
       args
 
-    ;; turn initial values into assignments
-    (let ((basedecls (remove-nulls (mapcar #'float-let-blocks-decl decls)))
-	  (assignments (remove-nulls (mapcar #'float-let-blocks-init decls))))
-      ;; extract the body and decls of the body
-      (destructuring-bind (newbody newdecls)
-	  (float-let-blocks `(progn ,@assignments ,@body))
+    (destructuring-bind (newbody newdecls)
+	(float-let-blocks `(progn ,@body))
 
-	;; return the re-written body and decls
-	(list newbody
-	      (append basedecls newdecls))))))
+      ;; return the re-written body and decls
+      (list newbody
+	    (append decls newdecls)))))
 
 
 (defun simplify-implied-progn (body)
@@ -305,9 +318,14 @@ WIDTH defaulting to the system's global width."
       (synthesise width :inexpression)
       (as-literal " - 1 : 0 ] "))
     (synthesise n :indeclaration)
-    (when (array-value-p v)
-      ;; synthesise the array constructor
-      (synthesise v :indeclaration))
+    (if (array-value-p v)
+	;; synthesise the array constructor
+	(synthesise v :indeclaration)
+
+	;; synthesise the assignment to the initial value
+	(progn
+	  (as-literal " = ")
+	  (synthesise v :inexpression)))
     (as-literal";")))
 
 
