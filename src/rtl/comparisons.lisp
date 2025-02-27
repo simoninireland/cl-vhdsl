@@ -28,7 +28,7 @@ in many applications."
 
 
 
-;; ---------- Comparisons ----------
+;; ---------- Equality ----------
 
 (defmethod typecheck-sexp ((fun (eql '=)) args env)
   (destructuring-bind (l r)
@@ -64,5 +64,26 @@ in many applications."
     (as-literal "(")
     (synthesise l :inexpression)
     (as-literal " != ")
+    (synthesise r :inexpression)
+    (as-literal ")")))
+
+
+;; ---------- Maths ----------
+
+(defmethod typecheck-sexp ((fun (eql '<)) args env)
+  (destructuring-bind (l r)
+      args
+    (ensure-fixed-width (typecheck l env))
+    (ensure-fixed-width (typecheck r env))
+
+    '(fixed-width-unsigned 1)))
+
+
+(defmethod synthesise-sexp ((fun (eql '<)) args (context (eql :inexpression)))
+  (destructuring-bind (l r)
+      args
+    (as-literal "(")
+    (synthesise l :inexpression)
+    (as-literal " < ")
     (synthesise r :inexpression)
     (as-literal ")")))
