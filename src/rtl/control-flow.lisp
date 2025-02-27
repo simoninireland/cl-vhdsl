@@ -54,12 +54,14 @@
 
 ;; ---------- Triggered blocks ----------
 
-(defun combiatorial-trigger-p (form)
+(defun combinatorial-trigger-p (form)
   "Test whether FORM is a combinatorial trigger.
 
 Combinatorial triggers are sensitive to all the wires in the
 block, and are represented by the symbol *."
-  (eql form '*))
+  (and (listp form)
+       (= (length form) 1)
+       (eql (car form) '*)))
 
 
 (defmethod typecheck-sexp ((fun (eql '@)) args env)
@@ -74,8 +76,7 @@ block, and are represented by the symbol *."
     ;; sure we identify something with wires and not just a value.
     ;; That's not quite "typechecking" in the sense we use it.
     (if (listp sensitivities)
-	(cond ((and (= (length sensitivities) 1)
-		    (combiatorial-trigger-p (car sensitivities)))
+	(cond ((combinatorial-trigger-p sensitivities)
 	       ;; sensitive to everything
 	       nil)
 
@@ -106,18 +107,23 @@ block, and are represented by the symbol *."
   (declare (optimize debug))
   (destructuring-bind (sensitivities &rest body)
       args
-    (as-list (if (listp sensitivities)
-		 (if (edge-trigger-p sensitivities)
-		     ;; an edge trigger, synthesise as an operator
-		     (list sensitivities)
+    (if (combinatorial-trigger-p sensitivities)
+	;; luteral expansion for combinatoreial blocks
+	(as-literal "always @(*)")
 
-		     ;; a list of triggers, synthesise as a list
-		     sensitivities)
+	;; expand specified wires
+	(as-list (if (listp sensitivities)
+		     (if (edge-trigger-p sensitivities)
+			 ;; an edge trigger, synthesise as an operator
+			 (list sensitivities)
 
-		 ;; a single trigger, synthesise as a list
-		 (list sensitivities))
-	     :inexpression
-	     :before "always @(" :after ")")
+			 ;; a list of triggers, synthesise as a list
+			 sensitivities)
+
+		     ;; a single trigger, synthesise as a list
+		     (list sensitivities))
+		 :inexpression
+		 :before "always @(" :after ")"))
     (as-newline)
 
     (as-block body :inblock
