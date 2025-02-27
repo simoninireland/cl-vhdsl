@@ -41,6 +41,11 @@ NAME is assuemd to be the \"real\" name of the macro."
 (add-macro 'when 'when/rtl)
 (add-macro 'unless 'unless/rtl)
 
+;; representation-specific lets
+(add-macro 'let-wires)
+(add-macro 'let-registers)
+(add-macro 'let-constants)
+
 ;; places
 (add-macro 'incf 'incf/rtl)
 (add-macro 'decf 'decf/rtl)

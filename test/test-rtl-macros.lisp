@@ -116,3 +116,27 @@
 	     '(= 45 0)))
   (is (equal (rtl::expand-macros '(rtl:0/= 45))
 	     '(/= 45 0))))
+
+
+(test test-expand-let-representations
+  "Test we can expand the representation-specific LET variants."
+  (is (equal (rtl::expand-macros '(rtl:let-wires ((a 0 :width 10))
+				   (setq a 12)))
+	     '(let ((a 0 :as :wire :width 10))
+	       (progn
+		 (setq a 12)))))
+  (is (equal (rtl::expand-macros '(rtl:let-registers ((a 0 :width 10))
+				   (setq a 12)))
+	     '(let ((a 0 :as :register :width 10))
+	       (progn
+		 (setq a 12)))))
+  (is (equal (rtl::expand-macros '(rtl:let-constants ((a 0 :width 10))
+				   (setq a 12)))
+	     '(let ((a 0 :as :constant :width 10))
+	       (progn
+		 (setq a 12)))))
+
+  ;; test failure
+  (signals (rtl:representation-mismatch)
+     (rtl::expand-macros '(rtl:let-wires ((a 10 :as :constant))
+				   (setq a 12)))))

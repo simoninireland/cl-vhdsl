@@ -294,7 +294,29 @@ NEXT macro) that isn;t defined in the surrounding state machine."))
 					       (expected-values c)
 					       (received-value c))
 				       c str)))
-  (:documentation "Condition signalled when widths are mis-matched..
+  (:documentation "Condition signalled when widths are mis-matched.
 
 This can be a hard error or just a warning, and is caused by trying to assign
 a value to a variable that is too narrow to accept it completely."))
+
+
+(define-condition representation-mismatch (rtl-condition)
+  ((expected
+    :documentation "The representation expected."
+    :initarg :expected
+    :reader expected-values)
+   (received
+    :documentation "The representation received."
+    :initarg :got
+    :reader received-value))
+  (:report (lambda (c str)
+	     (format-condition-context (format nil "Expected a representation from ~a, got ~a"
+					       (expected-values c)
+					       (received-value c))
+				       c str)))
+  (:documentation "Condition signalled when representations are mis-matched.
+
+This can happen when a representation is provided for a variable that's
+incompatible with how its used. It also happens when using the LET-WIRES,
+LET-REGISTERS, and LET-CONSTANTS macros and providing a representation
+explicitly that conflicts with the one implied by the macro."))

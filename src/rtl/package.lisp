@@ -62,6 +62,9 @@
    #:0=
    #:0/=
    #:2*
+   #:let-wires
+   #:let-registers
+   #:let-constants
    #:state-machine
    #:next
    #:exit
@@ -99,4 +102,5 @@
    #:shape-mismatch
    #:state-machine-mismatch
    #:width-mismatch
+   #:representation-mismatch
    ))
