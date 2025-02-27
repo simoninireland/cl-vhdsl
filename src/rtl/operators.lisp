@@ -235,6 +235,6 @@ All arguments must be booleans."
 
 (defmethod synthesise-sexp ((fun (eql 'not)) args (context (eql :inexpression)))
   (as-literal "(")
-  (as-literal "(!")
+  (as-literal "!")
   (synthesise (car args) :inexpression)
   (as-literal ")"))
