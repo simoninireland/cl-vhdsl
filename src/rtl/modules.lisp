@@ -212,7 +212,7 @@ values can't be defined in terms of other parameter values."
       ;; naked parameter
       (progn
 	(as-literal "parameter ")
-	(synthesise n :indeclaration))))
+	(synthesise decl :indeclaration))))
 
 
 (defun synthesise-arg (decl)
