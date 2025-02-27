@@ -46,13 +46,13 @@
 (test test-synthesise-module
   "Test we can syntheise a module with a variety of features."
   (is (rtl:synthesise '(rtl::module test ((clk :width 1 :direction :in)
-					  (a :width 8 :direction :in)
-					  (b :width 4 :direction :in)
+					  (a   :width 8 :direction :in)
+					  (b   :width 4 :direction :in)
 					  &key e (f 45))
-			(let ((x 0 :width 8)
+			(let ((x 0  :width 8)
 			      (y 10 :width 8)
 			      (z 44 :as :constant))
-			  (rtl::@ ((rtl::posedge clk))
+			  (rtl::@ (rtl::posedge clk)
 				  (setf x (+ x b) :sync t))))
 		      :toplevel)))
 
