@@ -204,7 +204,10 @@ plus the number of other arguments."
   "Typecheck the arguments ARGS to a logical operator in ENV.
 
 All arguments must be booleans."
-  (mapc (rcurry #'ensure-boolean env) args)
+  (mapc (lambda (arg)
+	  (let ((ty (typecheck arg env)))
+	    (ensure-boolean ty env)))
+	args)
   '(fixed-width-unsigned 1))
 
 
