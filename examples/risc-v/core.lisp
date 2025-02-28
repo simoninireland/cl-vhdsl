@@ -1,4 +1,4 @@
-;; 32-bit integer-onlt RISC-V core
+;; 32-bit integer-only RISC-V core
 ;;
 ;; Copyright (C) 2024--2025 Simon Dobson
 ;;
@@ -22,12 +22,12 @@
 
 
 (defmodule SOC ((clk-in   :as :wire :width 1 :direction :in)
-		(reset-in :as :wire :width 1 :direction :in)
+		;; (reset-in :as :wire :width 1 :direction :in)
 		(leds-out :as :wire :width 5 :direction :out)
 		(rxd      :as :wire :width 1 :direction :in)
 		(txd      :as :wire :width 1 :direction :out))
 
-  (let ((clk 0   :as :wire :width 1)
+  (let ((clk   0 :as :wire :width 1)
 	(reset 0 :as :wire :width 1)
 
 	;; plug in to the output to visualise
@@ -40,12 +40,13 @@
 
 	;; clock management
 	(cw (make-instance 'clockworks :clk-in clk-in
-				       :reset-in reset
+				       :reset-in 0
 				       :clk clk
 				       :reset reset
 				       :slow 19)))
 
-
+    ;; wire the LED wires to the output register
+    (setq leds-out leds)
 
     ;; instruction decoding
     (with-bitfields (i i i i i i i)
@@ -109,92 +110,93 @@
 				  rs2
 				  Iimm)
 			      :width 32)
-		      (aluOut 0 :width 32)
 		      (shamt (if isALUreg
 				 (bits rs2 4)
 				 (bits instr 24 :end 20))
 			     :width 5))
 
-	    (@ (*)
-	       (case funct3
-		 (#2r000
-		  (if (logand (bit funct7 5)
-			      (bit instr 5))
-		      (setq aluOut (- aluIn1 aluIn2))
-		      (setq aluOut (+ aluIn1 aluIn2))))
+	    (let-registers ((aluOut 0 :width 32))
 
-		 (#2r001
-		  (setq aluOut (<< aluIn1 shamt)))
+	      (@ (*)
+		 (case funct3
+		   (#2r000
+		    (if (logand (bit funct7 5)
+				(bit instr 5))
+			(setq aluOut (- aluIn1 aluIn2) :sync t)
+			(setq aluOut (+ aluIn1 aluIn2) :sync t)))
 
-		 (#2r010
-		  (setq aluOut (< aluIn1 aluIn2))) ;; signed
+		   (#2r001
+		    (setq aluOut (<< aluIn1 shamt) :sync t))
 
-		 (#2r011
-		  (setq aluOut (< aluIn1 aluIn2))) ;; unsigned
+		   (#2r010
+		    (setq aluOut (< aluIn1 aluIn2) :sync t)) ;; signed
 
-		 (#2r100
-		  (setq aluOut (logxor aluIn1 aluIn2)))
+		   (#2r011
+		    (setq aluOut (< aluIn1 aluIn2) :sync t)) ;; unsigned
 
-		 (#2r101
-		  (if (bit funct7 5)
-		      (setq aluOut (>> aluIn1 shamt))    ;; sign-extended
-		      (setq aluOut (>> aluIn1 shamt))))  ;; unsigned
+		   (#2r100
+		    (setq aluOut (logxor aluIn1 aluIn2) :sync t))
 
-		 (#2r110
-		  (setq aluOut (logior aluIn1 aluIn2)))
+		   (#2r101
+		    (if (bit funct7 5)
+			(setq aluOut (>> aluIn1 shamt) :sync t) ;; sign-extended
+			(setq aluOut (>> aluIn1 shamt) :sync t))) ;; unsigned
 
-		 (#2r111
-		  (setq aluOut (logand aluIn1 aluIn2)))))
+		   (#2r110
+		    (setq aluOut (logior aluIn1 aluIn2) :sync t))
 
-	    ;; the state machine
-	    (let ((FETCH-INSTR 0 :as :constant)
-		  (FETCH-REGS  1 :as :constant)
-		  (EXECUTE     2 :as :constant)
-		  (state       0 :width 3))
+		   (#2r111
+		    (setq aluOut (logand aluIn1 aluIn2) :sync t))))
 
-	      (let ((nextpc (cond (isJAL
-				   (+ pc Jimm))
-				  (isJALR
-				   (+ rs1 Iimm))
-				  (t
-				   (+ PC 4)))
-			    :width 32))
+	      ;; the state machine
+	      (let ((FETCH-INSTR 0 :as :constant)
+		    (FETCH-REGS  1 :as :constant)
+		    (EXECUTE     2 :as :constant)
+		    (state       0 :width 3))
 
-		(setq writeBackData (if (or isJAL isJALR)
-					(+ pc 4)
-					aluOut))
-		(setq writeBackEn (and (= state 2)
-				       (or isALUReg
-					   isALUImm
-					   isJAL
-					   isJALR)))
+		(let ((nextpc (cond (isJAL
+				     (+ pc Jimm))
+				    (isJALR
+				     (+ rs1 Iimm))
+				    (t
+				     (+ PC 4)))
+			      :width 32))
 
-		(@ (posedge clk)
-		   (if reset
-		       (progn
-			 (setq pc 0)
-			 (setq state FETCH-INSTR))
+		  (setq writeBackData (if (or isJAL isJALR)
+					  (+ pc 4)
+					  aluOut))
+		  (setq writeBackEn (and (= state 2)
+					 (or isALUReg
+					     isALUImm
+					     isJAL
+					     isJALR)))
 
-		       (if (and writeBackEn
-				(/= rdId 0))
-			   (progn
-			     (setf (aref RegisterBank rdId) writeBackData)
+		  (@ (posedge clk)
+		     (if reset
+			 (progn
+			   (setq pc 0)
+			   (setq state FETCH-INSTR))
 
-			     ;; update the LEDS if writing to R1
-			     (if (= rdId 1)
-				 (setq leds writeBackData)))))
+			 (if (and writeBackEn
+				  (/= rdId 0))
+			     (progn
+			       (setf (aref RegisterBank rdId) writeBackData)
 
-		   (case state
-		     (FETCH-INSTR
-		      (setq instr (aref mem (bits pc 32 :end 2)))
-		      (setq state FETCH-REGS))
+			       ;; update the LEDS if writing to R1
+			       (if (= rdId 1)
+				   (setq leds writeBackData)))))
 
-		     (FETCH-REGS
-		      (setq rs1 (aref RegisterBank rs1Id))
-		      (setq rs2 (aref RegisterBank rs2Id))
-		      (setq state EXECUTE))
+		     (case state
+		       (FETCH-INSTR
+			(setq instr (aref mem (bits pc 31 :end 2)))
+			(setq state FETCH-REGS))
 
-		     (EXECUTE
-		      (if (not isSystem)
-			  (setq pc nextpc))
-		      (setq state FETCH-INSTR))))))))))))
+		       (FETCH-REGS
+			(setq rs1 (aref RegisterBank rs1Id))
+			(setq rs2 (aref RegisterBank rs2Id))
+			(setq state EXECUTE))
+
+		       (EXECUTE
+			(if (not isSystem)
+			    (setq pc nextpc))
+			(setq state FETCH-INSTR)))))))))))))
