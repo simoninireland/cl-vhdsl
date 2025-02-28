@@ -21,12 +21,27 @@
 (in-suite cl-vhdsl/rtl)
 (declaim (optimize debug))
 
+
 (test test-synthesise-cond
   "Test we can synthesise a COND, which is a macro needing to be expanded first."
-  (is (rtl:synthesise (rtl::expand-macros'(cond ((rtl::<< a 1)
-						 (setf b 1))
-						((rtl::<< a 2)
-						 (setf b 2))
-						(t
-						 (setf b 3))))
+  (is (rtl:synthesise (rtl::expand-macros '(cond ((rtl::<< a 1)
+						  (setf b 1))
+					    ((rtl::<< a 2)
+					     (setf b 2))
+					    (t
+					     (setf b 3))))
+		      :inblock)))
+
+
+(test test-synthesise-cond-assignment
+  "Test we can synthesise a COND in an assignment"
+  (is (rtl:synthesise (rtl::expand-macros '(let ((a 1)
+						 (b 2))
+					    (let ((c (cond ((= b 1)
+							    3)
+							   ((= b 0)
+							    4)
+							   (t 6))))
+					      (setq c (+ c 2)))
+					    ))
 		      :inblock)))
