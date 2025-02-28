@@ -39,7 +39,7 @@
 (defun ensure-width-can-store (w ty env)
   "Ensure that W bits can accommodate the values of TY in ENV."
   (unless (width-can-store-p w ty env)
-    (error 'width-mismatch :expected (bitwidth ty env) :got w)))
+    (signal 'width-mismatch :expected (bitwidth ty env) :got w)))
 
 
 (deftype representation ()
@@ -59,7 +59,7 @@ Valid representations are :REGISTER, :WIRE, or :constant."
 
 Signal VALUE-MISMATCH as an error if not."
   (unless (representation-p rep)
-    (error 'value-mismatch :expected (list :register :wire :constant) :got rep)))
+    (error 'representation-mismatch :expected (list :register :wire :constant) :got rep)))
 
 
 (defun name-in-decl (decl)
@@ -296,7 +296,12 @@ WIDTH defaulting to the system's global width."
   (destructuring-bind  (n v &key (width *default-register-width*) &allow-other-keys)
       decl
     (as-literal "reg [ ")
-    (synthesise width :inexpression)
+    (if (array-value-p v)
+	;; synthesise the width as the width of the array element
+	(synthesise (array-element-width v) :inexpression)
+
+	;; otherwise use the given width
+	(synthesise width :inexpression))
     (as-literal " - 1 : 0 ] ")
     (synthesise n :indeclaration)
     (if (array-value-p v)
