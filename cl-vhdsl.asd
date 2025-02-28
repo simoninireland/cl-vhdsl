@@ -34,10 +34,10 @@
   :components ((:file "package")
 	       (:file "utils")
 	       (:file "conditions")
-	       (:module "dsl"
-		:components ((:file "package")
-			     (:file "dsl")
-			     (:file "conditions")))
+	       ;; (:module "dsl"
+	       ;;	:components ((:file "package")
+	       ;;		     (:file "dsl")
+	       ;;		     (:file "conditions")))
 	       (:module "rtl"
 		:components ((:file "package")
 			     (:file "env")
