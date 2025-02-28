@@ -35,24 +35,24 @@
 		'(rtl::fixed-width-unsigned 15))))
 
 
-(test test-make-bitfields-repeat
-  "Test we can repeat bitfields."
+(test test-make-bitfields-extend
+  "Test we can extend bitfields."
   (is (subtypep (rtl:typecheck '(rtl:make-bitfields
 				 #2r101
-				 (rtl:repeat-bits 5 #2r0))
+				 (rtl:extend-bits #2r0 5))
 			       emptyenv)
 		'(rtl::fixed-width-unsigned 8)))
 
   ;; repeats must be statically known, but pattern can be variable
   (is (subtypep (rtl:typecheck '(let ((a 8))
-				 (rtl:make-bitfields (rtl:repeat-bits 5 a)))
+				 (rtl:make-bitfields (rtl:extend-bits a 5)))
 			       emptyenv)
 		'(rtl::fixed-width-unsigned 20)))
   (is (subtypep (rtl:typecheck '(let ((a 8))
-				 (rtl:make-bitfields (rtl:repeat-bits 5 (+ a 9))))
+				 (rtl:make-bitfields (rtl:extend-bits (+ a 9) 5)))
 			       emptyenv)
 		'(rtl::fixed-width-unsigned 25)))
   (signals (rtl::not-static)
     (rtl:typecheck '(let ((a 8))
-		     (rtl:make-bitfields (rtl:repeat-bits a 0)))
+		     (rtl:make-bitfields (rtl:extend-bits 0 a)))
 		   emptyenv)))

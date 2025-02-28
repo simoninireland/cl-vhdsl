@@ -47,27 +47,47 @@
 	   :after "}"))
 
 
-;; ---------- repeat-bits ----------
+;; ---------- extend-bits ----------
 
-(defmethod typecheck-sexp ((fun (eql 'repeat-bits)) args env)
-  (destructuring-bind (reps bs)
+(defmethod typecheck-sexp ((fun (eql 'extend-bits)) args env)
+  (destructuring-bind (bs width)
       args
-    (let ((tyr (typecheck reps env))
+    (let ((tyw (typecheck width env))
 	  (tyb (typecheck bs env)))
-      (ensure-fixed-width tyr)
+      (ensure-fixed-width tyw)
       (ensure-fixed-width tyb)
 
-      ;; evaluate the repetitions, whcih must be statically determined
-      (let ((w (bitwidth tyb env))
-	    (r (ensure-static reps env)))
-	`(fixed-width-unsigned ,(* w r))))))
+      ;; evaluate the width, which must be statically determined
+      (let ((w (ensure-static width env)))
+	`(fixed-width-unsigned ,w)))))
+
+(defun synthesise-fixed-width-constant (c width &optional (base 2))
+  "Synthesise C as a constant with the given WIDTH.
+
+The BASE used can be 2, 8, 10, or 16."
+  (synthesise width :inexpression)
+  (as-literal "'")
+  (as-literal (ecase base
+		(2  "b")
+		(8  "o")
+		(10 "d")
+		(16 "x")))
+  (let ((*print-base* base))
+    (synthesise c :inexpression)))
 
 
-(defmethod synthesise-sexp ((fun (eql 'repeat-bits)) args (context (eql :inexpression)))
-  (destructuring-bind (reps bs)
+(defmethod synthesise-sexp ((fun (eql 'extend-bits)) args (context (eql :inexpression)))
+  (destructuring-bind (bs width)
       args
     (as-literal "{")
-    (synthesise reps :inexpression)
+    (synthesise width :inexpression)
     (as-literal "{")
-    (synthesise bs :inexpression)
+    (if (static-constant-p bs nil)
+	;; value is a static constant, output it
+	(let ((w (bitwidth (ensure-static bs nil) nil)))
+	  (synthesise-fixed-width-constant bs w))
+
+	;; value is an expression, synthesise it
+	(progn
+	  (synthesise bs :inexpression)))
     (as-literal "}}")))

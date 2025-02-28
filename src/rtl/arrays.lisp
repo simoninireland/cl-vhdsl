@@ -105,7 +105,17 @@ RTLisp, but don't /require/ it."
        (setq ,place (cadr ,place))))
 
 
-; shape needs to be statically determinable
+(defun array-element-width (form)
+  "Return the width of the elements of array constructor FORM."
+  (if-let ((m (member :element-type (cdr form))))
+    ;; use the element width of there is one
+    (bitwidth (safe-cadr m) '())
+
+    ;; otherwise the default
+    *default-register-width*))
+
+
+;; shape needs to be statically determinable
 
 (defmethod typecheck-sexp ((fun (eql 'make-array)) args env)
   (destructuring-bind (shape &key

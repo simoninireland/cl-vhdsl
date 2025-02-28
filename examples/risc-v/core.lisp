@@ -34,7 +34,7 @@
 	(leds 0 :width 5 :as :register)
 
 	;; core state
-	(mem   (make-array '(256) :element-width 32 :element-type (fixed-width-integer 32)))
+	(mem   (make-array '(256) :element-type (fixed-width-unsigned 32)))
 	(pc    0 :width 32 :as :register)
 	(instr 0 :width 32 :as :register)
 
@@ -64,27 +64,27 @@
 		  ;; intermediate formats
 		  (Uimm (make-bitfields (bit instr 31)
 					(bits instr 30 :end 12)
-					(repeat-bits 12 0))
+					(extend-bits 0 12))
 			:width 32)
-		  (Iimm (make-bitfields (repeat-bits 21 (bit instr 31))
+		  (Iimm (make-bitfields (extend-bits (bit instr 31) 21)
 					(bits instr 30 :end 20))
 			:width 32)
-		  (Simm (make-bitfields (repeat-bits 21 (bit instr 31))
+		  (Simm (make-bitfields (extend-bits (bit instr 31) 21)
 					(bits instr 30 :end 25)
 					(bits instr 11 :end 7))
 			:width 32)
-		  (Bimm (make-bitfields (repeat-bits 20 (bit instr 31))
+		  (Bimm (make-bitfields (extend-bits (bit instr 31) 20)
 					(bit instr 7)
 					(bits instr 30 :end 25)
 					(bits instr 11 :end 8)
-					0)
+					(extend-bits 0 1))
 
 			:width 32)
-		  (Jimm (make-bitfields (repeat-bits 12 (bit instr 31))
+		  (Jimm (make-bitfields (extend-bits (bit instr 31) 12)
 					(bits instr 19 :end 12)
 					(bit instr 20)
 					(bits instr 30 :end 21)
-					0)
+					(extend-bits 0 1))
 			:width 32)
 
 		  ;; source and destination registers
@@ -97,7 +97,7 @@
 		  (funct7 (bits instr 31 :end 25) :width 7))
 
 	;; register bank
-	(let ((RegisterBank  (make-array '(32) :element-type (fixed-width-integer 32)))
+	(let ((RegisterBank  (make-array '(32) :element-type (fixed-width-unsigned 32)))
 	      (rs1           0 :width 32)
 	      (rs2           0 :width 32)
 	      (writeBackData 0 :width 32 :as :wire)
@@ -157,7 +157,8 @@
 				  (isJALR
 				   (+ rs1 Iimm))
 				  (t
-				   (+ PC 4)))))
+				   (+ PC 4)))
+			    :width 32))
 
 		(setq writeBackData (if (or isJAL isJALR)
 					(+ pc 4)
