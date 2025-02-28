@@ -306,15 +306,21 @@ WIDTH defaulting to the system's global width."
     (synthesise n :indeclaration)
     (if (array-value-p v)
 	;; synthesise the array constructor
-	(synthesise v :indeclaration))
+	(synthesise v :indeclaration)
+
+	;; synthesise the assignment to the initial value
+	(progn
+	  (as-literal " = ")
+	  (synthesise v :inexpression)))
     (as-literal ";")))
 
 
 (defun synthesise-wire (decl context)
   "Synthesise a wire declaration within a LET block.
 
-The wire has name N and (ignored) initial value V, with the optional
-WIDTH defaulting to the system's global width."
+The wire has name N and initial value V, with the optional WIDTH
+defaulting to the system's global width. If the initial value is zero
+the wire is left un-driven."
   (destructuring-bind  (n v &key (width *default-register-width*) &allow-other-keys)
       decl
     (as-literal "wire ")
@@ -328,10 +334,19 @@ WIDTH defaulting to the system's global width."
 	(synthesise v :indeclaration)
 
 	;; synthesise the assignment to the initial value
-	(progn
-	  (as-literal " = ")
-	  (synthesise v :inexpression)))
-    (as-literal";")))
+	(if (static-constant-p v nil)
+	    (let ((iv (ensure-static v nil)))
+	      (unless (= iv 0)
+		;; initial value isn't statially zero, synthesise
+		(as-literal " = ")
+		(synthesise v :inexpression))
+	      (as-literal";"))
+
+	    ;; initial value is ane xpression, synthesise
+	    (progn
+	      (as-literal " = ")
+	      (synthesise v :inexpression)
+	      (as-literal";"))))))
 
 
 (defun synthesise-constant (decl context)
