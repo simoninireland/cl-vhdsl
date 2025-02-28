@@ -34,7 +34,7 @@
 
     ;; this may change when we float constant initial values
     (is (equal (mapcar #'cadr decls)
-	       '(1 0)))))
+	       '(1 (+ a 1))))))
 
 
 (test test-let-float-markers
