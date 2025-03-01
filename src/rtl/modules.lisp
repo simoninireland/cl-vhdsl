@@ -422,11 +422,14 @@ and causes a NOT-IMPORTABLE error if not."
 						      :key #'symbol-name :test #'string-equal)))
 				       paramdecls)))
 
-      (unless (null paramdeclsgiven)
-	(as-literal " ")
-	(as-argument-list paramdeclsgiven :indeclaration
-			  :before "#(" :after ")"
-			  :process (rcurry #'synthesise-param-binding args-alist))))))
+      (if paramdeclsgiven
+	  (progn
+	    (as-literal " ")
+	    (as-argument-list paramdeclsgiven :indeclaration
+			      :before "#(" :after ")"
+			      :process (rcurry #'synthesise-param-binding args-alist)))
+
+	  (as-literal " ")))))
 
 
 (defun synthesise-module-instance-args (initargs intf)
@@ -446,7 +449,7 @@ and causes a NOT-IMPORTABLE error if not."
   (let ((intf (get-module-interface modname)))
     (synthesise modname :indeclaration)
     (synthesise-module-instance-params initargs intf)
-    (as-literal n)
+    (synthesise n :indeclaration)
     (as-literal " ")
     (synthesise-module-instance-args initargs intf)))
 
