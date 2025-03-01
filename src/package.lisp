@@ -39,6 +39,7 @@
    #:n-copies
    #:filter-by-predicates
    #:sublist
+   #:alist-keys
    #:successive-pairs
    #:adjacent-pairs
 
