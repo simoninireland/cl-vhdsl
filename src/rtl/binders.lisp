@@ -362,19 +362,13 @@ Constants turn into local parameters."
     (as-literal ";")))
 
 
-(defun synthesise-module-instance (decl)
+(defun synthesise-module-instanciation (decl)
   "Synthesise DECL as a module instanciation."
   (destructuring-bind (n v &key &allow-other-keys)
       decl
-    (let ((modname (cadr v)))
-      ;; skip over leading quote of module name,
-      ;; for compatability with Common Lisp usage
-      (unquote modname)
-
-      (synthesise modname :inexpression)
-      (as-literal " ")
-      (synthesise n :inexpression)
-      (synthesise v :inexpression))))
+    (destructuring-bind (modname &rest initargs)
+	(cdr v)
+      (synthesise-module-instance n modname initargs))))
 
 
 (defun synthesise-decl (decl context)
@@ -383,7 +377,7 @@ Constants turn into local parameters."
       decl
     (if (module-value-p v)
 	;; instanciating a module
-	(synthesise-module-instance decl)
+	(synthesise-module-instanciation decl)
 
 	;; otherwise, creating a variable
 	(case as

@@ -132,3 +132,22 @@
 											  :clk_out clk)))
 							 (setf ctrl 1)))))))))
 		      :toplevel)))
+
+
+(test test-synthesise-module-instanciation
+  "Test we can synthesise a module instanciation."
+  (rtl:clear-module-registry)
+
+  (rtl:defmodule clock ((clk_in  :direction :in  :as :wire :width 1)
+			(clk_out :direction :out :as :wire :width 1)
+			&key (p 1) (q 2))
+    (setq clk_out clk_in))
+
+  (is (rtl:synthesise '(let ((c 0 :as :wire :width 1)
+			     (d 0 :as :wire :width 1))
+			(let ((a (make-instance 'clock :clk_in c :clk_out d)))))
+		      :inmodule))
+  (is (rtl:synthesise '(let ((c 0 :as :wire :width 1)
+			     (d 0 :as :wire :width 1))
+			(let ((a (make-instance 'clock :clk_in c :clk_out d :p 23)))))
+		      :inmodule)))

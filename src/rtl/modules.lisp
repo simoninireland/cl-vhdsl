@@ -378,19 +378,77 @@ and causes a NOT-IMPORTABLE error if not."
       `(,fun ,modname ,@(rewrite-args initargs)))))
 
 
+(defun synthesise-param-binding (decl context args)
+  "Synthesise the binding of parameter DECLs from ARGS."
+  (destructuring-bind (n v)
+      decl
+    (if-let ((m (assoc n args
+		       :key #'symbol-name
+		       :test #'string-equal)))
+      (let ((v (cdr m)))
+	(as-literal ".")
+	(synthesise n :indeclaration)
+	(as-literal "(")
+	(synthesise v :inexpression)
+	(as-literal ")")))))
+
+
 (defun synthesise-arg-binding (decl context args)
   "Synthesise the binding of DECL from ARGS."
   (destructuring-bind (n &key &allow-other-keys)
       decl
-    (let ((v (cadr (assoc n args
-			  :key #'symbol-name
-			  :test #'string-equal
-			  ))))
+    (let ((v (cdr (assoc n args
+			 :key #'symbol-name
+			 :test #'string-equal))))
       (as-literal ".")
       (synthesise n :indeclaration)
       (as-literal "(")
       (synthesise v :inexpression)
       (as-literal ")"))))
+
+
+(defun synthesise-module-instance-params (initargs intf)
+  "Synthesise the parameter bindings INITARGS of INTF."
+  (declare (optimize debug))
+  (let ((paramdecls (parameters intf)))
+    ;; extract all the parameters actually specified
+    (let* ((paramkeys (alist-keys paramdecls))
+	   (args-alist (plist-alist initargs) )
+	   (argkeys (alist-keys args-alist))
+	   (paramsgiven (intersection paramkeys argkeys
+				      :key #'symbol-name :test #'string-equal))
+	   (paramdeclsgiven (remove-if (lambda (ndecl)
+					 (not (member (symbol-name (car ndecl)) paramsgiven
+						      :key #'symbol-name :test #'string-equal)))
+				       paramdecls)))
+
+      (unless (null paramdeclsgiven)
+	(as-literal " ")
+	(as-argument-list paramdeclsgiven :indeclaration
+			  :before "#(" :after ")"
+			  :process (rcurry #'synthesise-param-binding args-alist))))))
+
+
+(defun synthesise-module-instance-args (initargs intf)
+  "Synthesise the argument bindings INITARGS of INTF."
+  (let ((argdecls (arguments intf)))
+    (as-argument-list argdecls :indeclaration
+		      :before "(" :after ");"
+		      :process (rcurry #'synthesise-arg-binding (plist-alist initargs)))))
+
+
+(defun synthesise-module-instance (n modname initargs)
+  "Synthesise the module instanciation MODNAME with gibven INITARGS assigning the instance to N."
+  ;; skip over leading quote of module name,
+  ;; for compatability with Common Lisp usage
+  (unquote modname)
+
+  (let ((intf (get-module-interface modname)))
+    (synthesise modname :indeclaration)
+    (synthesise-module-instance-params initargs intf)
+    (as-literal n)
+    (as-literal " ")
+    (synthesise-module-instance-args initargs intf)))
 
 
 (defmethod synthesise-sexp ((fun (eql 'make-instance)) args (context (eql :inexpression)))
