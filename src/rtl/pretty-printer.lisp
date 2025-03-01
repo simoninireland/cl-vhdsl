@@ -222,6 +222,6 @@ PER-ROW, if set, generates a newline after that number of elements."
 (defun as-infix (op args)
   "Synthesise ARGS with OP between them.
 
-Every argument is sythresised in the :inexpression context."
+Every argument is sythesised in the :inexpression context."
   ;; arguments
-  (as-list args :inexpression :sep (format nil " ~a " op)))
+  (as-list args :inexpression :before "(" :after ")" :sep (format nil " ~a " op)))
