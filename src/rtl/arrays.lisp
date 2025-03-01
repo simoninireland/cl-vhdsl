@@ -180,7 +180,7 @@ RTLisp, but don't /require/ it."
 (defun synthesise-array-init-from-data (data shape)
   "Return the initialisation of DATA with the given SHAPE."
   (as-list data :inexpression
-	   :before "{ " :after " }"
+	   :before "{ " :after " }" :always t
 	   :per-row 16))
 
 
