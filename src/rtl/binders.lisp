@@ -305,7 +305,7 @@ WIDTH defaulting to the system's global width."
     (as-literal " - 1 : 0 ] ")
     (synthesise n :indeclaration)
     (if (array-value-p v)
-	;; synthesise the array constructor
+	;; synthesise the array bounds
 	(synthesise v :indeclaration)
 
 	;; synthesise the assignment to the initial value
@@ -342,7 +342,7 @@ the wire is left un-driven."
 		(synthesise v :inexpression))
 	      (as-literal";"))
 
-	    ;; initial value is ane xpression, synthesise
+	    ;; initial value is an expression, synthesise
 	    (progn
 	      (as-literal " = ")
 	      (synthesise v :inexpression)
