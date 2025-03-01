@@ -34,7 +34,8 @@
 	(leds 0 :width 5 :as :register)
 
 	;; core state
-	(mem   (make-array '(256) :element-type (fixed-width-unsigned 32)))
+	(mem   (make-array '(256) :element-type (fixed-width-unsigned 8)
+				  :initial-contents (:file "firmware.hex")))
 	(pc    0 :width 32 :as :register)
 	(instr 0 :width 32 :as :register)
 
