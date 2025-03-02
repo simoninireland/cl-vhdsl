@@ -29,6 +29,10 @@ SOURCES = package.lisp clockworks.lisp core.lisp
 CONFIG = core.pcf
 OBJECT = core.v
 
+# Assembly code
+ASM_SOURCES = firmware.s
+ASM_OBJECT = firmware.hex
+
 
 # ---------- Tools ----------
 
@@ -38,7 +42,7 @@ RM = rm -fr
 # ---------- Top-level targets ----------
 
 # Build the target bitstream
-$(TARGET): $(SOURCES) $(CONFIG)
+$(TARGET): $(ASM_OBJECT) $(SOURCES) $(CONFIG)
 
 
 # Upload the target bitstream to the device
@@ -54,6 +58,42 @@ clean:
 # Print a help message
 help:
 	@make usage
+
+
+# ---------- Lisp to Verilog rules ----------
+
+LISP = sbcl
+
+LISP_OPTS =
+
+.SUFFIXES: .lisp .v
+
+.lisp.v:
+	$(LISP) $(LISP_OPTS) -o $*.v $(SOURCES)
+
+
+# ---------- Assembler rules ----------
+
+AS = riscv64-linux-gnu-as
+LD = riscv64-linux-gnu-ld
+OBJDUMP = riscv64-linux-gnu-objdump
+GREP = grep
+BASH = bash
+SED = sed
+AWK = awk
+DD = dd
+OD = od
+
+AS_OPTS = -march=rv32i -mabi=ilp32 -mno-relax
+LD_OPTS = -T bram.ld -m elf32lriscv -nostdlib
+
+.SUFFIXES: .s .o .hex
+
+.s.o:
+	$(AS) $(AS_OPTS) $*.s -o $*.o
+
+.o.hex:
+	$(OBJDUMP) -h $*.o | $(GREP) .text | $(SED) -e 's|\s\+|\t|g' -e 's|^\s\+||g'| $(AWK) '{print "$(DD) if=$*.o bs=1 count=$$((0x"$$3")) skip=$$((0x"$$6")) status=none";}' | $(BASH) | $(OD) -Anone -tx4 >$*.hex
 
 
 # ----- Usage -----

@@ -51,14 +51,16 @@ GENERATED = $(foreach stem,$(GENERATED_STEMS),$(stem).v $(stem).asc $(stem).bin 
 
 # ---------- Implicit rules ----------
 
-%.v: $(SOURCES)
+.SUFFIXES: .v .pcf .json .asc .bin
+
+%.v: $(SOURCES) $(CONFIG)
 	$(VHDSLC) $(VHDSLC_OPTS) -o $*.v $(SOURCES)
 
-%.json: %.v
+.v.json:
 	$(SYNTH) $(SYNTH_OPTS) -p "synth_ice40 -top $(TOPMODULE) -json $*.json" $<
 
-%.asc: %.json %.pcf
+.json.asc:
 	$(PNR) $(PNR_OPTS) --$(FPGA_DEVICE) --package $(FPGA_PACKAGE) --json $*.json --pcf $*.pcf --asc $*.asc
 
-%.bin: %.asc
+.asc.bin:
 	$(PACK) $< $*.bin
