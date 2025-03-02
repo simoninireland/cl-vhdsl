@@ -58,7 +58,7 @@ whose values are statically determinable."
   "Load array initialisation data from STR.
 
 By default the data is assumed to be in hex. This can be changed
-using the RADIX key: common radices are 10, 16, and 2, but I suppose
+using the RADIX key: common radices are 10, 8, 16, and 2, but I suppose
 some applications might need others.
 
 The data is assumed to be unstructured -- or, more precisely, its shape
