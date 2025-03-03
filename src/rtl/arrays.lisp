@@ -192,29 +192,6 @@ Otheriwse it is read as a literal list."
 		   (synthesise-array-init-from-data initial-contents shape))))))))
 
 
-;; (defmethod synthesise-sexp ((fun (eql 'make-array)) args (context (eql :indeclaration)))
-;;   (destructuring-bind (shape &key
-;;			       initial-element initial-contents
-;;			       element-width element-type)
-;;       args
-;;     ;; skip an initial quote, allowed for Lisp compatability
-;;     (unquote shape)
-;;     (unquote initial-contents)
-
-;;     ;; 1d arrays only for now
-;;     (as-literal "[ 0 : ")
-;;     (synthesise (car shape) :inexpression)
-;;     (as-literal " - 1 ]")
-
-;;     (when initial-contents
-;;       (as-literal " = " :newline t)
-;;       (with-indentation
-;;	(synthesise-array-init initial-contents shape)))))
-
-;; (defmethod synthesise-sexp ((fun (eql 'make-array)) args (context (eql :inexpression)))
-;;   (synthesise-sexp fun args :indeclaration))
-
-
 ;; ---------- Array access ----------
 
 (defun valid-array-index-p (ty indices env)
