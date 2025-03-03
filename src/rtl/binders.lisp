@@ -305,8 +305,8 @@ WIDTH defaulting to the system's global width."
     (as-literal " - 1 : 0 ] ")
     (synthesise n :indeclaration)
     (if (array-value-p v)
-	;; synthesise the array bounds
-	(synthesise v :indeclaration)
+	;; synthesise the array bounds and initialisation
+	(synthesise-array-init n v)
 
 	;; synthesise the assignment to the initial value
 	(progn

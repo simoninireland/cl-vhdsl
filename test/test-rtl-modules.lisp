@@ -57,6 +57,24 @@
 		      :toplevel)))
 
 
+(test test-synthesise-module-late-init
+  "Test we can synthesise modules with late initialisation."
+  (rtl::clear-module-late-initialisation)
+
+  (is (rtl:synthesise '(rtl::module test ((clk :width 1 :direction :in)
+					  (a   :width 8 :direction :in)
+					  (b   :width 4 :direction :in)
+					  &key e (f 45))
+			(let ((x 0  :width 8)
+			      (a (make-array '(8) :initial-contents (:file "test.hex"))))
+			  (rtl::@ (rtl::posedge clk)
+				  (setf x (aref a 4)))))
+		      :toplevel))
+
+  ;; make sure synthesis cleared the late intiialisation queue
+  (is (not (rtl::module-late-initialisation-p))))
+
+
 ;; ---------- Module instanciation ----------
 
 (test test-module-instanciate

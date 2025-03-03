@@ -37,6 +37,42 @@
   (:documentation "The type of module interfaces."))
 
 
+;; ---------- Module late initialisation ----------
+
+(defvar *module-late-initialisation* nil
+  "List of functions that synthesise late intiialisation in modules.
+
+This is primarily for initialising arrays representing ROMs, where
+the conents are loaded from a file.")
+
+
+(defun clear-module-late-initialisation ()
+  "Clear the late initialisation functions."
+  (setq *module-late-initialisation* nil))
+
+
+(defun module-late-initialisation-p ()
+  "Test whether there is late initialisation to be done."
+  (not (null *module-late-initialisation*)))
+
+
+(defun add-module-late-initialisation (f)
+  "Add F to be run to synthesise late initialisation for the current module.
+
+Each function should take no arguments, and run the necessary synthesis code."
+  (appendf *module-late-initialisation* (list f)))
+
+
+(defun run-module-late-initialisation ()
+  "Run all the late synthesis functions.
+
+The late intiialisations are cleared once they have been run."
+  (dolist (f *module-late-initialisation*)
+    (funcall f))
+
+  (clear-module-late-initialisation))
+
+
 ;; ---------- Modules ----------
 
 (deftype direction ()
@@ -256,6 +292,14 @@ values can't be defined in terms of other parameter values."
     ;; body
     (with-indentation
 	(as-block-forms body :inmodule))
+
+    ;; late initialisationn (if any)
+    (when (module-late-initialisation-p)
+	(as-blank-line)
+	(as-literal "initial begin" :newline t)
+	(with-indentation
+	  (run-module-late-initialisation))
+	(as-literal "end" :newline t))
 
     (as-blank-line)
     (as-literal "endmodule // ")

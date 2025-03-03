@@ -62,6 +62,32 @@
 		      :inmodule)))
 
 
+(test test-synthesise-array-init-from-data
+  "Test we can synthesise array declarations with initial data inline."
+  (is (rtl:synthesise '(let ((b (make-array '(4) :element-width 8
+						 :initial-contents '(1 2 3 4))
+			      :as :register)
+			     (c 10))
+			(setf c (aref b 1)))
+		      :inmodule)))
+
+
+(test test-synthesise-array-init-from-file
+  "Test we can synthesise array declarations with initial data from a file."
+  (rtl::clear-module-late-initialisation)
+
+  (is (rtl:synthesise '(let ((b (make-array '(4) :element-width 8
+						 :initial-contents '(:file "ttt.hex"))
+			      :as :register)
+			     (c 10))
+			(setf c (aref b 1)))
+		      :inmodule))
+
+  (is (rtl::module-late-initialisation-p)))
+
+
+
+
 ;; ---------- Array accesses ----------
 
 (test test-aref-simple

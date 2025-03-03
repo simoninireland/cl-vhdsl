@@ -53,44 +53,6 @@ whose values are statically determinable."
     (signal 'shape-mismatch :expected shape
 			    :hint "Ensure initial contents have the right shape")))
 
-
-(defun read-array-data-from-stream (str &key (radix 16))
-  "Load array initialisation data from STR.
-
-By default the data is assumed to be in hex. This can be changed
-using the RADIX key: common radices are 10, 8, 16, and 2, but I suppose
-some applications might need others.
-
-The data is assumed to be unstructured -- or, more precisely, its shape
-is determined by the array declaration, not by the data.
-
-Return a list of the data values."
-  (labels ((read-array (str)
-	     "Read a sequence of numbers from STR."
-	     (multiple-value-bind (s eof)
-		 (read-line str :eof-error-p nil)
-	       (if s
-		   ;; we've got a string, parse it and continue
-		   (let* ((ss (words s))
-			  (ns (mapcar (lambda (n)
-					(parse-integer n :radix radix))
-				      ss)))
-		     (if eof
-			 ns
-			 (append ns (read-array str))))
-
-		   ;; end of file with no data
-		   nil))))
-
-    (read-array str)))
-
-
-(defun load-array-data-from-file (fn &key (radix 16))
-  "Read array data as integers in radix RADIX from FN."
-  (with-open-file (str fn)
-    (read-array-data-from-stream str :radix radix)))
-
-
 ;; ---------- Array construction ----------
 
 (defmacro unquote (place)
@@ -180,31 +142,32 @@ RTLisp, but don't /require/ it."
 (defun synthesise-array-init-from-data (data shape)
   "Return the initialisation of DATA with the given SHAPE."
   (as-list data :inexpression
-	   :before "{ " :after " }" :always t
+	   :before "{ " :after " }"
 	   :per-row 16))
 
 
-(defun synthesise-array-init (init shape)
-  "Parse the initial contents in INIT into an initialiser for SHAPE.
+(defun synthesise-array-init-from-file (n fn)
+  "Synthesise the code to load array data for N from a file FN.
 
-If INIT is a list of the form (:FILE FN) the data is read from file FN.
+Thi is implemented using a late initialisation function."
+  (flet ((initialise-array-from-file ()
+	   (as-literal "$readmemh(\"")
+	   (as-literal fn)
+	   (as-literal "\", ")
+	   (synthesise n :inexpression)
+	   (as-literal ");" :newline t)))
+    (add-module-late-initialisation #'initialise-array-from-file)))
+
+
+(defun synthesise-array-init (n v)
+  "Parse the initial contents of N as described by V.
+
+If the initial value is a list of the form (:FILE FN) the data is read from file FN.
 Otheriwse it is read as a literal list."
-  (if (listp init)
-      (cond ((eql (car init) :file)
-	     (let ((fn (cadr init)))
-	       (as-literal (format nil "// Initialised from ~a" fn) :newline t)
-	       (let ((ns (load-array-data-from-file fn :radix 16)))
-		 (synthesise-array-init-from-data ns shape))))
-
-	    (t
-	     (synthesise-array-init-from-data init shape)))))
-
-
-(defmethod synthesise-sexp ((fun (eql 'make-array)) args (context (eql :indeclaration)))
   (destructuring-bind (shape &key
 			       initial-element initial-contents
 			       element-width element-type)
-      args
+      (cdr v)
     ;; skip an initial quote, allowed for Lisp compatability
     (unquote shape)
     (unquote initial-contents)
@@ -214,13 +177,42 @@ Otheriwse it is read as a literal list."
     (synthesise (car shape) :inexpression)
     (as-literal " - 1 ]")
 
+    ;; intialisation data, if any
     (when initial-contents
-      (as-literal " = " :newline t)
-      (with-indentation
-	(synthesise-array-init initial-contents shape)))))
+      (if (listp initial-contents)
+	  (cond ((eql (car initial-contents) :file)
+		 ;; initialising from file
+		 (let ((fn (cadr initial-contents)))
+		   (synthesise-array-init-from-file n fn)))
 
-(defmethod synthesise-sexp ((fun (eql 'make-array)) args (context (eql :inexpression)))
-  (synthesise-sexp fun args :indeclaration))
+		(t
+		 ;; inline initial data
+		 (as-literal " = " :newline t)
+		 (with-indentation
+		   (synthesise-array-init-from-data initial-contents shape))))))))
+
+
+;; (defmethod synthesise-sexp ((fun (eql 'make-array)) args (context (eql :indeclaration)))
+;;   (destructuring-bind (shape &key
+;;			       initial-element initial-contents
+;;			       element-width element-type)
+;;       args
+;;     ;; skip an initial quote, allowed for Lisp compatability
+;;     (unquote shape)
+;;     (unquote initial-contents)
+
+;;     ;; 1d arrays only for now
+;;     (as-literal "[ 0 : ")
+;;     (synthesise (car shape) :inexpression)
+;;     (as-literal " - 1 ]")
+
+;;     (when initial-contents
+;;       (as-literal " = " :newline t)
+;;       (with-indentation
+;;	(synthesise-array-init initial-contents shape)))))
+
+;; (defmethod synthesise-sexp ((fun (eql 'make-array)) args (context (eql :inexpression)))
+;;   (synthesise-sexp fun args :indeclaration))
 
 
 ;; ---------- Array access ----------
