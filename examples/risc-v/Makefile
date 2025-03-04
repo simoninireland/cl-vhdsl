@@ -93,7 +93,12 @@ LD_OPTS = -T bram.ld -m elf32lriscv -nostdlib
 	$(AS) $(AS_OPTS) $*.s -o $*.o
 
 .o.hex:
-	$(OBJDUMP) -h $*.o | $(GREP) .text | $(SED) -e 's|\s\+|\t|g' -e 's|^\s\+||g'| $(AWK) '{print "$(DD) if=$*.o bs=1 count=$$((0x"$$3")) skip=$$((0x"$$6")) status=none";}' | $(BASH) | $(OD) -Anone -tx4 >$*.hex
+	$(OBJDUMP) -h $*.o | \
+	$(GREP) .text |\
+	$(SED) -e 's|\s\+|\t|g' -e 's|^\s\+||g'| \
+	$(AWK) '{print "$(DD) if=$*.o bs=1 count=$$((0x"$$3")) skip=$$((0x"$$6")) status=none";}' | \
+	$(BASH) | \
+	$(OD) -Anone -tx4 >$*.hex
 
 
 # ----- Usage -----
