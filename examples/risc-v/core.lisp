@@ -158,13 +158,13 @@
 								 (isJALR
 								  (+ rs1 Iimm))
 								 (t
-								  (+ PC 4)))
+								  (+ pc 4)))
 							   :width 32))
 
 					       (setq writeBackData (if (or isJAL isJALR)
 								       (+ pc 4)
 								       aluOut))
-					       (setq writeBackEn (and (= state 2)
+					       (setq writeBackEn (and (= state EXECUTE)
 								      (or isALUReg
 									  isALUImm
 									  isJAL
