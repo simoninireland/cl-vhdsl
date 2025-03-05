@@ -39,10 +39,14 @@ ASM_OBJECT = firmware.hex
 # Tools
 RM = rm -fr
 
+
 # ---------- Top-level targets ----------
 
 # Build the target bitstream
 $(TARGET): $(ASM_OBJECT) $(SOURCES) $(CONFIG)
+
+
+$(OBJECT): $(SOURCES)
 
 
 # Upload the target bitstream to the device
@@ -52,24 +56,12 @@ upload: $(TARGET)
 
 # Clean-up the build directory
 clean:
-	$(RM) $(GENERATED)
+	$(RM) $(GENERATED) $(OBJECT)
 
 
 # Print a help message
 help:
 	@make usage
-
-
-# ---------- Lisp to Verilog rules ----------
-
-LISP = sbcl
-
-LISP_OPTS =
-
-.SUFFIXES: .lisp .v
-
-.lisp.v:
-	$(LISP) $(LISP_OPTS) -o $*.v $(SOURCES)
 
 
 # ---------- Assembler rules ----------
@@ -86,6 +78,9 @@ OD = od
 
 AS_OPTS = -march=rv32i -mabi=ilp32 -mno-relax
 LD_OPTS = -T bram.ld -m elf32lriscv -nostdlib
+
+GENERATED_STEMS = $(foreach fn,$(ASM_SOURCES), $(shell basename $(fn) .s))
+GENERATED += $(foreach stem,$(GENERATED_STEMS),$(stem).o $(stem).hex)
 
 .SUFFIXES: .s .o .hex
 

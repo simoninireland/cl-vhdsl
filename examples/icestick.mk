@@ -25,7 +25,7 @@ FPGA_PACKAGE = tq144
 # ---------- Tools ----------
 
 # Tools
-VHDSLC = ../../bin/vhdslc
+VHDSLC = ../../../bin/vhdslc
 SYNTH = yosys
 PNR = nextpnr-ice40
 PACK = icepack
@@ -46,7 +46,7 @@ endif
 
 # Generated files
 GENERATED_STEMS = $(foreach fn,$(SOURCES), $(shell basename $(fn) .lisp))
-GENERATED = $(foreach stem,$(GENERATED_STEMS),$(stem).v $(stem).asc $(stem).bin $(stem).json)
+GENERATED += $(foreach stem,$(GENERATED_STEMS),$(stem).v $(stem).asc $(stem).bin $(stem).json)
 
 
 # ---------- Implicit rules ----------
