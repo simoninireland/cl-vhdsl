@@ -82,6 +82,7 @@
 
 
 (defmethod typecheck-sexp ((fun (eql 'bits)) args env)
+  (declare (optimize debug))
   (destructuring-bind (var start &key end width)
       args
     (let ((tyvar (typecheck var env)))

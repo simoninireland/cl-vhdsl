@@ -21,23 +21,34 @@
 (declaim (optimize debug))
 
 
+(defun make-static-environment-alist (env)
+  "Return a list of name/value pairs of the static elements of ENV.
+
+The pairs can be used in LET blocks, or as an alist."
+  (flet ((make-decl (n env)
+	   `(,n ,(get-environment-property n :initial-value env))))
+
+    (map-environment #'make-decl
+		     (filter-environment (lambda (n env)
+					   (eql (get-representation n env)
+						:parameter))
+					 env))))
+
+
 (defun close-form-in-environment (form env)
   "Close the RTLisp FORM as a Lisp term in the environment ENV.
 
 Each declaration in ENV is converted into a LET declaration with the
 same name and initial value. FORM is then Lispified and placed as the
 body of this LET form."
-  (labels ((make-decl (n env)
-	     `(,n ,(get-environment-property n :initial-value env)))
+  (let ((lispform (lispify form env)))
+    (if (null env)
+	lispform
 
-	   (make-env (env)
-	     (map-environment #'make-decl env)))
-
-    (let ((lispform (lispify form env))
-	  (ns (map-environment (lambda (n env) n) env)))
-      (if (null env)
-	  lispform
-	  `(let ,(make-env env)
+	;; expand the static enviroment and close over it
+	(let* ((ext (make-static-environment-alist env))
+	       (ns (alist-keys ext)))
+	  `(let ,ext
 	     (declare (ignorable ,@ns))
 	     ,lispform)))))
 

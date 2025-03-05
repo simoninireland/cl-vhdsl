@@ -45,15 +45,15 @@ If omitted, WIDTH is assumed to be *."
 (defun fixed-width-p (ty)
   "Test whether TY is a fixed-width type."
   (and (not (null ty))
-       (or (subtypep ty '(fixed-width-signed *))
-	   (subtypep ty '(fixed-width-unsigned *)))))
+       (or (subtypep ty 'fixed-width-signed)
+	   (subtypep ty 'fixed-width-unsigned))))
 
 
 (defun fixed-width-signed-p (ty)
   "Test whether TY is a signed fixed-width type."
   (and (not (null ty))
-       (subtypep ty '(fixed-width-signed *))
-       (not (subtypep ty '(fixed-width-unsigned *)))))
+       (subtypep ty 'fixed-width-signed)
+       (not (subtypep ty 'fixed-width-unsigned))))
 
 
 (defun ensure-fixed-width (ty)
@@ -62,6 +62,25 @@ If omitted, WIDTH is assumed to be *."
     (error 'type-mismatch :expected '(fixed-width-unsigned
 				      fixed-width-signed)
 			  :got ty)))
+
+
+(defmethod expand-type-parameters ((ty (eql 'fixed-width-unsigned)) args env)
+  (if (null args)
+      ty
+      (let ((bounds (car args)))
+	(if (eql bounds '*)
+	    '(fixed-width-unsigned *)
+	    `(fixed-width-unsigned ,(eval-in-static-environment bounds env))))))
+
+
+(defmethod expand-type-parameters ((ty (eql 'fixed-width-signed)) args env)
+  (if (null args)
+      ty
+      (let ((bounds (car args)))
+	(if (eql bounds '*)
+	    '(fixed-width-usigned *)
+	    `(fixed-width-signed ,(eval-in-static-environment bounds env))))))
+
 
 
 ;; ---------- Widening and least upper-bound ----------

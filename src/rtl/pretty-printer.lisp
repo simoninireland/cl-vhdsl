@@ -198,6 +198,7 @@ PER-ROW, if set, generates a newline after that number of elements."
 
 (defun as-block (args context &key before after
 				always
+				(indent t)
 				(sep "")
 				(process #'synthesise))
   "Output ARGS in CONTEXT within a block."
@@ -209,8 +210,11 @@ PER-ROW, if set, generates a newline after that number of elements."
       (as-literal before :newline t))
 
     ;; arguments
-    (with-indentation
-      (as-block-forms args context :sep sep :process process))
+    (if indent
+	(with-indentation
+	  (as-block-forms args context :sep sep :process process))
+
+	(as-block-forms args context :sep sep :process process))
 
     ;; trailing bracket
     (when (and after

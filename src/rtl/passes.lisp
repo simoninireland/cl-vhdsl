@@ -63,6 +63,15 @@ form."
   (car *current-form-queue*))
 
 
+;; ---------- Type parameter expansion ----------
+
+(defgeneric expand-type-parameters (ty args env)
+  (:documentation "Expand any parameters in the type TY with the given ARGS.
+
+This expands constants that appear within type declarations,
+which always need to be statically constant."))
+
+
 ;; ---------- Variable shadowing ----------
 
 ;; For now we disallow shadowing variables in nested scopes
@@ -129,6 +138,25 @@ method to change this behaviour.")
 	    `(,fun ,@args))))
 
 
+;; ---------- Constant folding ----------
+
+(defgeneric fold-constant-expressions (form)
+  (:documentation "Fold constants in expressions in FORM.")
+  (:method (form)
+    form)
+  (:method ((form list))
+    (destructuring-bind (fun &rest args)
+	form
+      (fold-constant-expressions-sexp fun args))))
+
+
+(defgeneric fold-constant-expressions-sexp (fun args)
+  (:documentation "Fold constant expressions in FUN applied to ARGS.")
+  (:method (fun args)
+    (cons fun (mapcar #'fold-constant-expressions args))))
+
+
+
 ;; ---------- Type and width checking ----------
 
 (defgeneric typecheck (form env)
@@ -138,7 +166,7 @@ method to change this behaviour.")
 	  (args (cdr form)))
       (with-rtl-errors-not-synthesisable
 	(with-current-form (cons fun args)
-	    (typecheck-sexp fun args env))))))
+	  (typecheck-sexp fun args env))))))
 
 
 ;; Wrap an error catcher around the function to convert parsing

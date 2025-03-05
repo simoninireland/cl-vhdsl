@@ -124,25 +124,22 @@ be interpolated."
   "Type-check a module parameter declaration DECL in ENV.
 
 The value of the parameter, if provided, is evaluated as a Lisp
-expression in the current Lisp environment. This means that parameter
-values can't be defined in terms of other parameter values."
+expression in the current Lisp environment, *not* in RTLisp's
+environment. This means that parameter values can't be defined in terms
+of other parameter values."
+  (declare (optimize debug))
   (if (listp decl)
       ;; standard declaration
       (destructuring-bind (n v)
 	  decl
 
-	(let ((ty (typecheck v env))
-	      (val (eval v))) ;; this might need to change to
-	  ;; make sure the environment makes
-	  ;; sense
+	(let ((val (eval v)))
 	  (extend-environment n `((:initial-value ,val)
-				  (:type ,ty)
 				  (:as :parameter))
 			      env)))
 
       ;; naked paramater
       (extend-environment decl `((:initial-value 0)
-				 (:type (fixed-width-unsigned 1))
 				 (:as :parameter))
 			  env)))
 
@@ -186,6 +183,7 @@ values can't be defined in terms of other parameter values."
 
 
 (defmethod typecheck-sexp ((fun (eql 'module)) args env)
+  (declare (optimize debug))
   (destructuring-bind (modname decls &rest body)
       args
 

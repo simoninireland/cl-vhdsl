@@ -51,8 +51,34 @@ plus the number of other arguments."
 	  `(fixed-width-unsigned ,w)))))
 
 
+(defun fold-constant-expressions-addition (fun args)
+  "Fold expressions in addition operator FUN applied to ARGS."
+  (labels ((fold-constants (total l)
+	     (if (null l)
+		 (list total '())
+		 (let ((v (car l)))
+		   (if (integerp v)
+		       (let ((s (apply fun (list v total))))
+			 (fold-constants s (cdr l)))
+		       (destructuring-bind (ct cl)
+			   (fold-constants total (cdr l))
+			 (list ct (cons v cl))))))))
+
+    (destructuring-bind (total remaining)
+	(fold-constants 0 args)
+      (if (null remaining)
+	  total
+	  (if (= total 0)
+	      `(,fun ,@remaining)
+	      `(,fun ,total ,@remaining ))))))
+
+
 (defmethod typecheck-sexp ((fun (eql '+)) args env)
   (typecheck-addition args env))
+
+
+(defmethod fold-constant-expressions-sexp ((fun (eql '+)) args)
+  (fold-constant-expressions-addition '+args))
 
 
 (defmethod synthesise-sexp ((fun (eql '+)) args (context (eql :inexpression)))
@@ -70,6 +96,10 @@ plus the number of other arguments."
   ;; we force subtractions to be signed
   (let ((ty (typecheck-addition args env)))
     `(fixed-width-signed ,(bitwidth ty env))))
+
+
+(defmethod fold-constant-expressions-sexp ((fun (eql '-)) args)
+  (fold-constant-expressions-addition '- args))
 
 
 (defmethod synthesise-sexp ((fun (eql '-)) args (context (eql :inexpression)))
@@ -120,6 +150,15 @@ plus the number of other arguments."
 				 (1- (ash 1 (bitwidth tyoffset env))))))))
 
 
+(defmethod fold-constant-expressions-sexp ((fun (eql '<<)) args)
+  (destructuring-bind (val offset)
+      args
+    (if (and (integerp val)
+	     (integerp offset))
+	(ash val offset)
+	`('<< ,val ,offset))))
+
+
 (defmethod synthesise-sexp ((fun (eql '<<)) args (context (eql :inexpression)))
   (destructuring-bind (val offset)
       args
@@ -147,6 +186,15 @@ plus the number of other arguments."
       ;; maximum number that can be in the offset
       `(fixed-width-unsigned ,(- (bitwidth tyval env)
 				 (1- (ash 1 (bitwidth tyoffset env))))))))
+
+
+(defmethod fold-constant-expressions-sexp ((fun (eql '>>)) args)
+  (destructuring-bind (val offset)
+      args
+    (if (and (integerp val)
+	     (integerp offset))
+	(ash val (- offset))
+	`('<< ,val ,offset))))
 
 
 (defmethod synthesise-sexp ((fun (eql '>>)) args (context (eql :inexpression)))
@@ -178,6 +226,10 @@ plus the number of other arguments."
   (typecheck-bitwise-operator args env))
 
 
+(defmethod fold-constant-expressions-sexp ((fun (eql 'logand)) args)
+  (fold-constant-expressions-addition 'logand args))
+
+
 (defmethod synthesise-sexp ((fun (eql 'logand)) args (context (eql :inexpression)))
   (as-infix '& args))
 
@@ -186,12 +238,20 @@ plus the number of other arguments."
   (typecheck-bitwise-operator args env))
 
 
+(defmethod fold-constant-expressions-sexp ((fun (eql 'logior)) args)
+  (fold-constant-expressions-addition 'logior args))
+
+
 (defmethod synthesise-sexp ((fun (eql 'logior)) args (context (eql :inexpression)))
   (as-infix '|\|| args))
 
 
 (defmethod typecheck-sexp ((fun (eql 'logxor)) args env)
   (typecheck-bitwise-operator args env))
+
+
+(defmethod fold-constant-expressions-sexp ((fun (eql 'logxor)) args)
+  (fold-constant-expressions-addition 'logxor args))
 
 
 (defmethod synthesise-sexp ((fun (eql 'logxor)) args (context (eql :inexpression)))

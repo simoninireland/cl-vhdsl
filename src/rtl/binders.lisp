@@ -33,7 +33,8 @@
 
 (defun width-can-store-p (w ty env)
   "Test whether W bits can accommodate the values of TY in ENV."
-  (>= w (bitwidth ty env)))
+  (>= (eval-in-static-environment w env)
+      (eval-in-static-environment (bitwidth ty env) env)))
 
 
 (defun ensure-width-can-store (w ty env)
@@ -69,43 +70,89 @@ Signal VALUE-MISMATCH as an error if not."
       decl))
 
 
+(defun add-to-decl (decl k v)
+  "Add the key/value pair K and V destructively to DECL.
+
+This updates the code to include the new values, and is used
+(amongst other things) to add inferred widths of variables as
+:WIDTH declarations."
+  (declare (optimize debug))
+  (let ((e (last decl)))
+    (setf (cdr e) (list k v))))
+
+
 (defun typecheck-decl (env decl)
   "Typecheck DECL in ENV, returning ENV extended by DECL."
+  (declare (optimize debug))
   (with-current-form decl
-      (if (listp decl)
-	  ;; full declaration
-	  (destructuring-bind (n v &key width type (as :register))
-	      decl
-	    (ensure-representation as)
+    (if (listp decl)
+	;; full declaration
+	(destructuring-bind (n v &key width type (as :register))
+	    decl
+	  (ensure-representation as)
 
-	    (let ((ty (typecheck v env)))
-	      (if type
-		  ;; if a type is provided, make sure the initial
-		  ;; value fits in it and then use that as the type
-		  ;; for the binding
-		  (progn
-		    (ensure-subtype ty type)
-		    (setq ty type)))
+	  ;; expand any type and width
+	  (if type
+	      (setq type (expand-type-parameters (car type) (cdr type) env)))
+	  (if width
+	      (setq width (eval-in-static-environment width env)))
 
-	      (if width
-		  (let ((w (eval-in-static-environment width env)))
-		    ;; if a width is provided, make sure it's enough to
-		    ;; accommodate the type
-		    (ensure-width-can-store w ty env)
+	  ;; a decl may come with zero, one, or both of a type, and width
+	  (let* ((tyv (typecheck v env))
+		 (inferred-type (or type
+				    tyv))
+		 (inferred-width (or width
+				     (if (normal-value-p v)
+					 (bitwidth inferred-type env)))))
 
-		    ;; widen the type to match the width
-		    (setq ty (widen-fixed-width ty w))))
+	    ;; sanity checks
+	    (cond ((and (null type)
+			(null width))
+		   ;; make the inferred type and width match
+		   (when inferred-width
+		     (unless (= inferred-width
+				(bitwidth inferred-type env))
+		       (error 'width-mismatch :expected inferred-width :got (bitwidth inferred-type env)
+					      :hint "Make sure stated width and type match."))
 
-	      (extend-environment n `((:initial-value ,v)
-				      (:type ,ty)
-				      ,(if width
-					   `(:width ,width))
-				      ;;(:width ,width)
-				      (:as ,as))
-				  env)))
+		     ;; make them equal
+		     (setq inferred-type `(fixed-width-unsigned ,inferred-width))
+		     (add-to-decl decl :width inferred-width)
+		     (signal 'width-inferred :variable n :inferred inferred-width)
+		     (add-to-decl decl :type inferred-type)))
 
-	  ;; otherwise we have a naked name, so apply the defaults
-	  (typecheck-decl env `(,decl 0 :width ,*default-register-width* :as :register)))))
+		  ((null type)
+		   ;; ensure the width can accommdate the inferred type
+		   (ensure-width-can-store width
+					   inferred-type
+					   env)
+		   (setq inferred-type `(fixed-width-unsigned ,inferred-width))
+		   (add-to-decl decl :type inferred-type))
+
+		  ((null width)
+		   ;; match the inferred width to the known type
+		   (ensure-width-can-store inferred-width
+					   inferred-type
+					   env)
+		   (add-to-decl decl :width inferred-width)
+		   (signal 'width-inferred :variable n :inferred inferred-width))
+
+		  (t
+		   ;; ensure the type and width match
+		   (unless (= (eval-in-static-environment width env)
+			      (eval-in-static-environment (bitwidth type env) env))
+		     (error 'width-mismatch :expected width :got (bitwidth type env)
+					    :hint "Make sure stated width and type match."))))
+
+	    (extend-environment n `((:initial-value ,v)
+				    (:type ,inferred-type)
+				    ,(if inferred-width
+					 `(:width ,inferred-width))
+				    (:as ,as))
+				env)))
+
+	;; otherwise we have a naked name, so apply the defaults
+	(typecheck-decl env `(,decl 0 :width ,*default-register-width* :as :register)))))
 
 
 (defun typecheck-env (decls env)
@@ -120,11 +167,18 @@ Signal VALUE-MISMATCH as an error if not."
       (mapn (rcurry #'typecheck ext) body))))
 
 
+(defun rewrite-variables-keys (kvs rewrite)
+  "Rewrite variables in the values of the key/value pairs KVS using REWRITE."
+  (flet ((rewrite-key-value (l kv)
+	   (append l (list (car kv) (rewrite-variables (cadr kv) rewrite)))))
+    (foldr #'rewrite-key-value (adjacent-pairs kvs) '())))
+
+
 (defun rewrite-variables-decl (decl rewrite)
   "Re-write the values of DECL using REWRITE."
   (destructuring-bind (n v &rest keys)
       decl
-    `(,n ,(rewrite-variables v rewrite) ,@keys)))
+    `(,n ,(rewrite-variables v rewrite) ,(rewrite-variables-keys keys rewrite))))
 
 
 (defmethod rewrite-variables-sexp ((fun (eql 'let)) args rewrite)
@@ -179,54 +233,6 @@ Signal VALUE-MISMATCH as an error if not."
       `(let ,newdecls
 	 ,newbody))))
 
-
-;; These two functions should only re-write non-constant initial values
-
-;; (defun float-let-blocks-decl (decl)
-;;   "Generate the declaration part for DECL."
-;;   (destructuring-bind (n v &rest keys)
-;;       decl
-;;     `(,n ,(if (or (array-value-p v)
-;;		  (module-value-p v))
-;;	      ;; array initialisers are retained
-;;	      v
-
-;;	      ;; non-arrays, check for constant
-;;	      (let ((sv (eval-if-static v (empty-environment)))) ; this is too strong
-;;		(or sv 0)))
-;;	 ,@keys)))
-
-
-;; (defun float-let-blocks-init (decl)
-;;   "Generate a SETF to set DECL an appropriate initial value.
-
-;; This is only required if DECL's value is not an array, not a constant,
-;; and where there is a sensible initialiser."
-;;   (destructuring-bind (n v &key &allow-other-keys)
-;;       decl
-
-;;     (if (and (not (or (array-value-p v)
-;;		      (module-value-p v)))
-;;	     (null (eval-if-static v (empty-environment))))
-;;	`(setq ,n ,v))))
-
-
-;; (defmethod float-let-blocks-sexp ((fun (eql 'let)) args)
-;;   (destructuring-bind (decls &rest body)
-;;       args
-
-;;     ;; turn initial values into assignments
-;;     (let ((basedecls (remove-nulls (mapcar #'float-let-blocks-decl decls)))
-;;	  (assignments (remove-nulls (mapcar #'float-let-blocks-init decls))))
-;;       ;; extract the body and decls of the body
-;;       (destructuring-bind (newbody newdecls)
-;;	  (float-let-blocks `(progn ,@assignments ,@body))
-
-;;	;; return the re-written body and decls
-;;	(list newbody
-;;	      (append basedecls newdecls))))))
-
-;; Simplified floating, keeping the initial values -- which I think is fine
 
 (defmethod float-let-blocks-sexp ((fun (eql 'let)) args)
   (destructuring-bind (decls &rest body)
@@ -286,6 +292,22 @@ by LET and MODULE forms."
   "Test whether FORM is a module constructor."
   (and (listp form)
        (eql (car form) 'make-instance)))
+
+
+(defun special-value-p (form)
+  "Test wether FORM denotes a special value.
+
+Special values are things like array constructors and mdule instanciations."
+  (or (array-value-p form)
+      (module-value-p form)))
+
+
+(defun normal-value-p (form)
+  "Test whether FORM denotes a ormal value.
+
+Normal values are those that are not special in the sense of
+SPECIAL-VALUE-P. Specifically, normal values have a bit-width."
+  (not (special-value-p form)))
 
 
 (defun synthesise-register (decl context)

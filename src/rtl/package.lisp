@@ -102,5 +102,6 @@
    #:shape-mismatch
    #:state-machine-mismatch
    #:width-mismatch
+   #:width-inferred
    #:representation-mismatch
    ))
