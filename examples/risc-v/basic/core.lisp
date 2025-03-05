@@ -50,16 +50,16 @@
     (setq leds-out leds)
 
     ;; instruction decoding
-    (let-wires ((isALUreg (= (bits instr 7) #2r0110011) :width 1)
-		(isALUimm (= (bits instr 7) #2r0010011) :width 1)
-		(isBranch (= (bits instr 7) #2r1100011) :width 1)
-		(isJALR   (= (bits instr 7) #2r1100111) :width 1)
-		(isJAL    (= (bits instr 7) #2r1101111) :width 1)
-		(isAIUPC  (= (bits instr 7) #2r0010111) :width 1)
-		(isLUT    (= (bits instr 7) #2r0110111) :width 1)
-		(isLoad   (= (bits instr 7) #2r0000011) :width 1)
-		(isStore  (= (bits instr 7) #2r0100011) :width 1)
-		(isSystem (= (bits instr 7) #2r1110011) :width 1)
+    (let-wires ((isALUreg (= (bits instr 6) #2r0110011) :width 1)
+		(isALUimm (= (bits instr 6) #2r0010011) :width 1)
+		(isBranch (= (bits instr 6) #2r1100011) :width 1)
+		(isJALR   (= (bits instr 6) #2r1100111) :width 1)
+		(isJAL    (= (bits instr 6) #2r1101111) :width 1)
+		(isAIUPC  (= (bits instr 6) #2r0010111) :width 1)
+		(isLUT    (= (bits instr 6) #2r0110111) :width 1)
+		(isLoad   (= (bits instr 6) #2r0000011) :width 1)
+		(isStore  (= (bits instr 6) #2r0100011) :width 1)
+		(isSystem (= (bits instr 6) #2r1110011) :width 1)
 
 		;; intermediate formats
 		(Uimm (make-bitfields (bit instr 31)
