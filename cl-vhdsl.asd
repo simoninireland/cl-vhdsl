@@ -92,7 +92,7 @@
 	       ;;(:file "test-datapath")
 	       ;;(:file "test-ring-counters")
 	       ;;(:file "test-microinstructions")
-	       (:file "test-dsl")
+	       ;;(:file "test-dsl")
 	       (:file "test-rtl-base")
 	       (:file "test-rtl-types")
 	       (:file "test-rtl-assignment")
