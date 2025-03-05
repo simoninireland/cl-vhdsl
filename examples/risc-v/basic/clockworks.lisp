@@ -18,7 +18,7 @@
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 (in-package :cl-vhdsl/examples/risc-v/basic)
-(declaim (optimize debug))
+
 
 (defmodule clockworks ((clk-in :width 1 :direction :in)
 		       (reset-in :width 1 :direction :in)
