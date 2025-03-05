@@ -19,7 +19,6 @@
 
 (in-package :cl-vhdsl/test)
 (in-suite cl-vhdsl/rtl)
-(declaim (optimize debug))
 
 
 ;; ---------- Macros imported from Common Lisp unchanged ----------

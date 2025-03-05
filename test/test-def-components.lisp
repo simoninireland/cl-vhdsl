@@ -19,7 +19,6 @@
 
 (in-package :cl-vhdsl/test)
 (in-suite cl-vhdsl/def)
-(declaim (optimize debug))
 
 
 ;; ---------- Components and mixins ----------

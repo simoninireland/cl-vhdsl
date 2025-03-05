@@ -19,7 +19,6 @@
 
 (in-package :cl-vhdsl/test)
 (in-suite cl-vhdsl/rtl)
-(declaim (optimize debug))
 
 
 ;; ---------- Module definition ----------
@@ -43,7 +42,7 @@
 		   emptyenv)))
 
 
-(test test-synthesise-module
+(test test-synthesise-moduletest
   "Test we can syntheise a module with a variety of features."
   (is (rtl:synthesise '(rtl::module test ((clk :width 1 :direction :in)
 					  (a   :width 8 :direction :in)

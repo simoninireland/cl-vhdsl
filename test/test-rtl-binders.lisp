@@ -19,7 +19,6 @@
 
 (in-package :cl-vhdsl/test)
 (in-suite cl-vhdsl/rtl)
-(declaim (optimize debug))
 
 
 (test test-let-single
@@ -69,6 +68,22 @@
 				 (+ 1 a))
 			       emptyenv)
 		'(rtl::fixed-width-unsigned 9))))
+
+
+(test test-let-missing-width
+  "Test we annotate the code with an inferred width."
+  (let ((p '(let ((a 5))
+	      (+ 1 a))))
+    (signals (rtl:width-inferred)
+      (rtl:typecheck p emptyenv))))
+
+
+(test test-let-missing-width-type-conflicts
+  "Test we pick up an inferred width conflicting with a set type"
+  (signals (rtl:type-mismatch)
+    (rtl:typecheck '(let ((a 5))
+		     (setq a 16))
+		   emptyenv)))
 
 
 (test test-let-scope
