@@ -46,7 +46,7 @@
 
 
 (defmethod synthesise-sexp ((fun (eql 'progn)) args (context (eql :inblock)))
-  (as-block args :inblock))
+  (as-block args :inblock :indent nil))
 
 (defmethod synthesise-sexp ((fun (eql 'progn)) args (context (eql :inmodule)))
   (synthesise-sexp fun args :inblock))

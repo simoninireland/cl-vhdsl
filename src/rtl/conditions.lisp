@@ -254,8 +254,7 @@ This is usually caused by non-consecutive uses of variables in the pattern."))
     :initarg :expected
     :reader shape))
   (:report (lambda (c str)
-	     (format-condition-context (format nil "Data doesn't match shape~a: ~a"
-					       (format-hint c)
+	     (format-condition-context (format nil "Data doesn't match shape ~a"
 					       (shape c))
 				       c str)))
   (:documentation "Condition signalled when data has the wrong shape.
@@ -298,6 +297,28 @@ NEXT macro) that isn;t defined in the surrounding state machine."))
 
 This can be a hard error or just a warning, and is caused by trying to assign
 a value to a variable that is too narrow to accept it completely."))
+
+
+(define-condition width-inferred (rtl-condition)
+  ((var
+    :documentation "The variable."
+    :initarg :variable
+    :reader inferred-variable)
+   (inferred
+    :documentation "The width inferred."
+    :initarg :inferred
+    :reader inferred-value))
+  (:report (lambda (c str)
+	     (format-condition-context (format nil "Inferred ~a to have width ~a"
+					       (inferred variable c)
+					       (inferred-value c))
+				       c str)))
+  (:documentation "Condition signalled when a width is inferred.
+
+This is almost always a warning, signalled when the compiler infers the
+width of a variable that doesn't have an explicit width provided. If may
+cause downstream errors if the inferred width is incorrect, but that will
+only happen when thewidths are being used inconsistently."))
 
 
 (define-condition representation-mismatch (rtl-condition)

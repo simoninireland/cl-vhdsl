@@ -132,8 +132,7 @@ The type is the lub of the clause types."
     (synthesise condition :inexpression)
     (as-literal ")" :newline t)
 
-    (with-indentation
-      (as-block clauses :inblock :process #'synthesise-clause))
+    (as-block clauses :inblock :process #'synthesise-clause)
 
     (as-literal "endcase" :newline t)))
 
