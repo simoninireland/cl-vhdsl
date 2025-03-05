@@ -331,7 +331,7 @@ the wire is left un-driven."
     (synthesise n :indeclaration)
     (if (array-value-p v)
 	;; synthesise the array constructor
-	(synthesise v :indeclaration)
+	(synthesise-array-init n v)
 
 	;; synthesise the assignment to the initial value
 	(if (static-constant-p v nil)

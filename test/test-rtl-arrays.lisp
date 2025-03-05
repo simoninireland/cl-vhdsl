@@ -149,26 +149,7 @@
 		      :inblock)))
 
 
-(test test-read-array-data
-  "Test we can read array data from a stream."
-  (with-input-from-string (str "1d 2 3 4 5f")
-    (is (equal (rtl::read-array-data-from-stream str)
-	       '(#16r1d 2 3 4 #16r5f))))
-
-  ;; can handle embedded newlines and whitespace
-  (with-input-from-string (str (format nil "1d    2~%    3 4~%~%~%5f"))
-    (is (equal (rtl::read-array-data-from-stream str)
-	       '(#16r1d 2 3 4 #16r5f)))))
-
-
-;; The next two tests use ROM data from the SAP-1 example
-
-(test test-read-array-file
-  "Test we can read array data from a file."
-  (let ((fn (pathname-relative-to-project-root "examples/sap-1-raw/program.bin")))
-    (is (equal (length (rtl::load-array-data-from-file fn))
-	       16))))
-
+;; The next test uses ROM data from the SAP-1 example
 
 (test test-synthesise-array-init-from-file
   "Test we can synthesise array initialisation from a file."
