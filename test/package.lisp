@@ -29,9 +29,9 @@
 (in-package :cl-vhdsl/test)
 
 (def-suite cl-vhdsl)       ;; utilities
-(def-suite cl-vhdsl/dsl)   ;; DSL definition
+;;(def-suite cl-vhdsl/dsl)   ;; DSL definition
 (def-suite cl-vhdsl/rtl)   ;; synthesisable fragment
-;;(def-suite cl-vhdsl/def)   ;; architectural component definitions
+(def-suite cl-vhdsl/def)   ;; architectural component definitions
 
 
 ;; ---------- File access relative to the project root ----------
