@@ -76,9 +76,8 @@ Signal VALUE-MISMATCH as an error if not."
 This updates the code to include the new values, and is used
 (amongst other things) to add inferred widths of variables as
 :WIDTH declarations."
-  (declare (optimize debug))
-  (let ((e (last decl)))
-    (setf (cdr e) (list k v))))
+  (let ((e (last decl 2)))
+    (setf (cdr e) (list (cadr e) k v))))
 
 
 (defun typecheck-decl (env decl)
@@ -91,17 +90,13 @@ This updates the code to include the new values, and is used
 	    decl
 	  (ensure-representation as)
 
-	  ;; expand any type and width
-	  (if type
-	      (setq type (expand-type-parameters (car type) (cdr type) env)))
-	  (if width
-	      (setq width (eval-in-static-environment width env)))
-
 	  ;; a decl may come with zero, one, or both of a type, and width
 	  (let* ((tyv (typecheck v env))
-		 (inferred-type (or type
+		 (inferred-type (if type
+				    (expand-type-parameters (car type) (cdr type) env)
 				    tyv))
-		 (inferred-width (or width
+		 (inferred-width (if width
+				     (eval-in-static-environment width env)
 				     (if (normal-value-p v)
 					 (bitwidth inferred-type env)))))
 
@@ -123,7 +118,7 @@ This updates the code to include the new values, and is used
 
 		  ((null type)
 		   ;; ensure the width can accommdate the inferred type
-		   (ensure-width-can-store width
+		   (ensure-width-can-store inferred-width
 					   inferred-type
 					   env)
 		   (setq inferred-type `(fixed-width-unsigned ,inferred-width))
@@ -139,9 +134,9 @@ This updates the code to include the new values, and is used
 
 		  (t
 		   ;; ensure the type and width match
-		   (unless (= (eval-in-static-environment width env)
-			      (eval-in-static-environment (bitwidth type env) env))
-		     (error 'width-mismatch :expected width :got (bitwidth type env)
+		   (unless (= (eval-in-static-environment inferred-width env)
+			      (eval-in-static-environment (bitwidth inferred-type env) env))
+		     (error 'width-mismatch :expected inferred-width :got (bitwidth inferred-type env)
 					    :hint "Make sure stated width and type match."))))
 
 	    (extend-environment n `((:initial-value ,v)
