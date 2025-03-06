@@ -78,8 +78,17 @@ RUN_SPHINX_HTML = $(CHDIR) doc && make html
 help:
 	@make usage
 
+# Run test suite
+.PHONY: test
+test:
+	$(LISP) $(LISPOPTS) \
+	--eval "(push (truename #p\"$(ROOT)\") asdf:*central-registry*)" \
+	--eval "(asdf:test-system :cl-vhdsl)" \
+	--eval "(quit)"
+
 # Build the output binaries
-bin: $(BINARIES)
+.PHONY: bin
+bin:
 	$(MKDIR) $(BINARIES_BUILD_DIR)
 	$(LISP) $(LISPOPTS) \
 	--eval "(push (truename #p\"$(ROOT)\") asdf:*central-registry*)" \
@@ -87,12 +96,10 @@ bin: $(BINARIES)
 	--eval "(quit)"
 
 # Build the API documentation using Sphinx
-.PHONY: doc
 doc: env $(SOURCES_ASDF) $(SOURCES_DOC) $(SOURCES_DOC_CONF)
 	$(ACTIVATE) && $(RUN_SPHINX_HTML)
 
 # Build a documentation Python venv
-.PHONY: env
 env: $(VENV)
 
 $(VENV):
@@ -125,12 +132,6 @@ clean:
 # Clean up everything, including the documentation venv
 reallyclean: clean
 	$(RM) $(VENV)
-
-
-# ----- Dependencies -----
-
-vhdslc:
-	$(ASDF-MAKE)
 
 
 # ----- Generated files -----
