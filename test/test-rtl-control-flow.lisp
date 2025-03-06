@@ -55,11 +55,11 @@
 
 (test test-typecheck-at-wide
   "Test we can detect too many wires in sensitivity."
-  (signals (rtl:type-mismatch)
+  (signals (rtl:width-mismatch)
     (rtl:typecheck '(let ((clk 0 :width 4 :as :wire)
-			  (a 0))
+			  (a 0 :width 2))
 		     (rtl::@ ((rtl::posedge clk))
-		      (setf a 1)))
+		      (setf a (+ clk 2))))
 		   emptyenv)))
 
 

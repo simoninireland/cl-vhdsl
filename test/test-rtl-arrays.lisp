@@ -19,6 +19,7 @@
 
 (in-package :cl-vhdsl/test)
 (in-suite cl-vhdsl/rtl)
+(declaim (optimize (size 0)))
 
 
 ;; ---------- Array declarations ----------
