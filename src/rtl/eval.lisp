@@ -24,14 +24,18 @@
 (defun make-static-environment-alist (env)
   "Return a list of name/value pairs of the static elements of ENV.
 
+Static elements are those declared as parameters to modules, or
+as constants.
+
 The pairs can be used in LET blocks, or as an alist."
   (flet ((make-decl (n env)
 	   `(,n ,(get-environment-property n :initial-value env))))
 
     (map-environment #'make-decl
 		     (filter-environment (lambda (n env)
-					   (eql (get-representation n env)
-						:parameter))
+					   (member (get-representation n env)
+						   '(:parameter :constant)
+						   :test #'eql))
 					 env))))
 
 
@@ -49,7 +53,7 @@ body of this LET form."
 	(let* ((ext (make-static-environment-alist env))
 	       (ns (alist-keys ext)))
 	  `(let ,ext
-	     (declare (ignorable ,@ns))
+	     (declare (ignorable ,@ns))  ;; don't warn about un-used variables
 	     ,lispform)))))
 
 
