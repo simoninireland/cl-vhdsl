@@ -58,8 +58,11 @@ plus the number of other arguments."
 		 (list total '())
 		 (let ((v (car l)))
 		   (if (integerp v)
+		       ;; fold-in the constant, reduce the rest
 		       (let ((s (apply fun (list v total))))
 			 (fold-constants s (cdr l)))
+
+		       ;; reduce the rest with the non-constant on the front
 		       (destructuring-bind (ct cl)
 			   (fold-constants total (cdr l))
 			 (list ct (cons v cl))))))))
