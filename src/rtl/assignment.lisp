@@ -132,11 +132,11 @@ The default is for a form /not/ to be a generalised place.")
 (defmethod typecheck-sexp-setf ((selector symbol) val selectorargs env &key sync)
   (let* ((place `(,selector ,@selectorargs))
 	 (tyvar (typecheck place env))
-	(tyval (typecheck val env)))
+	 (tyval (typecheck val env)))
     (ensure-subtype tyval tyvar)
     (ensure-generalised-place place env)
 
-    tyval))
+    tyvar))
 
 
 (defmethod synthesise-sexp ((fun (eql 'setf)) args (context (eql :inblock)))

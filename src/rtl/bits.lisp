@@ -61,7 +61,9 @@
 	  (progn
 	    (setq end (1+ (- start width)))
 	    (if (< end 0)
-		(error 'not-synthesisable :hint "Width greater than the number of remaining bits")
+		(error 'width-mismatch :expected 0
+				       :got end
+				       :hint "Width greater than the number of remaining bits")
 		end))
 
 	  ;; default is to the end of the pattern
@@ -70,7 +72,9 @@
       (if width
 	  ;; if both are set, width and end must agree
 	  (if (/= width (1+ (- start end)))
-	      (error 'not-synthesisable :hint "Explicit width does not agree with start and end positions")
+	      (error 'width-mismatch :expected (1+ (- start end))
+				     :gopt width
+				     :hint "Explicit width does not agree with start and end positions")
 	      end)
 
 	  ;; otherwise just use the given end
@@ -82,16 +86,18 @@
 
 
 (defmethod typecheck-sexp ((fun (eql 'bits)) args env)
-  (declare (optimize debug))
   (destructuring-bind (var start &key end width)
       args
     (let ((tyvar (typecheck var env)))
       (setq end (compute-end-bit start end width))
 
-      (let ((l (1+ (- start end))))
-	(when (> l (bitwidth tyvar env))
-	  (error 'not-synthesisable :hint "Width greater than base variable"))
-	`(fixed-width-unsigned ,l)))))
+      (let ((l (1+ (- start end)))
+	    (vw (bitwidth tyvar env)))
+	(when (> l vw)
+	  (error 'width-mismatch :expected vw
+				 :got l
+				 :hint "Width greater than base variable"))
+	`(fixed-width-unsigned ,vw)))))
 
 
 (defmethod synthesise-sexp ((fun (eql 'bits)) args (context (eql :inexpression)))

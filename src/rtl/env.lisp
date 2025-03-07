@@ -112,8 +112,9 @@ An UNKNOWN-VARIABLE error is signalled if N is undefined."
 
 (defun get-frame-names (env)
   "Return the names of the variables in the topmost frame of ENV."
-  (ensure-has-frame env)
-  (mapcar #'car (cdr (car env))))
+  (if (has-frame-p env)
+      (mapcar #'car (cdr (car env)))
+      nil))
 
 
 (defun variable-declared-in-frame-p (n env)

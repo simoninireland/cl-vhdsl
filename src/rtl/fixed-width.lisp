@@ -64,7 +64,7 @@ If omitted, WIDTH is assumed to be *."
 			  :got ty)))
 
 
-(defmethod expand-type-parameters ((ty (eql 'fixed-width-unsigned)) args env)
+(defmethod expand-type-parameters-sexp ((ty (eql 'fixed-width-unsigned)) args env)
   (if (null args)
       ty
       (let ((bounds (car args)))
@@ -73,7 +73,7 @@ If omitted, WIDTH is assumed to be *."
 	    `(fixed-width-unsigned ,(eval-in-static-environment bounds env))))))
 
 
-(defmethod expand-type-parameters ((ty (eql 'fixed-width-signed)) args env)
+(defmethod expand-type-parameters-sexp ((ty (eql 'fixed-width-signed)) args env)
   (if (null args)
       ty
       (let ((bounds (car args)))

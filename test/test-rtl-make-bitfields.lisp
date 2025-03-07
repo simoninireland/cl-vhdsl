@@ -54,4 +54,4 @@
   (signals (rtl::not-static)
     (rtl:typecheck '(let ((a 8))
 		     (rtl:make-bitfields (rtl:extend-bits 0 a)))
-		   emptyenv)))
+		   emptyenv)q))

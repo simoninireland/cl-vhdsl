@@ -61,6 +61,7 @@
       (let ((w (ensure-static width env)))
 	`(fixed-width-unsigned ,w)))))
 
+
 (defun synthesise-fixed-width-constant (c width &optional (base 2))
   "Synthesise C as a constant with the given WIDTH.
 

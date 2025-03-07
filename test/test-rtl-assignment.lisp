@@ -120,10 +120,10 @@
   (is (subtypep (rtl:typecheck '(let ((a 12))
 				 (setf (rtl::bits a 1 :end 0) 2))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 2)))
+		'(rtl::fixed-width-unsigned 12)))
 
   ;; fails because default width of a is too small
-  (signals (rtl:not-synthesisable)
+  (signals (rtl:width-mismatch)
     (rtl:typecheck '(let ((a 12))
 		     (setf (rtl::bits a 6 :end 0) 0))
 		   emptyenv))
@@ -132,4 +132,4 @@
   (is (subtypep (rtl:typecheck '(let ((a 12 :width 8))
 				 (setf (rtl::bits a 6 :end 0) 0))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 2))))
+		'(rtl::fixed-width-unsigned 12))))

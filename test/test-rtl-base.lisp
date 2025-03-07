@@ -142,6 +142,11 @@
 	(is (equal (rtl::get-environment-property 'a :a env3) 1))))))
 
 
+(test test-names-empty-env
+  "Test that an empty environment has no names."
+  (is (null (rtl::get-environment-names (rtl::empty-environment)))))
+
+
 (test test-identifiers
   "Test legal and illegal identifiers."
 

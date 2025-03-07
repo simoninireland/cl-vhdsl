@@ -20,6 +20,7 @@
 (in-package :cl-vhdsl/test)
 (in-suite cl-vhdsl/rtl)
 
+
 (test test-eval-literal
   "Test literals are static constants."
   (is (= (rtl::ensure-static 12 emptyenv) 12)))

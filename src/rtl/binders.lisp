@@ -77,6 +77,7 @@ Signal REPRESENTATION-MISMATCH as an error if not."
 
 (defun typecheck-decl (decl env)
   "Extend ENV with the declarations in DECLS."
+  (declare (optmize debug))
   (with-current-form decl
     (if (listp decl)
 	;; full declaration
@@ -85,22 +86,45 @@ Signal REPRESENTATION-MISMATCH as an error if not."
 	  (ensure-representation as)
 
 	  ;; a decl may come with zero, one, or both of a type, and width
-	  (let* ((tyv (typecheck v env))
-		 (inferred-type (if type
-				    ;; use the stated type as a basis, if present
-				    (expand-type-parameters (car type) (cdr type) env)
-				    tyv))
-		 (inferred-width (if width
-				     ;; use the stated width as a basis, if present
-				     (eval-in-static-environment width env)
-				     (if (normal-value-p v)
-					 (bitwidth inferred-type env)))))
+	  (let ((tyv (typecheck v env))
+		inferred-type
+		inferred-width)
+	    (cond ((and (null type)
+			(null width))
+		   ;; no explicit settings, start from initial value
+		   (setq inferred-type tyv)
+		   (setq inferred-width (bitwidth tyv env)))
+
+		  ((null type)
+		   ;; evaluate the width
+		   (setq inferred-width (eval-in-static-environment width env))
+
+		   ;; set the type to this width
+		   (setq inferred-type `(fixed-width-unsigned ,inferred-width)))
+
+		  ((null width)
+		   ;; evaluate the type
+		   (setq inferred-type (expand-type-parameters tyv env))
+
+		   ;; set the width to match this type
+		   (setq inferred-width (bitwidth inferred-type env)))
+
+		  (t
+		   ;; evaluate both
+		   (setq inferred-width (eval-in-static-environment width env))
+		   (setq inferred-type (expand-type-parameters tyv env))
+
+		   ;; make sure the type and width are consistent
+		   (unless (= inferred-width (bitwidth inferred-type env))
+		     (error 'width-mismatch :expected inferred-width
+					    :got inferred-type
+					    :hint "Explicit type and width must be consistent"))))
 
 	    (declare-variable n `((:initial-value ,v)
 				  (:type ,inferred-type)
 				  (:width ,inferred-width)
 				  (:as ,as))
-				env)))
+			      env)))
 
 	;; otherwise we have a naked name, so apply the defaults
 	(typecheck-decl `(,decl 0 :width ,*default-register-width* :as :register) env))))

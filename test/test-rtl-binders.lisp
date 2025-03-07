@@ -65,7 +65,7 @@
 (test test-let-widen
   "Test we can take the width from a given type."
   (is (subtypep (rtl:typecheck '(let ((a 5 :type (rtl::fixed-width-unsigned 8)))
-				 (+ 1 a))
+				 (setf a (+ 1 a)))
 			       emptyenv)
 		'(rtl::fixed-width-unsigned 9))))
 
