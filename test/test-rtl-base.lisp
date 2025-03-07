@@ -49,8 +49,8 @@
   "Test we can retrieve properties from a frame."
   (let ((env (rtl::add-frame (rtl::empty-environment))))
     (rtl::declare-variable 'a '((:a 1) (:b 2)) env)
-    (is (equal (rtl::get-frame-properties 'a env)
-	       '((:a 1) (:b 2))))
+    (is (rtl::get-frame-properties 'a env)
+	'((:a 1) (:b 2)))
 
     (signals (rtl:unknown-variable)
       (rtl::get-frame-properties 'b env))))
@@ -66,7 +66,6 @@
      (is (null (rtl::get-frame-property 'a :c env)))
      (is (eql (rtl::get-frame-property 'a :c env :default 'ttt)
 	      'ttt))))
-
 
 
 (test test-set-property
@@ -89,6 +88,15 @@
 
 
 ;; ---------- Environments ----------
+
+(test test-define-no-frame
+  "Test we can't define variables in an empty environment without a frame."
+  (let ((env (rtl::empty-environment)))
+    (is (not (rtl::has-frame-p env)))
+
+    (signals (error)
+      (rtl::define-variable 'a '((:a 12)) env))))
+
 
 (test test-names
   "Test we can extract names from an environment."

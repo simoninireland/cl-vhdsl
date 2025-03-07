@@ -1,6 +1,6 @@
-;; Synthesisable variable declarations and bindings
+;; Variable declarations and bindings
 ;;
-;; Copyright (C) 2024 Simon Dobson
+;; Copyright (C) 2024--2025 Simon Dobson
 ;;
 ;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
 ;;
@@ -43,10 +43,13 @@
     (signal 'width-mismatch :expected (bitwidth ty env) :got w)))
 
 
+;; ---------- Representationa ----------
+
 (deftype representation ()
   "The type of variable representations.
 
-Valid representations are :REGISTER, :WIRE, or :constant."
+Valid representations in LET forms are :REGISTER, :WIRE, or :CONSTANT.
+(:PARAMETER is also valid from MODULE forms.)"
   '(member :register :wire :constant))
 
 
@@ -58,10 +61,12 @@ Valid representations are :REGISTER, :WIRE, or :constant."
 (defun ensure-representation (rep)
   "Ensure REP is a valid variable representation.
 
-Signal VALUE-MISMATCH as an error if not."
+Signal REPRESENTATION-MISMATCH as an error if not."
   (unless (representation-p rep)
     (error 'representation-mismatch :expected (list :register :wire :constant) :got rep)))
 
+
+;; ---------- Typechecking ----------
 
 (defun name-in-decl (decl)
   "Extract the name being defined by DECL."
@@ -70,19 +75,8 @@ Signal VALUE-MISMATCH as an error if not."
       decl))
 
 
-(defun add-to-decl (decl k v)
-  "Add the key/value pair K and V destructively to DECL.
-
-This updates the code to include the new values, and is used
-(amongst other things) to add inferred widths of variables as
-:WIDTH declarations."
-  (let ((e (last decl 2)))
-    (setf (cdr e) (list (cadr e) k v))))
-
-
-(defun typecheck-decl (env decl)
-  "Typecheck DECL in ENV, returning ENV extended by DECL."
-  (declare (optimize debug))
+(defun typecheck-decl (decl env)
+  "Extend ENV with the declarations in DECLS."
   (with-current-form decl
     (if (listp decl)
 	;; full declaration
@@ -93,74 +87,46 @@ This updates the code to include the new values, and is used
 	  ;; a decl may come with zero, one, or both of a type, and width
 	  (let* ((tyv (typecheck v env))
 		 (inferred-type (if type
+				    ;; use the stated type as a basis, if present
 				    (expand-type-parameters (car type) (cdr type) env)
 				    tyv))
 		 (inferred-width (if width
+				     ;; use the stated width as a basis, if present
 				     (eval-in-static-environment width env)
 				     (if (normal-value-p v)
 					 (bitwidth inferred-type env)))))
 
-	    ;; sanity checks
-	    (cond ((and (null type)
-			(null width))
-		   ;; make the inferred type and width match
-		   (when inferred-width
-		     (unless (= inferred-width
-				(bitwidth inferred-type env))
-		       (error 'width-mismatch :expected inferred-width :got (bitwidth inferred-type env)
-					      :hint "Make sure stated width and type match."))
-
-		     ;; make them equal
-		     (setq inferred-type `(fixed-width-unsigned ,inferred-width))
-		     (add-to-decl decl :width inferred-width)
-		     (signal 'width-inferred :variable n :inferred inferred-width)
-		     (add-to-decl decl :type inferred-type)))
-
-		  ((null type)
-		   ;; ensure the width can accommdate the inferred type
-		   (ensure-width-can-store inferred-width
-					   inferred-type
-					   env)
-		   (setq inferred-type `(fixed-width-unsigned ,inferred-width))
-		   (add-to-decl decl :type inferred-type))
-
-		  ((null width)
-		   ;; match the inferred width to the known type
-		   (ensure-width-can-store inferred-width
-					   inferred-type
-					   env)
-		   (add-to-decl decl :width inferred-width)
-		   (signal 'width-inferred :variable n :inferred inferred-width))
-
-		  (t
-		   ;; ensure the type and width match
-		   (unless (= (eval-in-static-environment inferred-width env)
-			      (eval-in-static-environment (bitwidth inferred-type env) env))
-		     (error 'width-mismatch :expected inferred-width :got (bitwidth inferred-type env)
-					    :hint "Make sure stated width and type match."))))
-
-	    (extend-environment n `((:initial-value ,v)
-				    (:type ,inferred-type)
-				    ,(if inferred-width
-					 `(:width ,inferred-width))
-				    (:as ,as))
+	    (declare-variable n `((:initial-value ,v)
+				  (:type ,inferred-type)
+				  (:width ,inferred-width)
+				  (:as ,as))
 				env)))
 
 	;; otherwise we have a naked name, so apply the defaults
-	(typecheck-decl env `(,decl 0 :width ,*default-register-width* :as :register)))))
+	(typecheck-decl `(,decl 0 :width ,*default-register-width* :as :register) env))))
 
 
 (defun typecheck-env (decls env)
   "Type-check the declarations DECLS to extend ENV."
-  (foldr #'typecheck-decl decls env))
+  (mapc (rcurry #'typecheck-decl env) decls))
 
 
 (defmethod typecheck-sexp ((fun (eql 'let)) args env)
+  (declare (optimize debug))
   (let ((decls (car args))
 	(body (cdr args)))
-    (let ((ext (typecheck-env decls env)))
-      (mapn (rcurry #'typecheck ext) body))))
+    (let ((ext (add-frame env)))
+      (typecheck-env decls ext)
 
+      ;; capture type of the last form
+      (let ((ty (mapn (rcurry #'typecheck ext) body)))
+	;; resolve any inferred widths and types
+
+	;; return the type
+	ty))))
+
+
+;; ---------- Variable re-writing ----------
 
 (defun rewrite-variables-keys (kvs rewrite)
   "Rewrite variables in the values of the key/value pairs KVS using REWRITE."
@@ -197,6 +163,8 @@ This updates the code to include the new values, and is used
 	 ,@rwbody))))
 
 
+;; ---------- Macro expansion ----------
+
 (defun expand-macros-key (l kv)
   "Expand macros in the value part of a key-value pair KV to build L."
   (destructuring-bind (k v)
@@ -228,6 +196,8 @@ This updates the code to include the new values, and is used
       `(let ,newdecls
 	 ,newbody))))
 
+
+;; ---------- Floating and simplification ----------
 
 (defmethod float-let-blocks-sexp ((fun (eql 'let)) args)
   (destructuring-bind (decls &rest body)
@@ -263,6 +233,8 @@ by LET and MODULE forms."
       `(let ,decls ,@(simplify-implied-progn newbody)))))
 
 
+;; ---------- Shadowing ----------
+
 (defmethod detect-shadowing-sexp ((fun (eql 'let)) args env)
   (destructuring-bind (decls &rest body)
       args
@@ -276,6 +248,8 @@ by LET and MODULE forms."
       (mapc (rcurry #'detect-shadowing ext) body)
       t)))
 
+
+;; ---------- Synthesis ----------
 
 (defun array-value-p (form)
   "Test whether FORM is an array constructor."
