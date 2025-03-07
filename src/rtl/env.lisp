@@ -41,33 +41,102 @@ can be ignored for systems not concerned with loss of precision."
       (signal 'type-mismatch :expected ty2 :got ty1)))
 
 
-;; ---------- Type environments ----------
+;; ---------- Type environments and frames ----------
+
+(defun empty-frame ()
+  "Return a new empty frame."
+  (copy-list '(:frame)))
+
 
 (defun empty-environment ()
-  "Return the empty type environment."
-  '())
+  "Return a new empty environment consisting of a single frame."
+  (list (empty-frame)))
 
 
-(defun extend-environment (n props env)
-  "Return a type environment extending ENV with a binding of N to PROPS.
+(defun add-frame (env)
+  "Return a new environment consisting of ENV with a new empty frame.
 
-PROPS should be an alist of properties.
+ENV is unchanged by this operation."
+  (cons (empty-frame) env))
 
-N must be a legal identifier according to LEGAL-IDENTIFIER-P.
-The new binding will mask any existing bindings of N in ENV.
-ENV itself is unchanged.
 
-The properties may include:
+(defun declare-variable (n props env)
+  "Declare a variable N with properties PROPS in the shallowest frame of ENV.
 
-   - :width -- the width in bits assigned to the variable
-   - :initial-value -- the initial value assigned to the name
-   - :type -- the type to be stored in the variable
-   - :as -- representation used for this variable
-   - :direction -- for arguments to modules, the direction of information
-     flow, which should be :in, :out, or :inout
-   - :parameter -- T if the value is a module parameter"
-  (cons (cons n props) env))
+Signals a DUPLICATE-VARIABLE error if the variable already exists in this frame."
+  (let ((frame (car env)))
+    (when (member n (cdr frame) :key #'car)
+      (error 'duplicate-variable :variable n))
 
+    (setf (cdr frame) (cons (cons n props) (cdr frame)))
+    n))
+
+
+;; ---------- Frame operations ----------
+
+(defun get-frame-bindings (env)
+  "Return the list of bindings in the topmost frame of ENV."
+  (cdar env))
+
+
+(defun get-frame-properties (n env)
+  "Return the properties of N in the top frame of ENV.
+N can be a symbol (usually) or a string. In the latter case the
+variable is checked by string equality aginst the symbol name.
+
+An UNKNOWN-VARIABLE error is signalled if N is undefined."
+  (if-let ((kv (if (symbolp n)
+		   (assoc n (get-frame-bindings env))
+		   (assoc n (get-frame-bindings env)
+			  :key #'symbol-name :test #'string-equal))))
+    (cdr kv)
+
+    (error 'unknown-variable :variable n
+			     :hint "Make sure the variable is in scope in the current frame")))
+
+
+(defun get-frame-names (env)
+  "Return the names of the variables in the topmost frame of ENV."
+  (mapcar #'car (cdr (car env))))
+
+
+(defun variable-declared-in-frame-p (n env)
+  "Test whether N is defined in the topmost frame of ENV."
+  (not (null (member n (get-frame-names env)))))
+
+
+(defun get-frame-property (n prop env &key default)
+  "Return the property PROP of variable N in the topmost frame of ENV.
+
+Undeclared properties value value NIL, which can be changed using the
+:DEFAULT argument. An UNKNOWN-VARIABLE error is signalled if N is
+undefined."
+  (let ((props (get-frame-properties n env)))
+    (if-let ((m (assoc prop props)))
+      ;; we found a binding, return the property
+      (cadr m)
+
+      ;; no property defined, return the default
+      default)))
+
+
+(defun set-frame-property (n prop v env)
+  "Set the value of PROP to V for variable N in the topmost frame of ENV.
+
+The property is updated if it is defined, and created if not.
+An UNKNOWN-VARIABLE error is signalled if N is undefined."
+  (declare (optimize debug))
+  (let ((props (get-frame-properties n env)))
+    (if-let ((m (assoc prop props)))
+      ;; property exists, update it
+      (setf (cdr m) (list v))
+
+      ;; property does not exist, add it
+      (let ((e (last props)))
+	(setf (cdr e) (list (list prop v)))))))
+
+
+;; ---------- Global environment operations ----------
 
 (defun get-environment-properties (n env)
   "Return the key/value list for N in ENV.
@@ -76,30 +145,74 @@ N can be a symbol (usually) or a string. In the latter case the
 variable is checked by string equality aginst the symbol name.
 
 An UNKNOWN-VARIABLE error is signalled if N is undefined."
-  (if-let ((kv (if (symbolp n)
-		   (assoc n env)
-		   (assoc n env :key #'symbol-name :test #'string-equal))))
-    (cdr kv)
+  (cond ((variable-declared-in-frame-p n env)
+	 (get-frame-properties n env))
 
-    (error 'unknown-variable :variable n
-			     :hint "Make sure the variable is in scope")))
+	((null env)
+	 (error 'unknown-variable :variable n
+				  :hint "Make sure the variable is in scope"))
+
+	(t
+	 (get-environment-properties n (cdr env)))))
 
 
 (defun get-environment-names (env)
   "Return the names in ENV."
-  (mapcar #'car env))
+  (foldr #'union (mapcar (lambda (frame)
+			   (get-frame-names (list frame)))
+			 env)
+	 '()))
 
 
-(defun get-environment-property (n prop env)
-  "Return PROP for N in ENV."
+(defun get-environment-property (n prop env &key default)
+  "Return PROP for N in ENV.
+
+If there is no property associated with N then NIL will be
+returned: this can be changed by defining the :DEFAULT argument."
   (if-let ((p (assoc prop (get-environment-properties n env))))
-    (cadr p)))
+    (cadr p)
+
+    ;; property doesn't exist, return the default
+    default))
 
 
-(defun variable-defined-p (n env)
-  "Test whether N is defined in ENV."
-  (not (null (assoc n env))))
+(defun variable-declared-p (n env)
+  "Test whether N is declared in ENV."
+  (not (null (member n (get-environment-names env)))))
 
+
+(defun filter-environment (pred env)
+  "Return an environment containing all the entries of ENV matching PRED.
+
+PRED should be a predicate taking a name and the environment with the
+frame containing that name on top (so that a call to GET-ENVIRONMENT-PROPERTY
+will return the correct value for that variable at that depth)."
+  (foldl (lambda (frame fenv)
+	   (cons (cons (car frame)
+		  (remove-if-not (lambda (decl)
+				   (funcall pred (car decl) (list frame)))
+				 (cdr frame)))
+		 fenv))
+	  env
+	  '()))
+
+
+(defun map-environment (f env)
+  "Map F across each declaration in ENV.
+
+F should be a function taking a name and an environment. The
+result is a list of the values returned from F. The list will be
+flat, regardless of the frame structure of ENV,"
+  (apply #'append (foldl (lambda (frame fenv)
+			    (cons (mapcar (lambda (decl)
+					    (funcall f (car decl) (list frame)))
+					  (cdr frame))
+				  fenv))
+			  env
+			  '())))
+
+
+;;---------- Common property access ----------
 
 (defun get-type (n env)
   "Return the type of N in ENV."
@@ -136,26 +249,3 @@ An UNKNOWN-VARIABLE error is signalled if N is undefined."
 (defun get-direction (n env)
   "Return the direction of N in ENV."
   (get-environment-property n :direction env))
-
-
-(defun filter-environment (pred env)
-  "Return an environment containing all the entries of ENV matching PRED.
-
-PRED should be a predicate taking a name and en environment."
-  (flet ((filter-p (decl)
-	   (let ((n (car decl)))
-	     (not (funcall pred n env)))))
-
-    (remove-if #'filter-p env)))
-
-
-(defun map-environment (f env)
-  "Map F across each declaration in ENV.
-
-F should be a function taking a name and an environment. The
-result is a list of the values returned from F."
-  (flet ((map-decl (decl)
-	   (let ((n (car decl)))
-	     (funcall f n env))))
-
-    (mapcar #'map-decl env)))

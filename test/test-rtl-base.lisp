@@ -21,7 +21,71 @@
 (in-suite cl-vhdsl/rtl)
 
 
-(defvar emptyenv (rtl:empty-environment))
+(defparameter emptyenv (rtl:empty-environment))
+
+
+;; ---------- Frames ----------
+
+(test test-declare-variables
+  "Test we can declare variables in a frame."
+  (let ((env (rtl::add-frame (rtl::empty-environment))))
+    (is (eql (rtl::declare-variable 'a '((:a 1) (:b 2)) env)
+	     'a))
+    (is (eql (rtl::declare-variable 'b '((:a 6) (:b 4)) env)
+	     'b))
+
+    ;; can't declare duplicates in the same frame
+    (signals (rtl::duplicate-variable)
+      (rtl::declare-variable 'b '((:a 6) (:b 4)) env))
+
+    ;; names
+    (is (equal (rtl::get-frame-names env)
+	       '(b a)))
+    (is (rtl::variable-declared-in-frame-p 'a env))
+    (is (not (rtl::variable-declared-in-frame-p 'c env)))))
+
+
+(test test-get-properties
+  "Test we can retrieve properties from a frame."
+  (let ((env (rtl::add-frame (rtl::empty-environment))))
+    (rtl::declare-variable 'a '((:a 1) (:b 2)) env)
+    (is (equal (rtl::get-frame-properties 'a env)
+	       '((:a 1) (:b 2))))
+
+    (signals (rtl:unknown-variable)
+      (rtl::get-frame-properties 'b env))))
+
+
+(test test-get-property
+  "Test we can retrieve a property."
+
+   (let ((env (rtl::add-frame (rtl::empty-environment))))
+     (rtl::declare-variable 'a '((:a 1) (:b 2)) env)
+     (is (equal (rtl::get-frame-property 'a :b env) 2))
+
+     (is (null (rtl::get-frame-property 'a :c env)))
+     (is (eql (rtl::get-frame-property 'a :c env :default 'ttt)
+	      'ttt))))
+
+
+
+(test test-set-property
+  "Test we can set frame properties."
+  (let ((env (rtl::add-frame (rtl::empty-environment))))
+    (rtl::declare-variable 'a '((:a 1) (:b 2)) env)
+    (rtl::declare-variable 'b '((:a 1) (:b 2)) env) ; maximise sharing danger
+
+    ;; update a property
+    (rtl::set-frame-property 'a :a 12 env)
+    (is (equal (rtl::get-frame-property 'a :a env) 12))
+    (is (equal (rtl::get-frame-property 'a :b env) 2))
+    (is (equal (rtl::get-frame-property 'b :a env) 1))
+
+    ;; add a property
+    (is (null (rtl::get-frame-property 'a :c env)))
+    (rtl::set-frame-property 'a :c 99 env)
+    (is (equal (rtl::get-frame-property 'a :c env) 99))
+    (is (null (rtl::get-frame-property 'b :c env)))))
 
 
 ;; ---------- Environments ----------
@@ -29,23 +93,45 @@
 (test test-names
   "Test we can extract names from an environment."
   ;; empty environment has no names
-  (is (equal (rtl:get-environment-names emptyenv)
-	     nil))
+  (is (null (rtl:get-environment-names emptyenv)))
 
-  ;; single name
-  (let ((env1 (rtl:extend-environment 'a '() emptyenv)))
-    (is (equal (rtl:get-environment-names env1)
-	       '(a)))
+  (let ((env1 (rtl::add-frame emptyenv)))
+    (rtl::declare-variable 'a '((:a 1 :b 2)) env1)
+    (is (set-equal (rtl::get-environment-names env1)
+		   '(a)))
 
-    ;; nested environment
-    (let ((env2 (rtl:extend-environment 'b '() env1)))
-      (is (set-equal (rtl:get-environment-names env2)
-		     '(a b)))
+    ;; nested frame
+    (let ((env2 (rtl::add-frame env1)))
+      (rtl::declare-variable 'b '((:a 1 :b 2)) env2)
+      (rtl::declare-variable 'c '((:a 1 :b 2)) env2)
+      (is (set-equal (rtl::get-environment-names env2)
+		     '(a b c)))
 
-      ;; duplicate name
-      (let ((env3 (rtl:extend-environment 'a '() env2)))
-	(is (set-equal (rtl:get-environment-names env3)
-		       '(a b)))))))
+      ;; nested again
+      (let ((env3 (rtl::add-frame env2)))
+	(rtl::declare-variable 'b '((:a 4 :b 5)) env3)
+	(is (set-equal (rtl::get-environment-names env3)
+		       '(a b c)))
+
+	;; local (frame) property is retrieved correctly
+	(is (equal (rtl::get-frame-property 'b :a env3) 4))
+
+	;; global (environment) property is the same
+	(is (equal (rtl::get-environment-property 'b :a env3) 4))
+
+	;; shallower frame is undisturbed
+	(is (equal (rtl::get-frame-property 'b :a env2) 1))
+
+	;; finding variables works as expected
+	(is (not (rtl::variable-declared-in-frame-p 'a env3)))
+	(is (rtl::variable-declared-p 'a env3))
+
+	;; variable can't be found from topmost frame
+	(signals (rtl:unknown-variable)
+	  (rtl::get-frame-properties 'a env3))
+
+	;; ...but is found correctly globally
+	(is (equal (rtl::get-environment-property 'a :a env3) 1))))))
 
 
 (test test-identifiers
@@ -81,30 +167,74 @@
   (flet ((filter-by-f (n env)
 	   (if-let ((prop (rtl::get-environment-property n :f env)))
 	     (> prop 20))))
-    (let ((env (foldl (lambda (decl env)
-			(rtl::extend-environment (car decl) (cadr decl) env))
-		      '((a ()) (b ((:f 23) (:g 34))) (c ((:f 12))))
-		      emptyenv)))
-      ;; by name
-      (is (equal (rtl::filter-environment (lambda (n env)
-					    (equal n 'a))
-					  env)
-		 '((a))))
 
-      ;; by property
-      (is (equal (rtl::filter-environment #'filter-by-f
-					  env)
-		 '((b (:f 23) (:g 34))))))))
+    (let ((env1 (rtl::add-frame (rtl::empty-environment))))
+      (mapc (lambda (decl)
+	      (rtl::declare-variable (car decl) (cadr decl) env1))
+	    '((a ((:f 4)))
+	      (b ((:f 23) (:g 34)))
+	      (c ((:f 12)))))
+
+      (let ((env2 (rtl::add-frame env1)))
+	(mapc (lambda (decl)
+		(rtl::declare-variable (car decl) (cadr decl) env2))
+	      '((a ((:f 28)))
+		(d ((:f 99)))))
+
+	;; by name
+	(let ((kept-names (rtl::filter-environment (lambda (n env)
+						     (equal n 'a))
+						   env2)))
+	  (is (set-equal (rtl::get-environment-names kept-names)
+			 '(a))))
+
+	;; by property
+	(let ((kept-props (rtl::filter-environment #'filter-by-f
+						   env2)))
+	  (is (set-equal (rtl::get-environment-names kept-props)
+			 '(a d b))))))))
 
 
 (test test-map-env
   "Test we can map across environments."
-  (let ((env (foldl (lambda (decl env)
-		      (rtl::extend-environment (car decl) (cadr decl) env))
-		    '((a ()) (b ((:f 23) (:g 34))) (c ((:f 12))))
-		    emptyenv)))
-    (is (equal (rtl::map-environment (lambda (n env)
-				       (or (rtl::get-environment-property n :f env)
-				      0))
-				env)
-	       '(0 23 12)))))
+  (let ((env1 (rtl::add-frame (rtl::empty-environment))))
+      (mapc (lambda (decl)
+	      (rtl::declare-variable (car decl) (cadr decl) env1))
+	    '((a ((:g 4)))
+	      (b ((:f 23) (:g 34)))
+	      (c ((:f 12)))))
+
+    (let ((env2 (rtl::add-frame env1)))
+	(mapc (lambda (decl)
+		(rtl::declare-variable (car decl) (cadr decl) env2))
+	      '((a ((:f 28)))
+		(d ((:g 99)))))
+
+      (is (equal (rtl::map-environment (lambda (n env)
+					 (or (rtl::get-environment-property n :f env)
+					     0))
+				       env2)
+		 '(0 28 12 23 0))))))
+
+
+;; ---------- Property access ----------
+
+(test test-env-get-type
+  "Test we can get a type."
+  (let ((env1 (rtl::add-frame emptyenv)))
+    (rtl::declare-variable 'a '((:type (rtl::fixed-width-unsigned 8))
+				(:width 8))
+			   env1)
+    (is (equal (rtl::get-type 'a env1)
+	       '(rtl::fixed-width-unsigned 8)))
+
+    (let ((env2 (rtl::add-frame env1)))
+      (rtl::declare-variable 'a '((:type (rtl::fixed-width-unsigned 16))
+				  (:width 16))
+			     env2)
+      (is (equal (rtl::get-type 'a env2)
+		 '(rtl::fixed-width-unsigned 16)))
+
+      ;; underlying type is unchanged
+      (is (equal (rtl::get-type 'a env1)
+		 '(rtl::fixed-width-unsigned 8))))))

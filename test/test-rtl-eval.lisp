@@ -27,10 +27,11 @@
 
 (test test-eval-parameter
   "Test that module parameters are static constants."
-  (let ((env (rtl::extend-environment 'a '((:width 5)
-					   (:initial-value 12)
-					   (:as :parameter))
-				      emptyenv)))
+  (let ((env (rtl::add-frame emptyenv)))
+    (rtl::declare-variable 'a '((:width 5)
+				(:initial-value 12)
+				(:as :parameter))
+			   env)
 
     (is (= (rtl::ensure-static 'a env)
 	   12))))
@@ -38,10 +39,11 @@
 
 (test test-eval-constant
   "Test that variables declared as constants are static constants."
-  (let ((env (rtl::extend-environment 'a '((:width 5)
-					   (:initial-value 12)
-					   (:as :constant))
-				      emptyenv)))
+  (let ((env (rtl::add-frame emptyenv)))
+    (rtl::declare-variable 'a '((:width 5)
+				(:initial-value 12)
+				(:as :constant))
+			   env)
 
     (is (= (rtl::ensure-static 'a env)
 	   12))))
@@ -49,10 +51,11 @@
 
 (test test-eval-expression
   "Test that expressions involving only constants are static constants."
-  (let ((env (rtl::extend-environment 'a '((:width 5)
-					   (:initial-value 12)
-					   (:as :constant))
-				      emptyenv)))
+  (let ((env (rtl::add-frame emptyenv)))
+    (rtl::declare-variable 'a '((:width 5)
+				(:initial-value 12)
+				(:as :constant))
+			   env)
 
     (is (= (rtl::ensure-static '(+ a (+ a 12)) env)
 	   36))))
@@ -60,17 +63,17 @@
 
 (test test-eval-non-constant-variable
   "Test that non-constant variables are rejected."
-  (let ((env (foldr (lambda (env decl)
-		      (destructuring-bind (n props)
-			  decl
-			(rtl:extend-environment n props env)))
-		    '((a ((:width 5)
-			   (:initial-value 12)
-			   (:as :constant)))
-		      (b ((:width 5)
-			   (:initial-value 12)
-			   (:as :register))))
-		    emptyenv)))
+  (let ((env (rtl::add-frame emptyenv)))
+    (mapc (lambda (decl)
+	    (destructuring-bind (n props)
+		decl
+	      (rtl::declare-variable n props env)))
+	  '((a ((:width 5)
+		(:initial-value 12)
+		(:as :constant)))
+	    (b ((:width 5)
+		(:initial-value 12)
+		(:as :register)))))
 
     (signals (rtl:not-static)
       (rtl::ensure-static '(+ a b 12) env))))
@@ -78,17 +81,17 @@
 
 (test test-eval-static
   "Test we get the result from a static expression, and nil from one that's not."
-   (let ((env (foldr (lambda (env decl)
-		      (destructuring-bind (n props)
-			  decl
-			(rtl:extend-environment n props env)))
-		    '((a ((:width 5)
-			   (:initial-value 12)
-			   (:as :constant)))
-		      (b ((:width 5)
-			   (:initial-value 12)
-			   (:as :register))))
-		    emptyenv)))
+  (let ((env (rtl::add-frame emptyenv)))
+    (mapc (lambda (decl)
+	    (destructuring-bind (n props)
+		decl
+	      (rtl::declare-variable n props env)))
+	  '((a ((:width 5)
+		(:initial-value 12)
+		(:as :constant)))
+	    (b ((:width 5)
+		(:initial-value 12)
+		(:as :register)))))
 
      ;; statis
      (is (= (rtl::eval-if-static '(+ a (+ a 12)) env)
