@@ -19,7 +19,7 @@
 
 (in-package :cl-vhdsl/test)
 (in-suite cl-vhdsl/rtl)
-
+q
 
 ;; ---------- Single- and double-armeed condtionals (IF) ----------
 
@@ -29,7 +29,7 @@
 				 (+ 1 2)
 				 (+ 16 8))
 			       emptyenv)
-		 '(rtl::fixed-width-unsigned 6))))
+		'(rtl::fixed-width-unsigned 6))))
 
 
 (test test-if-then

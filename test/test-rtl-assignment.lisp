@@ -19,13 +19,13 @@
 
 (in-package :cl-vhdsl/test)
 (in-suite cl-vhdsl/rtl)
-(declaim (optimize (size 0)))
+
 
 ;; ---------- Simple assignment (SETQ) ----------
 
 (test test-setq
   "Test we can typecheck the SETQ form."
-  (is (subtypep (rtl:typecheck '(let ((a 12))
+  (is (subtypep (rtl:typecheck '(let ((a 13))
 				 (setq a 9))
 			       emptyenv)
 		'(rtl::fixed-width-unsigned 8)))

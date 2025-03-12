@@ -49,8 +49,8 @@ constant or an input parameter."
     (unless (symbolp n)
       (error 'not-synthesisable :hint "Do you need SETF instead of SETQ?"))
 
-    (let ((tyvar (typecheck n env))
-	  (tyval (typecheck v env)))
+    (let ((tyvar (typecheck-form n env))
+	  (tyval (typecheck-form v env)))
       (ensure-subtype tyval tyvar)
       (ensure-writeable n env)
 
@@ -126,13 +126,13 @@ The default is for a form /not/ to be a generalised place.")
 	(typecheck-sexp-setf (car var) val (cdr var) env :sync sync)
 
 	;; a SETF to a simple variable is a SETQ
-	(typecheck `(setq ,var ,val :sync ,sync) env))))
+	(typecheck-form `(setq ,var ,val :sync ,sync) env))))
 
 
 (defmethod typecheck-sexp-setf ((selector symbol) val selectorargs env &key sync)
   (let* ((place `(,selector ,@selectorargs))
-	 (tyvar (typecheck place env))
-	 (tyval (typecheck val env)))
+	 (tyvar (typecheck-form place env))
+	 (tyval (typecheck-form val env)))
     (ensure-subtype tyval tyvar)
     (ensure-generalised-place place env)
 

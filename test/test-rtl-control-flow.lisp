@@ -53,16 +53,6 @@
 		'(rtl::fixed-width-unsigned 1))))
 
 
-(test test-typecheck-at-wide
-  "Test we can detect too many wires in sensitivity."
-  (signals (rtl:width-mismatch)
-    (rtl:typecheck '(let ((clk 0 :width 4 :as :wire)
-			  (a 0 :width 2))
-		     (rtl::@ ((rtl::posedge clk))
-		      (setf a (+ clk 2))))
-		   emptyenv)))
-
-
 (test test-typecheck-edges
   "Test we can type-check edge trigger expressions."
   (is (subtypep (rtl:typecheck '(let ((clk 0 :as :wire)

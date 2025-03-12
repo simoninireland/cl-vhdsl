@@ -65,7 +65,7 @@
 	       (setf a (+ b c))))))
     (is (subtypep (rtl:typecheck (rtl:expand-macros p)
 				 emptyenv)
-		  '(rtl::fixed-width-unsigned 4)))))
+		  '(rtl::fixed-width-unsigned 10)))))
 
 
 (test test-with-bitfields-typo

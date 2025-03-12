@@ -38,7 +38,7 @@ A NOT-SYNTHESISABLE erre is raised if the arguments are wrong."
 
 The width of the resulting number is the width of the widest argument
 plus the number of other arguments."
-  (let ((tys (mapcar (rcurry #'typecheck env) args)))
+  (let ((tys (mapcar (rcurry #'typecheck-form env) args)))
     (dolist (ty tys)
       (ensure-fixed-width ty))
 
@@ -142,8 +142,8 @@ plus the number of other arguments."
 
   (destructuring-bind (val offset)
       args
-    (let ((tyval (typecheck val env))
-	  (tyoffset (typecheck offset env)))
+    (let ((tyval (typecheck-form val env))
+	  (tyoffset (typecheck-form offset env)))
       (ensure-fixed-width tyval)
       (ensure-fixed-width tyoffset)
 
@@ -180,8 +180,8 @@ plus the number of other arguments."
 
   (destructuring-bind (val offset)
       args
-    (let ((tyval (typecheck val env))
-	  (tyoffset (typecheck offset env)))
+    (let ((tyval (typecheck-form val env))
+	  (tyoffset (typecheck-form offset env)))
       (ensure-fixed-width tyval)
       (ensure-fixed-width tyoffset)
 
@@ -218,7 +218,7 @@ plus the number of other arguments."
 (defun typecheck-bitwise-operator (args env)
   "Typecheck the arguments ARGS to a logical operator in ENV."
   (let ((ty (foldr (lambda (ty1 arg)
-		     (lub ty1 (typecheck arg env) env))
+		     (lub ty1 (typecheck-form arg env) env))
 		   args nil)))
     (ensure-subtype ty 'fixed-width-unsigned)
 
@@ -268,7 +268,7 @@ plus the number of other arguments."
 
 All arguments must be booleans."
   (mapc (lambda (arg)
-	  (let ((ty (typecheck arg env)))
+	  (let ((ty (typecheck-form arg env)))
 	    (ensure-boolean ty env)))
 	args)
   '(fixed-width-unsigned 1))

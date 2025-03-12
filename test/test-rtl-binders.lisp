@@ -73,9 +73,10 @@
 (test test-let-missing-width
   "Test we annotate the code with an inferred width."
   (let ((p '(let ((a 5))
-	      (+ 1 a))))
-    (signals (rtl:width-inferred)
-      (rtl:typecheck p emptyenv))))
+	     (+ 1 a))))
+    (signals (rtl::width-inferred rtl::type-inferred)
+      ;; copy the tree because of re-writing during inference
+      (rtl:typecheck (copy-tree p) emptyenv))))
 
 
 (test test-let-missing-width-type-conflicts

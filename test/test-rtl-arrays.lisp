@@ -19,7 +19,6 @@
 
 (in-package :cl-vhdsl/test)
 (in-suite cl-vhdsl/rtl)
-(declaim (optimize (size 0)))
 
 
 ;; ---------- Array declarations ----------
@@ -58,7 +57,7 @@
   (is (rtl:synthesise '(let ((a (make-array '(16) :element-width 8))
 			     (b (make-array '(8) :element-width 8) :as :wire)
 			     (c 10))
-			(setf b 0))
+			(setf c 0))
 		      :inmodule)))
 
 

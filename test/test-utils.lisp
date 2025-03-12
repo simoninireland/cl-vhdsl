@@ -19,6 +19,7 @@
 
 (in-package :cl-vhdsl/test)
 (in-suite cl-vhdsl)
+(declaim (optimize (space 0)))
 
 
 ;; ---------- Looking for non-nil elements of lists  ----------
@@ -82,7 +83,7 @@
 
 
 (test test-zip-null
-  "Test we can zip lists with nulds."
+  "Test we can zip lists with nulls."
   (is (equal (zip-without-null '(1 nil 3) '(4 5 6))
 	     '((1 4) (3 6))))
   (is (equal (zip-without-null '(1 2 3) '(4 5 nil))
@@ -178,7 +179,7 @@
     (is (equal (n-copies nil 4)
 	       '(() () () ())))
 
-    (let* ((l2 '(1 2 3))
+    (let* ((l2 (copy-list '(1 2 3)))
 	   (rep  (n-copies l2 3)))
       ;; changing the original doesn't change the replicas
       (setf (car l2) 4)

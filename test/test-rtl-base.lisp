@@ -58,7 +58,6 @@
 
 (test test-get-property
   "Test we can retrieve a property."
-
    (let ((env (rtl::add-frame (rtl::empty-environment))))
      (rtl::declare-variable 'a '((:a 1) (:b 2)) env)
      (is (equal (rtl::get-frame-property 'a :b env) 2))

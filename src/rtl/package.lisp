@@ -102,6 +102,7 @@
    #:shape-mismatch
    #:state-machine-mismatch
    #:width-mismatch
+   #:type-inferred
    #:width-inferred
    #:representation-mismatch
    ))

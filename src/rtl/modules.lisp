@@ -134,14 +134,16 @@ of other parameter values."
 	  decl
 
 	(let ((val (eval v)))
-	  (extend-environment n `((:initial-value ,val)
-				  (:as :parameter))
-			      env)))
+	  (declare-variable n `((:initial-value ,val)
+				(:as :parameter))
+			    env)))
 
       ;; naked paramater
-      (extend-environment decl `((:initial-value 0)
-				 (:as :parameter))
-			  env)))
+      (declare-variable decl `((:initial-value 0)
+			       (:as :parameter))
+			env))
+
+  env)
 
 
 (defun typecheck-module-params (decls env)
@@ -159,21 +161,25 @@ of other parameter values."
       (if type
 	  ;; make sure the argument is wide enough to accommodate
 	  ;; the type
-	  (ensure-width-can-store w type env)
-	  (setq width w))
+	  (progn
+	    (ensure-width-can-store w type env)
+	    (setq width w))
 
 	  ;; no type, use width for a default unsigned
 	  (setq type `(fixed-width-unsigned ,w)))
 
-    (extend-environment n `((:type ,type)
+      (declare-variable n `((:type ,type)
 			    (:width ,width)
 			    (:direction ,direction))
-			env)))
+			env)
+
+      env)))
 
 
 (defun env-from-module-decls (args params)
   "Create an environment from PARAMS and ARGS declarations of a module interface."
-  (let ((extparams (typecheck-module-params params (empty-environment))))
+  (let* ((env (add-frame (empty-environment)))
+	 (extparams (typecheck-module-params params env)))
     (typecheck-module-args args extparams)))
 
 
@@ -189,12 +195,13 @@ of other parameter values."
 
     (destructuring-bind (modargs modparams)
 	(split-args-params decls)
+
       ;; catch modules with no wires or registers
       (unless (> (length modargs) 0)
 	(error 'not-synthesisable :hint "Module must import at least one wire or register"))
 
       (let ((ext (env-from-module-decls modargs modparams)))
-	(typecheck (cons 'progn body) ext)
+	(typecheck-form (cons 'progn body) ext)
 
 	(let ((intf (make-instance 'module-interface :parameters modparams
 						     :arguments modargs)))
@@ -388,7 +395,7 @@ and causes a NOT-IMPORTABLE error if not."
       ;; ensure we have all the arguments we need
       (ensure-module-arguments-match-interface modname intf modargs)
 
-      ;; typecheck the provided arguments against the interface
+      ;; typecheck-form the provided arguments against the interface
       (let ((modenv (env-from-module-interface intf))
 	    (initargs-plist (plist-alist initargs)))
 	(dolist (arg modargs)
@@ -396,11 +403,11 @@ and causes a NOT-IMPORTABLE error if not."
 			       :key #'symbol-name
 			       :test #'string-equal))))
 	    (cond ((argument-for-module-interface-p arg intf)
-		   (let ((tyval (typecheck v env))
+		   (let ((tyval (typecheck-form v env))
 			 (tyarg (get-type arg modenv)))
 		     (ensure-subtype tyval tyarg)))
 		  ((parameter-for-module-interface-p arg intf)
-		   (let ((tyval (typecheck (eval-in-static-environment v env) env))
+		   (let ((tyval (typecheck-form (eval-in-static-environment v env) env))
 			 (tyarg (get-type arg modenv)))
 		     (ensure-subtype tyval tyarg))))))
 
@@ -512,8 +519,7 @@ and causes a NOT-IMPORTABLE error if not."
       (unquote modname)
 
       (let ((intf (get-module-interface modname))
-	    (modargs (keys-to-arguments modname initargs))
-	    (modvar (gensym)))
+	    (modargs (keys-to-arguments modname initargs)))
 
 	;; arguments
 	(as-argument-list (arguments intf) :indeclaration

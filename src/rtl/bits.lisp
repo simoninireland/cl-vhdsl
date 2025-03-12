@@ -26,8 +26,8 @@
 (defmethod typecheck-sexp ((fun (eql 'bit)) args env)
   (destructuring-bind (var bit)
       args
-    (ensure-subtype (typecheck var env) 'fixed-width-unsigned)
-    (ensure-subtype (typecheck bit env) '(fixed-width-unsigned 1))
+    (ensure-subtype (typecheck-form var env) 'fixed-width-unsigned)
+    (ensure-subtype (typecheck-form bit env) '(fixed-width-unsigned 1))
     '(fixed-width-unsigned 1)))
 
 
@@ -88,7 +88,7 @@
 (defmethod typecheck-sexp ((fun (eql 'bits)) args env)
   (destructuring-bind (var start &key end width)
       args
-    (let ((tyvar (typecheck var env)))
+    (let ((tyvar (typecheck-form var env)))
       (setq end (compute-end-bit start end width))
 
       (let ((l (1+ (- start end)))
@@ -97,7 +97,9 @@
 	  (error 'width-mismatch :expected vw
 				 :got l
 				 :hint "Width greater than base variable"))
-	`(fixed-width-unsigned ,vw)))))
+
+	;; width is the nunmber of bits extracted
+	`(fixed-width-unsigned ,l)))))
 
 
 (defmethod synthesise-sexp ((fun (eql 'bits)) args (context (eql :inexpression)))

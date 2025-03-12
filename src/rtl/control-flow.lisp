@@ -24,7 +24,7 @@
 ;; ---------- PROGN ----------
 
 (defmethod typecheck-sexp ((fun (eql 'progn)) args env)
-  (mapn (rcurry #'typecheck env) args))
+  (mapn (rcurry #'typecheck-form env) args))
 
 
 (defun simplify-progn-body (body)
@@ -82,18 +82,18 @@ block, and are represented by the symbol *."
 
 	      ((edge-trigger-p sensitivities)
 	       ;; a single instance of a trigger operator
-	       (typecheck sensitivities env))
+	       (typecheck-form sensitivities env))
 
 	      (t
 	       ;; a list of sensitivities
 	       (dolist (s sensitivities)
-		 (typecheck s env))))
+		 (typecheck-form s env))))
 
 	;; an atom
-	(typecheck sensitivities env))
+	(typecheck-form sensitivities env))
 
     ;; check the body in the outer environment
-    (mapn (rcurry #'typecheck env) body)))
+    (mapn (rcurry #'typecheck-form env) body)))
 
 
 (defmethod simplify-progn-sexp ((fun (eql '@)) args)
@@ -145,7 +145,7 @@ block, and are represented by the symbol *."
 (defmethod typecheck-sexp ((fun (eql 'posedge)) args env)
   (destructuring-bind (pin)
       args
-    (let ((ty (typecheck pin env)))
+    (let ((ty (typecheck-form pin env)))
       (ensure-subtype ty '(fixed-width-unsigned 1))
       ty)))
 
@@ -161,7 +161,7 @@ block, and are represented by the symbol *."
 (defmethod typecheck-sexp ((fun (eql 'negedge)) args env)
   (destructuring-bind (pin)
       args
-    (let ((ty (typecheck pin env)))
+    (let ((ty (typecheck-form pin env)))
       (ensure-subtype ty '(fixed-width-unsigned 1))
       ty)))
 

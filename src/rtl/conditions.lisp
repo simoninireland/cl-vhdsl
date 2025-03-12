@@ -299,6 +299,28 @@ This can be a hard error or just a warning, and is caused by trying to assign
 a value to a variable that is too narrow to accept it completely."))
 
 
+(define-condition type-inferred (rtl-condition)
+  ((var
+    :documentation "The variable."
+    :initarg :variable
+    :reader inferred-variable)
+   (inferred
+    :documentation "The type inferred."
+    :initarg :inferred
+    :reader inferred-value))
+  (:report (lambda (c str)
+	     (format-condition-context (format nil "Inferred ~a to have type ~a"
+					       (inferred variable c)
+					       (inferred-value c))
+				       c str)))
+  (:documentation "Condition signalled when a type is inferred.
+
+This is almost always a warning, signalled when the compiler infers the
+type of a variable that doesn't have an explicit type provided. If may
+cause downstream errors if the inferred type is incorrect, but that will
+only happen when the types are being used inconsistently."))
+
+
 (define-condition width-inferred (rtl-condition)
   ((var
     :documentation "The variable."
@@ -318,7 +340,7 @@ a value to a variable that is too narrow to accept it completely."))
 This is almost always a warning, signalled when the compiler infers the
 width of a variable that doesn't have an explicit width provided. If may
 cause downstream errors if the inferred width is incorrect, but that will
-only happen when thewidths are being used inconsistently."))
+only happen when the widths are being used inconsistently."))
 
 
 (define-condition representation-mismatch (rtl-condition)

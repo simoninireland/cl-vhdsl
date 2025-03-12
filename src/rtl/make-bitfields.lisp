@@ -25,7 +25,7 @@
 
 (defun typecheck-pattern (pat env)
   "Typecheck bitfield pattern PAT in ENV."
-  (let ((typ (typecheck pat env)))
+  (let ((typ (typecheck-form pat env)))
     (ensure-fixed-width typ)
     typ))
 
@@ -52,8 +52,8 @@
 (defmethod typecheck-sexp ((fun (eql 'extend-bits)) args env)
   (destructuring-bind (bs width)
       args
-    (let ((tyw (typecheck width env))
-	  (tyb (typecheck bs env)))
+    (let ((tyw (typecheck-form width env))
+	  (tyb (typecheck-form bs env)))
       (ensure-fixed-width tyw)
       (ensure-fixed-width tyb)
 

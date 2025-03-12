@@ -26,10 +26,10 @@
 (defmethod typecheck-sexp ((fun (eql 'if)) args env)
   (destructuring-bind (condition then &rest else)
       args
-    (let ((tycond (typecheck condition env))
-	  (tythen (typecheck then env))
+    (let ((tycond (typecheck-form condition env))
+	  (tythen (typecheck-form then env))
 	  (tyelse (if else
-		      (typecheck `(progn ,@else) env))))
+		      (typecheck-form `(progn ,@else) env))))
       (ensure-boolean tycond env)
 
       ;; the type of the expression is the widest of the
@@ -89,9 +89,9 @@ Return the type of the clause body."
   (destructuring-bind (val &rest body)
       clause
     (if (not (eql val 't))
-	(let ((tyval (typecheck val env)))
+	(let ((tyval (typecheck-form val env)))
 	  (ensure-subtype tyval ty)))
-    (typecheck (cons 'progn body) env)))
+    (typecheck-form (cons 'progn body) env)))
 
 
 (defun typecheck-clauses (clauses ty env)
@@ -107,7 +107,7 @@ The type is the lub of the clause types."
 (defmethod typecheck-sexp ((fun (eql 'case)) args env)
   (destructuring-bind (condition &rest clauses)
       args
-    (let ((ty (typecheck condition env)))
+    (let ((ty (typecheck-form condition env)))
       (typecheck-clauses clauses ty env))))
 
 

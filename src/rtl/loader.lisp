@@ -163,8 +163,8 @@ Return the name of the newly-defined module."
 			  ,@body)))
       `(let* ((,module ',code)
 	      (,expanded (expand-macros ,module)))
-	 ;; typecheck the expanded module
-	 (let ((intf (typecheck ,expanded (empty-environment))))
+	 ;; typecheck-form the expanded module
+	 (let ((intf (typecheck-form ,expanded (empty-environment))))
 
 	   ;; add type to interfaces available for import
 	   (add-module-interface ',modname intf)

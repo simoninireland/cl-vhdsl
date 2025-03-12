@@ -22,7 +22,7 @@
 
 ;; ---------- Integers ----------
 
-(defmethod typecheck ((form integer) env)
+(defmethod typecheck-form ((form integer) env)
   (let ((w (bitwidth form env)))
     (if (< form 0)
 	`(fixed-width-signed ,w)

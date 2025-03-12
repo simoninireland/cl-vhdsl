@@ -81,7 +81,8 @@ Signals a DUPLICATE-VARIABLE error if the variable already exists in this frame.
     (when (member n (cdr frame) :key #'car)
       (error 'duplicate-variable :variable n))
 
-    (setf (cdr frame) (cons (cons n props) (cdr frame)))
+    ;; copy properties to avoid re-writing the original
+    (setf (cdr frame) (cons (cons n (copy-tree props)) (cdr frame)))
     n))
 
 
@@ -103,7 +104,8 @@ An UNKNOWN-VARIABLE error is signalled if N is undefined."
   (if-let ((kv (if (symbolp n)
 		   (assoc n (get-frame-bindings env))
 		   (assoc n (get-frame-bindings env)
-			  :key #'symbol-name :test #'string-equal))))
+			  :key #'symbol-name
+			  :test #'string-equal))))
     (cdr kv)
 
     (error 'unknown-variable :variable n
@@ -119,7 +121,9 @@ An UNKNOWN-VARIABLE error is signalled if N is undefined."
 
 (defun variable-declared-in-frame-p (n env)
   "Test whether N is defined in the topmost frame of ENV."
-  (not (null (member n (get-frame-names env)))))
+  (not (null (member n (get-frame-names env)
+		     :key #'symbol-name
+		     :test #'string-equal))))
 
 
 (defun get-frame-property (n prop env &key default)

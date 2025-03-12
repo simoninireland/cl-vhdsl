@@ -165,7 +165,19 @@ method to change this behaviour.")
 
 ;; ---------- Type and width checking ----------
 
-(defgeneric typecheck (form env)
+(defun typecheck (form env)
+  "Type-check FORM in ENV.
+
+Return the type as main value, with the possibly re-written parse
+tree as a secondary value.
+
+This function calls the TYPECHECK-FORM generic function to perform
+the actual parsing."
+  (values (typecheck-form (copy-tree form) env)
+	  form))
+
+
+(defgeneric typecheck-form (form env)
   (:documentation "Type-check FORM in ENV.")
   (:method ((form list) env)
     (let ((fun (car form))
@@ -179,7 +191,7 @@ method to change this behaviour.")
 ;; issues (which signal implementation-specific conditions)
 ;; into not-synthesisable conditions
 
-(defmethod typecheck :around (form env)
+(defmethod typecheck-form :around (form env)
   (handler-bind
       ((error (lambda (cond)
 		(error 'not-synthesisable :underlying-condition cond

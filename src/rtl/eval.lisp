@@ -56,7 +56,7 @@ Static constants include literal constants and variables that
 are module parameters or declared as constant."
   (or (integerp form)
       (and (symbolp form)
-	   (variable-defined-p form env)
+	   (variable-declared-p form env)
 	   (member (get-representation form env) '(:parameter
 						   :constant)))))
 

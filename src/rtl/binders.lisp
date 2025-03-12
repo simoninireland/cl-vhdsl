@@ -86,10 +86,14 @@ Signal REPRESENTATION-MISMATCH as an error if not."
 	  (ensure-representation as)
 
 	  ;; a decl may come with zero, one, or both of a type, and width
-	  (let ((tyv (typecheck v env))
+	  (let ((tyv (typecheck-form v env))
 		inferred-type
 		inferred-width)
-	    (cond ((and (null type)
+	    (cond ((special-value-p v)
+		   ;; special values don't have widths
+		   (setq inferred-type tyv))
+
+		  ((and (null type)
 			(null width))
 		   ;; no explicit settings, start from initial value
 		   (setq inferred-type tyv)
@@ -99,12 +103,18 @@ Signal REPRESENTATION-MISMATCH as an error if not."
 		   ;; evaluate the width
 		   (setq inferred-width (eval-in-static-environment width env))
 
+		   ;; check that the initial value fits in this width
+		   (ensure-width-can-store inferred-width tyv env)
+
 		   ;; set the type to this width
 		   (setq inferred-type `(fixed-width-unsigned ,inferred-width)))
 
 		  ((null width)
 		   ;; evaluate the type
-		   (setq inferred-type (expand-type-parameters tyv env))
+		   (setq inferred-type (expand-type-parameters type env))
+
+		   ;; check that the initial value fits in this type
+		   (ensure-subtype tyv inferred-type)
 
 		   ;; set the width to match this type
 		   (setq inferred-width (bitwidth inferred-type env)))
@@ -135,6 +145,86 @@ Signal REPRESENTATION-MISMATCH as an error if not."
   (mapc (rcurry #'typecheck-decl env) decls))
 
 
+(defun typecheck-infer-decl (decl env)
+  "Re-write declarations in DECL to match ENV.
+
+ENV may include :TYPE and :WIDTH assignments, which are used to
+update the values in DECL as long as they're consistent."
+  (with-current-form decl
+    (if (listp decl)
+	;; full declaration
+	(destructuring-bind (n v &key width type (as :register))
+	    decl
+	  (ensure-representation as)
+
+	  ;; a decl may come with zero, one, or both of a type, and width
+	  (let ((inferred-type (get-type n env))
+		(inferred-width (get-width n env))
+		assigned-type
+		assigned-width)
+	    (cond ((special-value-p v)
+		   ;; special values don't have widths, do nothing
+		   t)
+
+		  ((and (null type)
+			(null width))
+		   ;; no explicit settings, set to the inferred values
+		   (setq assigned-type inferred-type)
+		   (setq assigned-width inferred-width))
+
+		  ((null type)
+		   ;; check explicit width is consistent
+		   (let ((w (eval-in-static-environment width env)))
+		     (unless (>= w inferred-width)
+		       (signal 'width-mismatch :expected inferred-width
+					       :got w
+					       :hint "Make sure assigned width is wide enough for the values assigned to it"))
+
+		     ;; set the type to the assigned width
+		     (setq inferred-type `(fixed-width-unsigned ,w))))
+
+		  ((null width)
+		   ;; check explicit type is consistent
+		   (let ((tyv (expand-type-parameters (typecheck-form v env) env)))
+		     (unless (subtypep inferred-type tyv)
+		       (signal 'type-mismatch :expected inferred-type
+					      :got tyv
+					      :hint "Make sure assigned type is widthe nough for the values assigned to it"))
+
+		     ;; set the width to match this type
+		     (setq inferred-width (bitwidth tyv env))))
+
+		  (t
+		   (let ((w (eval-in-static-environment width env))
+			 (tyv (expand-type-parameters (typecheck-form v env) env)))
+		     (unless (>= w inferred-width)
+		       (signal 'width-mismatch :expected inferred-width
+					       :got w
+					       :hint "Make sure assigned width is wide enough for the values assigned to it"))
+		     (unless (subtypep inferred-type tyv)
+		       (signal 'type-mismatch :expected inferred-type
+					      :got tyv
+					      :hint "Make sure assigned type is widthe nough for the values assigned to it")))))
+
+	    ;; update the declaration if it's changed
+	    (when assigned-type
+	      (setf (cdr (last decl 2)) (list (car (last decl)) :type assigned-type))
+	      (signal 'type-inferred :variable n
+				     :inferred assigned-type))
+	    (when assigned-width
+	      (setf (cdr (last decl 2)) (list (car (last decl)) :width assigned-width))
+	      (signal 'width-inferred :variable n
+				      :inferred assigned-width))))
+
+	;; otherwise we have a naked name, so apply the defaults
+	(typecheck-infer-decl `(,decl 0 :width ,*default-register-width* :as :register) env))))
+
+
+(defun typecheck-infer-decls (decls env)
+  "Re-write declarations in DECLS to match ENV."
+  (mapcar (rcurry #'typecheck-infer-decl env) decls))
+
+
 (defmethod typecheck-sexp ((fun (eql 'let)) args env)
   (declare (optimize debug))
   (let ((decls (car args))
@@ -143,8 +233,9 @@ Signal REPRESENTATION-MISMATCH as an error if not."
       (typecheck-env decls ext)
 
       ;; capture type of the last form
-      (let ((ty (mapn (rcurry #'typecheck ext) body)))
+      (let ((ty (mapn (rcurry #'typecheck-form ext) body)))
 	;; resolve any inferred widths and types
+	(typecheck-infer-decls decls ext)
 
 	;; return the type
 	ty))))
@@ -163,7 +254,11 @@ Signal REPRESENTATION-MISMATCH as an error if not."
   "Re-write the values of DECL using REWRITE."
   (destructuring-bind (n v &rest keys)
       decl
-    `(,n ,(rewrite-variables v rewrite) ,(rewrite-variables-keys keys rewrite))))
+    (if keys
+	`(,n ,(rewrite-variables v rewrite) ,(rewrite-variables-keys keys rewrite))
+
+	;; no keys to add
+	`(,n ,(rewrite-variables v rewrite)))))
 
 
 (defmethod rewrite-variables-sexp ((fun (eql 'let)) args rewrite)
@@ -264,11 +359,13 @@ by LET and MODULE forms."
       args
     (let ((vars (mapcar #'car decls)))
       (dolist (n vars)
-	(if (variable-defined-p n env)
+	(if (variable-declared-p n env)
 	    (error 'duplicate-variable :variable n
 				       :hint "Variable shadows a previous definition"))))
 
-    (let ((ext (typecheck-env decls env)))
+    (let ((ext (add-frame env)))
+      (typecheck-env decls ext)
+
       (mapc (rcurry #'detect-shadowing ext) body)
       t)))
 
