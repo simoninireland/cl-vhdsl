@@ -94,7 +94,7 @@ L may be an atom or a list, including NIL."
   (mapcar (lambda (i)
 	    (declare (ignore i))
 	    (if (listp l)
-		(copy-list l)
+		(copy-tree l)
 		l))
 	  (iota n)))
 
