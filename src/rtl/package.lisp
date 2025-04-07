@@ -42,9 +42,23 @@
 
    ;; environments
    #:empty-environment
-   #:extend-environment
+   #:add-frame
+   #:declare-variable
+   #:variable-declared-p
+   #:get-frame-names
    #:get-environment-names
-   #:get-environment-properties
+   #:filter-environment
+   #:get-type
+   #:get-representation
+   #:get-width
+   #:get-initial-value
+
+   ;; evaluating expressions in environments
+   #:close-form-in-environment
+   #:close-form-in-static-environment
+   #:eval-in-static-environment
+   #:ensure-static
+   #:eval-if-static
 
    ;; extra RTLisp functions and macros not in Common Lisp
    #:fixed-width-unsigned
@@ -69,7 +83,8 @@
    #:next
    #:exit
 
-   ;; compiler nanopasses
+   ;; DSL functions
+   #:widthcheck
    #:typecheck
    #:detect-shadowing
    #:float-let-blocks
