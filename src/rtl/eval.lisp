@@ -21,6 +21,8 @@
 (declaim (optimize debug))
 
 
+;; ---------- Lisp evaluation in RTLisp-derived environments ----------
+
 (defun make-environment-alist (env)
   "Return a list of name/value pairs of the elements of ENV.
 
@@ -32,21 +34,23 @@ The pairs can be used in LET blocks, or as an alist."
 
 
 (defun close-form-in-environment (form env)
-  "Close the RTLisp FORM as a Lisp term in the environment ENV.
+  "Close FORM as a Lisp term in the environment ENV.
 
 Each declaration in ENV is converted into a LET declaration with the
-same name and initial value. FORM is then Lispified and placed as the
-body of this LET form."
-  (let ((lispform (lispify form env)))
-    (if (null env)
-	lispform
+same name and initial value. FORM is then placed as the body of this
+LET form.
 
-	;; expand the static enviroment and close over it
-	(let* ((ext (make-environment-alist env))
-	       (ns (alist-keys ext)))
-	  `(let ,ext
-	     (declare (ignorable ,@ns))  ;; don't warn about un-used variables
-	     ,lispform)))))
+Note that FORM should be Lisp, not RTLisp: to evaluate RTLisp forms
+first use LISPIFY to generate proper Lisp for evaluation."
+  (if (null env)
+      form
+
+      ;; expand the static enviroment and close over it
+      (let* ((ext (make-environment-alist env))
+	     (ns (alist-keys ext)))
+	`(let ,ext
+	   (declare (ignorable ,@ns))  ;; don't warn about un-used variables
+	   ,form))))
 
 
 (defun static-constant-p (form env)
@@ -62,7 +66,7 @@ are module parameters or declared as constant."
 
 
 (defun close-form-in-static-environment (form env)
-  "Close the RTLisp FORM as Lisp in the static part of environment ENV.
+  "Close FORM as Lisp in the static part of environment ENV.
 
 ENV is filtered to include only the static elements of the
 environment, consisting of package parameters and declared constants.
@@ -71,6 +75,11 @@ at compile time."
   (let ((staticenv (filter-environment #'static-constant-p env)))
     (close-form-in-environment form staticenv)))
 
+
+;; ---------- RTLisp evaluation ----------
+
+;; The forms passed to these functions should be RTLisp, which is
+;; Lispified before closure and evaluation
 
 (defun eval-in-static-environment (form env)
   "Evaluate RTLisp FORM as Lisp in the static part of environment ENV.
@@ -82,11 +91,11 @@ compile time.
 
 The resulting form is evaluated as Lisp, and so will signal
 standard Lisp conditions."
-  (eval (close-form-in-static-environment form env)))
+  (eval (close-form-in-static-environment (lispify form env) env)))
 
 
 (defun ensure-static (form env)
-  "Evaluate FORM in the static environment of ENV, returning its value.
+  "Evaluate RTLisp FORM in the static environment of ENV, returning its value.
 
 A NOT-STATIC error condition is signalled if FORM does not
 evaluate to a constant."
@@ -99,7 +108,7 @@ evaluate to a constant."
 
 
 (defun eval-if-static (form env)
-  "Evauate FORM in the static environment of ENV, returning its value.
+  "Evauate RTLisp FORM in the static environment of ENV, returning its value.
 
 If the form isn't statically constant, return NIL."
   (handler-case
