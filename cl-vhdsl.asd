@@ -43,7 +43,7 @@
 			     (:file "env")
 			     (:file "pretty-printer")
 			     (:file "passes")
-			     (:file "width")
+			     (:file "widths")
 			     (:file "fixed-width")
 			     (:file "assignment")
 			     (:file "literals")
