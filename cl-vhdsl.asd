@@ -71,6 +71,7 @@
 			     (:file "component")
 			     (:file "mixins")
 			     (:file "synthesis")
+			     (:file "isa")
 			     (:file "conditions"))))
   :in-order-to ((test-op (test-op "cl-vhdsl/test"))))
 
@@ -115,6 +116,7 @@
 	       (:file "test-rtl-cond")
 	       (:file "test-rtl-with-bitfields")
 	       (:file "test-def-components")
+	       (:file "test-def-isa")
 	       )
   :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))
 

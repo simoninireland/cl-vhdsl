@@ -20,6 +20,29 @@
 (in-package :cl-vhdsl/def)
 
 
+;; ---------- Instructions ----------
+
+(define-condition slot-type-mismatch (vhdsl-condition)
+  ((slot
+    :documentation "The sub-component slot name."
+    :initarg :slot
+    :reader slot-name)
+   (ty
+    :documentation "The type."
+    :initarg :type
+    :reader slot-type))
+   (:report (lambda (c str)
+	     (format-condition-context (format nil "Can't give slot ~a type ~a in instruction"
+					       (slot-name c)
+					       (slot-type c))
+				       c str))
+  (:documentation "Condition signalled when a slot does not have a proper type.
+
+Slots need to be given fixed width types.")))
+
+
+;; ---------- Components and sub-components ----------
+
 (define-condition subcomponent-mismatch (vhdsl-condition)
   ((component
     :documentation "The component."

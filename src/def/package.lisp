@@ -22,6 +22,14 @@
 (defpackage cl-vhdsl/def
   (:use :cl :alexandria
 	:cl-vhdsl :cl-vhdsl/rtl)
+  (:import-from :cl-vhdsl/rtl
+		#:empty-environment
+		#:add-frame
+		#:filter-environment
+		#:close-form-in-environment
+		#:variable-declared-p
+		#:declare-variable
+		#:get-representation)
   (:import-from :slot-extra-options
 		#:def-extra-options-metaclass
 		#:slot-exists-and-bound-p)
@@ -44,6 +52,7 @@
    #:subcomponents
    #:parameters
    #:wiring-diagram
+   #:instruction
 
    ;; mixins and their behaviours
    #:enabled
@@ -65,5 +74,6 @@
    #:to-rtl
 
    ;; conditions
+   #:slot-type-mismatch
    #:subcomponent-mismatch
    ))

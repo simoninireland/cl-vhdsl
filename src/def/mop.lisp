@@ -192,6 +192,8 @@ sub-components."
   "Return the slot definition associated with SLOT on component C.
 
 This is used internally to access slot attributes."
+  (declare (optimize debug))
+
   (let ((slot-defs (class-slots (class-of c))))
     (or (find slot slot-defs :key #'slot-definition-name
 			     :test #'string-equal)
