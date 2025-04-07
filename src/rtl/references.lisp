@@ -81,7 +81,7 @@ of *IDENTIFIER-ILLEGAL-CHARACTER-REPLACEMENT*."
 
 ;; ---------- General references ----------
 
-(defmethod typecheck-form ((form symbol) env)
+(defmethod typecheck ((form symbol) env)
   (get-type form env))
 
 

@@ -86,7 +86,7 @@ Signal REPRESENTATION-MISMATCH as an error if not."
 	  (ensure-representation as)
 
 	  ;; a decl may come with zero, one, or both of a type, and width
-	  (let ((tyv (typecheck-form v env))
+	  (let ((tyv (typecheck v env))
 		inferred-type
 		inferred-width)
 	    (cond ((special-value-p v)
@@ -185,7 +185,7 @@ update the values in DECL as long as they're consistent."
 
 		  ((null width)
 		   ;; check explicit type is consistent
-		   (let ((tyv (expand-type-parameters (typecheck-form v env) env)))
+		   (let ((tyv (expand-type-parameters (typecheck v env) env)))
 		     (unless (subtypep inferred-type tyv)
 		       (signal 'type-mismatch :expected inferred-type
 					      :got tyv
@@ -196,7 +196,7 @@ update the values in DECL as long as they're consistent."
 
 		  (t
 		   (let ((w (eval-in-static-environment width env))
-			 (tyv (expand-type-parameters (typecheck-form v env) env)))
+			 (tyv (expand-type-parameters (typecheck v env) env)))
 		     (unless (>= w inferred-width)
 		       (signal 'width-mismatch :expected inferred-width
 					       :got w
@@ -233,7 +233,7 @@ update the values in DECL as long as they're consistent."
       (typecheck-env decls ext)
 
       ;; capture type of the last form
-      (let ((ty (mapn (rcurry #'typecheck-form ext) body)))
+      (let ((ty (mapn (rcurry #'typecheck ext) body)))
 	;; resolve any inferred widths and types
 	(typecheck-infer-decls decls ext)
 

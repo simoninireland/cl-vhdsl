@@ -163,21 +163,9 @@ method to change this behaviour.")
 
 
 
-;; ---------- Type and width checking ----------
+;; ---------- Type checking ----------
 
-(defun typecheck (form env)
-  "Type-check FORM in ENV.
-
-Return the type as main value, with the possibly re-written parse
-tree as a secondary value.
-
-This function calls the TYPECHECK-FORM generic function to perform
-the actual parsing."
-  (values (typecheck-form (copy-tree form) env)
-	  form))
-
-
-(defgeneric typecheck-form (form env)
+(defgeneric typecheck (form env)
   (:documentation "Type-check FORM in ENV.")
   (:method ((form list) env)
     (let ((fun (car form))
@@ -191,7 +179,7 @@ the actual parsing."
 ;; issues (which signal implementation-specific conditions)
 ;; into not-synthesisable conditions
 
-(defmethod typecheck-form :around (form env)
+(defmethod typecheck :around (form env)
   (handler-bind
       ((error (lambda (cond)
 		(error 'not-synthesisable :underlying-condition cond
@@ -205,6 +193,29 @@ the actual parsing."
 
 (defgeneric typecheck-sexp-setf (selector val env selectorargs &key sync)
   (:documentation "Type-check a SETF form allowing generalised places.
+
+This matches a form (SETF (SELECTOR SELECTORARGS) VAL) and allows
+different selectors to be used as generalised places."))
+
+
+;; ---------- Width checking ----------
+
+(defgeneric withcheck (form env)
+  (:documentation "Width-check FORM in ENV.")
+  (:method ((form list) env)
+    (let ((fun (car form))
+	  (args (cdr form)))
+      (with-rtl-errors-not-synthesisable
+	(with-current-form (cons fun args)
+	  (widthcheck-sexp fun args env))))))
+
+
+(defgeneric widthcheck-sexp (fun args env)
+  (:documentation "Width-check the application of FUN to ARGS in ENV."))
+
+
+(defgeneric widthcheck-sexp-setf (selector val env selectorargs &key sync)
+  (:documentation "Width-check a SETF form allowing generalised places.
 
 This matches a form (SETF (SELECTOR SELECTORARGS) VAL) and allows
 different selectors to be used as generalised places."))

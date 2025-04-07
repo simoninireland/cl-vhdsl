@@ -94,7 +94,7 @@ RTLisp, but don't /require/ it."
 
     ;; check initial element value
     (if initial-element
-	(let* ((ty (typecheck-form initial-element env))
+	(let* ((ty (typecheck initial-element env))
 	       (w (bitwidth ty env)))
 	  (if element-width
 	      (unless (<= w element-width)
@@ -107,14 +107,14 @@ RTLisp, but don't /require/ it."
 
     ;; check or derive element width
     (if element-width
-	(ensure-width-can-store element-width (typecheck-form initial-element env) env)
+	(ensure-width-can-store element-width (typecheck initial-element env) env)
 
 	;; set width from initial value
 	(setq element-width (bitwidth initial-element env)))
 
     ;; check or derive element type
     (if element-type
-	(ensure-subtype (typecheck-form initial-element env) element-type)
+	(ensure-subtype (typecheck initial-element env) element-type)
 
 	;; default is a fixed-width unsigned
 	(setq element-type `(fixed-width-unsigned ,element-width)))
@@ -131,7 +131,7 @@ RTLisp, but don't /require/ it."
 		   ;; check all elements of literal data
 		   (ensure-data-has-shape initial-contents shape)
 		   (dolist (c initial-contents)
-		     (ensure-subtype (typecheck-form c env) element-type))))))
+		     (ensure-subtype (typecheck c env) element-type))))))
 
     `(array ,element-type ,shape)))
 
@@ -207,7 +207,7 @@ probably should, for those that are statically determined."
 	   (= (length (cddr ty))
 	      (length indices)))
        (every (lambda (i)
-		(subtypep (typecheck-form i env)
+		(subtypep (typecheck i env)
 			  'fixed-width-unsigned))
 	      indices)))
 
@@ -227,7 +227,7 @@ probably should, for those that are statically determined."
 (defmethod typecheck-sexp ((fun (eql 'aref)) args env)
   (destructuring-bind (var &rest indices)
       args
-    (let ((ty (typecheck-form var env)))
+    (let ((ty (typecheck var env)))
       (ensure-subtype ty 'array)
       (ensure-valid-array-index ty indices env)
 

@@ -20,7 +20,7 @@
 (in-package :common-lisp-user)
 
 (defpackage cl-vhdsl/rtl
-  (:documentation "RTLisp, the synthesisiable fraction of Common Lisp, as an embedded DSL")
+  (:documentation "RTLisp, the synthesisiable fragment of Common Lisp, as an embedded DSL")
   (:use :cl :alexandria
 	:cl-vhdsl)
   (:import-from :cl-ppcre

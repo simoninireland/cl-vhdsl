@@ -26,8 +26,8 @@
 (defmethod typecheck-sexp ((fun (eql 'bit)) args env)
   (destructuring-bind (var bit)
       args
-    (ensure-subtype (typecheck-form var env) 'fixed-width-unsigned)
-    (ensure-subtype (typecheck-form bit env) '(fixed-width-unsigned 1))
+    (ensure-subtype (typecheck var env) 'fixed-width-unsigned)
+    (ensure-subtype (typecheck bit env) '(fixed-width-unsigned 1))
     '(fixed-width-unsigned 1)))
 
 
@@ -88,7 +88,7 @@
 (defmethod typecheck-sexp ((fun (eql 'bits)) args env)
   (destructuring-bind (var start &key end width)
       args
-    (let ((tyvar (typecheck-form var env)))
+    (let ((tyvar (typecheck var env)))
       (setq end (compute-end-bit start end width))
 
       (let ((l (1+ (- start end)))

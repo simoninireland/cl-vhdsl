@@ -201,7 +201,7 @@ of other parameter values."
 	(error 'not-synthesisable :hint "Module must import at least one wire or register"))
 
       (let ((ext (env-from-module-decls modargs modparams)))
-	(typecheck-form (cons 'progn body) ext)
+	(typecheck (cons 'progn body) ext)
 
 	(let ((intf (make-instance 'module-interface :parameters modparams
 						     :arguments modargs)))
@@ -395,7 +395,7 @@ and causes a NOT-IMPORTABLE error if not."
       ;; ensure we have all the arguments we need
       (ensure-module-arguments-match-interface modname intf modargs)
 
-      ;; typecheck-form the provided arguments against the interface
+      ;; typecheck the provided arguments against the interface
       (let ((modenv (env-from-module-interface intf))
 	    (initargs-plist (plist-alist initargs)))
 	(dolist (arg modargs)
@@ -403,11 +403,11 @@ and causes a NOT-IMPORTABLE error if not."
 			       :key #'symbol-name
 			       :test #'string-equal))))
 	    (cond ((argument-for-module-interface-p arg intf)
-		   (let ((tyval (typecheck-form v env))
+		   (let ((tyval (typecheck v env))
 			 (tyarg (get-type arg modenv)))
 		     (ensure-subtype tyval tyarg)))
 		  ((parameter-for-module-interface-p arg intf)
-		   (let ((tyval (typecheck-form (eval-in-static-environment v env) env))
+		   (let ((tyval (typecheck (eval-in-static-environment v env) env))
 			 (tyarg (get-type arg modenv)))
 		     (ensure-subtype tyval tyarg))))))
 

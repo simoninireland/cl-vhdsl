@@ -49,8 +49,8 @@ constant or an input parameter."
     (unless (symbolp n)
       (error 'not-synthesisable :hint "Do you need SETF instead of SETQ?"))
 
-    (let ((tyvar (typecheck-form n env))
-	  (tyval (typecheck-form v env)))
+    (let ((tyvar (typecheck n env))
+	  (tyval (typecheck v env)))
       (ensure-subtype tyval tyvar)
       (ensure-writeable n env)
 
@@ -102,7 +102,7 @@ By default forms are /not/ generalised places.")
 
 ;; No need to dive into the args in most cases, just the selector
 
-;; There might be a better approach to tis using reference types
+;; There might be a better approach to this using reference types
 ;; to differentiate between l- and r-value instances
 
 (defgeneric generalised-place-sexp-p (fun args env)
@@ -126,17 +126,34 @@ The default is for a form /not/ to be a generalised place.")
 	(typecheck-sexp-setf (car var) val (cdr var) env :sync sync)
 
 	;; a SETF to a simple variable is a SETQ
-	(typecheck-form `(setq ,var ,val :sync ,sync) env))))
+	(typecheck `(setq ,var ,val :sync ,sync) env))))
 
 
 (defmethod typecheck-sexp-setf ((selector symbol) val selectorargs env &key sync)
   (let* ((place `(,selector ,@selectorargs))
-	 (tyvar (typecheck-form place env))
-	 (tyval (typecheck-form val env)))
-    (ensure-subtype tyval tyvar)
+	 (tyvar (typecheck place env))
+	 (tyval (typecheck val env)))
+    (ensure-subtype tyval tyvar)?
     (ensure-generalised-place place env)
 
     tyvar))
+
+
+(defmethod widthcheck-sexp ((fun (eql 'setf)) args env)
+  (destructuring-bind (var val &key sync)
+      args
+    (if (listp var)
+	(widthcheck-sexp-setf (car var) val (cdr var) env :sync sync)
+
+	;; a SETF to a simple variable is a SETQ
+	(widthcheck`(setq ,var ,val :sync ,sync) env))))
+
+
+(defmethod widthcheck-sexp-setf ((selector symbol) val selectorargs env &key sync)
+  (let* ((place `(,selector ,@selectorargs))
+	 (wvar (widthcheck place env))
+	 (wval (widthcheck val env)))
+    (max wvar wvar)))
 
 
 (defmethod synthesise-sexp ((fun (eql 'setf)) args (context (eql :inblock)))

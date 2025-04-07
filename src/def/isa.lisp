@@ -64,11 +64,6 @@ returns an empty list.")
     nil))
 
 
-(defclass labels (instruction)
-  ()
-  (:documentation "doc"))
-
-
 (defun slot-definition-width (slot-def)
   "Return the width of SLOT-DEF in bits.
 
@@ -267,6 +262,8 @@ a register."))
   (:documentation "Add a register to an immediate value."))
 
 
+;; ---------- Machine code segments ----------
+
 (defclass section ()
   ((memory
     :documentation "The memory bytes."
@@ -304,6 +301,8 @@ The word is compiled little-endian."
   (compile-half-word (ash w -16) s))
 
 
+;; ---------- Evaluating in restricted environments ----------
+
 (defun assembler-constant-p (n env)
   "Test whether N is an assembler constant in ENV.
 
@@ -314,9 +313,9 @@ for memory addresses within assembler programs."
 
 
 (defun close-form-in-assembler-environment (form env)
-  "Close thr Lisp FORM in ther assembler part of ENV.
+  "Close th Lisp FORM in the assembler part of ENV.
 
-ENV is filtered to include only assembler constants."
+ENV is filtered to include only constants."
   (let ((assenv (filter-environment #'assembler-constant-p env)))
     (close-form-in-environment form assenv)))
 
@@ -413,7 +412,8 @@ plist consisting of the keys linked to the updated values."
 	   (mc (apply #'make-instance (cons cn vs))))
 
       (let ((bs (as-binary mc)))
-	(dolist (b bs)))
+	nil
+)
 
       )))
 

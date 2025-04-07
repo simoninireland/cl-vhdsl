@@ -33,8 +33,8 @@ in many applications."
 (defmethod typecheck-sexp ((fun (eql '=)) args env)
   (destructuring-bind (l r)
       args
-    (ensure-boolean (typecheck-form l env) env)
-    (ensure-boolean (typecheck-form r env) env)
+    (ensure-boolean (typecheck l env) env)
+    (ensure-boolean (typecheck r env) env)
 
     '(fixed-width-unsigned 1)))
 
@@ -52,8 +52,8 @@ in many applications."
 (defmethod typecheck-sexp ((fun (eql '/=)) args env)
   (destructuring-bind (l r)
       args
-    (ensure-boolean (typecheck-form l env) env)
-    (ensure-boolean (typecheck-form r env) env)
+    (ensure-boolean (typecheck l env) env)
+    (ensure-boolean (typecheck r env) env)
 
     '(fixed-width-unsigned 1)))
 
@@ -73,8 +73,8 @@ in many applications."
 (defmethod typecheck-sexp ((fun (eql '<)) args env)
   (destructuring-bind (l r)
       args
-    (ensure-fixed-width (typecheck-form l env))
-    (ensure-fixed-width (typecheck-form r env))
+    (ensure-fixed-width (typecheck l env))
+    (ensure-fixed-width (typecheck r env))
 
     '(fixed-width-unsigned 1)))
 

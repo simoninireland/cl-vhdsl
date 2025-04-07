@@ -24,7 +24,7 @@
 (defmethod typecheck-sexp ((fun (eql 'the)) args env)
   (destructuring-bind (ty val)
       args
-    (let ((tyval (typecheck-form val env)))
+    (let ((tyval (typecheck val env)))
       (ensure-subtype tyval ty)
       ty)))
 
