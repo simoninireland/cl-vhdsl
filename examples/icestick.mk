@@ -21,6 +21,10 @@
 FPGA_DEVICE = hx1k
 FPGA_PACKAGE = tq144
 
+# Docker container tag
+# Leave this blank to run the toolchain native; provide a tag to run in a container
+CONTAINER_TAG = icestorm
+
 
 # ---------- Tools ----------
 
@@ -30,6 +34,7 @@ SYNTH = yosys
 PNR = nextpnr-ice40
 PACK = icepack
 PROGRAM = iceprog
+DOCKER = docker
 RM = rm -fr
 
 # Tool options
@@ -48,6 +53,10 @@ endif
 GENERATED_STEMS = $(foreach fn,$(SOURCES), $(shell basename $(fn) .lisp))
 GENERATED += $(foreach stem,$(GENERATED_STEMS),$(stem).v $(stem).asc $(stem).bin $(stem).json)
 
+# Command to run tools in a container (if requested)
+ifneq ($(CONTAINER_TAG),)
+IN_CONTAINER = $(DOCKER) run -it --rm --mount type=bind,source=`pwd`,target=/work $(CONTAINER_TAG)
+endif
 
 # ---------- Implicit rules ----------
 
@@ -57,10 +66,10 @@ GENERATED += $(foreach stem,$(GENERATED_STEMS),$(stem).v $(stem).asc $(stem).bin
 	$(VHDSLC) $(VHDSLC_OPTS) -o $*.v $(SOURCES)
 
 .v.json:
-	$(SYNTH) $(SYNTH_OPTS) -p "synth_ice40 -top $(TOPMODULE) -json $*.json" $<
+	$(IN_CONTAINER) $(SYNTH) $(SYNTH_OPTS) -p "synth_ice40 -top $(TOPMODULE) -json $*.json" $<
 
 .json.asc:
-	$(PNR) $(PNR_OPTS) --$(FPGA_DEVICE) --package $(FPGA_PACKAGE) --json $*.json --pcf $*.pcf --asc $*.asc
+	$(IN_CONTAINER) $(PNR) $(PNR_OPTS) --$(FPGA_DEVICE) --package $(FPGA_PACKAGE) --json $*.json --pcf $*.pcf --asc $*.asc
 
 .asc.bin:
-	$(PACK) $< $*.bin
+	$(IN_CONTAINER) $(PACK) $< $*.bin

@@ -43,10 +43,10 @@ RM = rm -fr
 # ---------- Top-level targets ----------
 
 # Build the target bitstream
-$(TARGET): $(ASM_OBJECT) $(SOURCES) $(CONFIG)
+$(TARGET): $(OBJECT) $(CONFIG)
 
 
-$(OBJECT): $(SOURCES)
+$(OBJECT): $(ASM_OBJECT) $(SOURCES)
 
 
 # Upload the target bitstream to the device
