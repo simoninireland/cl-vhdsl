@@ -23,10 +23,10 @@
 
 (test test-the
   "Test we can typecheck THE."
-  (is (subtypep (rtl:typecheck '(the (rtl::fixed-width-unsigned 8) 12)
+  (is (subtypep (rtl:typecheck '(the (unsigned-byte 8) 12)
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 8)))
+		'(unsigned-byte 8)))
 
   (signals (rtl:type-mismatch)
-    (rtl:typecheck '(the (rtl::fixed-width-unsigned 8) 1230)
+    (rtl:typecheck '(the (unsigned-byte 8) 1230)
 		   emptyenv)))

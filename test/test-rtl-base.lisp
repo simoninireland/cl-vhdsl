@@ -29,10 +29,8 @@
 (test test-declare-variables
   "Test we can declare variables in a frame."
   (let ((env (rtl::add-frame (rtl::empty-environment))))
-    (is (eql (rtl::declare-variable 'a '((:a 1) (:b 2)) env)
-	     'a))
-    (is (eql (rtl::declare-variable 'b '((:a 6) (:b 4)) env)
-	     'b))
+    (is (rtl::variable-declared-p 'a (rtl::declare-variable 'a '((:a 1) (:b 2)) env)))
+    (is (rtl::variable-declared-p 'b (rtl::declare-variable 'b '((:a 6) (:b 4)) env)))
 
     ;; can't declare duplicates in the same frame
     (signals (rtl::duplicate-variable)
@@ -229,24 +227,69 @@
 		 '(0 28 12 23 0))))))
 
 
-;; ---------- Property access ----------
+;; ---------- Property access and update ----------
 
 (test test-env-get-type
   "Test we can get a type."
   (let ((env1 (rtl::add-frame emptyenv)))
-    (rtl::declare-variable 'a '((:type (rtl::fixed-width-unsigned 8))
+    (rtl::declare-variable 'a '((:type (unsigned-byte 8))
 				(:width 8))
 			   env1)
     (is (equal (rtl::get-type 'a env1)
-	       '(rtl::fixed-width-unsigned 8)))
+	       '(unsigned-byte 8)))
 
     (let ((env2 (rtl::add-frame env1)))
-      (rtl::declare-variable 'a '((:type (rtl::fixed-width-unsigned 16))
+      (rtl::declare-variable 'a '((:type (unsigned-byte 16))
 				  (:width 16))
 			     env2)
       (is (equal (rtl::get-type 'a env2)
-		 '(rtl::fixed-width-unsigned 16)))
+		 '(unsigned-byte 16)))
 
       ;; underlying type is unchanged
       (is (equal (rtl::get-type 'a env1)
-		 '(rtl::fixed-width-unsigned 8))))))
+		 '(unsigned-byte 8))))))
+
+
+(test test-env-set-property-frame
+  "Test we can set a property in the shallowest frame."
+  (let ((env1 (rtl::add-frame emptyenv)))
+    (rtl::declare-variable 'a '((:type (unsigned-byte 8)))
+			   env1)
+    (rtl::declare-variable 'b '((:type (unsigned-byte 12)))
+			   env1)
+    (rtl::set-frame-property 'a :type '(unsigned-byte 12) env1)
+    (is (equal (rtl::get-type 'a env1)
+	       '(unsigned-byte 12)))
+
+    (let ((env2 (rtl::add-frame env1)))
+      (rtl::declare-variable 'a '((:type (unsigned-byte 16)))
+			     env2)
+
+      (rtl::set-frame-property 'a :type '(unsigned-byte 32) env2)
+      (is (equal (rtl::get-type 'a env2)
+		 '(unsigned-byte 32)))
+
+      ;; deeper declaration is unaffected
+      (is (equal (rtl::get-type 'a env1)
+		 '(unsigned-byte 12))))))
+
+
+(test test-env-set-property-env
+  "Test we can set a property in a deeper frame."
+  (let ((env1 (rtl::add-frame emptyenv)))
+    (rtl::declare-variable 'a '((:type (unsigned-byte 8)))
+			   env1)
+    (rtl::declare-variable 'b '((:type (unsigned-byte 12)))
+			   env1)
+
+    (let ((env2 (rtl::add-frame env1)))
+      (rtl::declare-variable 'a '((:type (unsigned-byte 16)))
+			     env2)
+
+      (rtl::set-environment-property 'b :type '(unsigned-byte 32) env2)
+      (is (equal (rtl::get-type 'b env2)
+		 '(unsigned-byte 32)))
+
+      ;; same declaration, not a new one
+      (is (equal (rtl::get-type 'b env1)
+		 '(unsigned-byte 32))))))

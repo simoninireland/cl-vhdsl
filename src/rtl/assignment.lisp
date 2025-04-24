@@ -53,6 +53,7 @@ constant or an input parameter."
 	  (tyval (typecheck v env)))
       (ensure-subtype tyval tyvar)
       (ensure-writeable n env)
+      (add-type-constraint n tyval env)
 
       tyval)))
 
@@ -133,27 +134,10 @@ The default is for a form /not/ to be a generalised place.")
   (let* ((place `(,selector ,@selectorargs))
 	 (tyvar (typecheck place env))
 	 (tyval (typecheck val env)))
-    (ensure-subtype tyval tyvar)?
+    (ensure-subtype tyval tyvar)
     (ensure-generalised-place place env)
 
     tyvar))
-
-
-(defmethod widthcheck-sexp ((fun (eql 'setf)) args env)
-  (destructuring-bind (var val &key sync)
-      args
-    (if (listp var)
-	(widthcheck-sexp-setf (car var) val (cdr var) env :sync sync)
-
-	;; a SETF to a simple variable is a SETQ
-	(widthcheck`(setq ,var ,val :sync ,sync) env))))
-
-
-(defmethod widthcheck-sexp-setf ((selector symbol) val selectorargs env &key sync)
-  (let* ((place `(,selector ,@selectorargs))
-	 (wvar (widthcheck place env))
-	 (wval (widthcheck val env)))
-    (max wvar wvar)))
 
 
 (defmethod synthesise-sexp ((fun (eql 'setf)) args (context (eql :inblock)))

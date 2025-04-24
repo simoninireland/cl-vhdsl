@@ -25,13 +25,13 @@
   "Test we can make a bitfield from literals."
   (is (subtypep (rtl:typecheck '(rtl:make-bitfields #2r111 #2r100)
 			    emptyenv)
-		'(rtl::fixed-width-unsigned 6)))
+		'(unsigned-byte 6)))
 
   (is (subtypep (rtl:typecheck '(rtl:make-bitfields
 				 #2r111
-				 (the (rtl::fixed-width-unsigned 12) 0))
+				 (the (unsigned-byte 12) 0))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 15))))
+		'(unsigned-byte 15))))
 
 
 (test test-make-bitfields-extend
@@ -40,17 +40,17 @@
 				 #2r101
 				 (rtl:extend-bits #2r0 5))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 8)))
+		'(unsigned-byte 8)))
 
   ;; repeats must be statically known, but pattern can be variable
   (is (subtypep (rtl:typecheck '(let ((a 8))
 				 (rtl:make-bitfields (rtl:extend-bits a 5)))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 20)))
+		'(unsigned-byte 20)))
   (is (subtypep (rtl:typecheck '(let ((a 8))
 				 (rtl:make-bitfields (rtl:extend-bits (+ a 9) 5)))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 25)))
+		'(unsigned-byte 25)))
   (signals (rtl::not-static)
     (rtl:typecheck '(let ((a 8))
 		     (rtl:make-bitfields (rtl:extend-bits 0 a)))

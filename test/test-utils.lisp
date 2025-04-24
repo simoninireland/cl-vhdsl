@@ -108,7 +108,7 @@
   (is (null (zip-without-null nil '(1 2 3)))))
 
 
-;; ---------- safe-cadr ----------
+;; ---------- safe-cadr etc ----------
 
 (test test-safe-cadr
   "Test we can safely extract the second element of a pair or list."
@@ -118,6 +118,23 @@
   (is (equal (safe-cadr (list 1 2 3)) 2))
   (is (null (safe-cadr (list 1))))
   (is (null (safe-cadr (cons 1 nil)))))
+
+
+(test test-safe-car
+  "Test we can safely extact the heads of (non-)lists."
+  (is (equal (safe-car (cons 1 2)) 1))
+  (is (equal (safe-car (list 1 2)) 1))
+  (is (equal (safe-car 1) 1)))
+
+
+(test test-safe-car-cdr
+  "Test we can safely split (non-)lists."
+  (is (equal (safe-car-cdr (list 1 2 3)) (list 1 (list 2 3))))
+  (is (equal (safe-car-cdr (list 1 (list 2 3))) (list 1 (list (list 2 3)))))
+  (is (equal (safe-car-cdr (cons 1 2)) (list 1 (list 2))))
+  (is (equal (safe-car-cdr 1) (list 1)))
+  (is (null (safe-cadr (safe-car-cdr 1))))
+  (is (null (cadr (safe-car-cdr 1)))))
 
 
 ;; ---------- Flat maps ----------

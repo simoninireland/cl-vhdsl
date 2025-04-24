@@ -81,8 +81,9 @@ RTLisp, but don't /require/ it."
 
 (defmethod typecheck-sexp ((fun (eql 'make-array)) args env)
   (destructuring-bind (shape &key
-			       initial-element initial-contents
-			       element-width element-type)
+			       (initial-element 0)
+			       initial-contents
+			       element-type)
       args
     ;; skip an initial quotes, allowed for Lisp compatability
     (unquote shape)
@@ -92,32 +93,12 @@ RTLisp, but don't /require/ it."
     ;; check shape
     (ensure-valid-array-shape shape env)
 
-    ;; check initial element value
-    (if initial-element
-	(let* ((ty (typecheck initial-element env))
-	       (w (bitwidth ty env)))
-	  (if element-width
-	      (unless (<= w element-width)
-		(signal 'type-mismatch :expected element-width :got w
-				       :hint "Ensure variable is wide enough for initial element value"))
-	      (setq element-width w)))
-
-	;; set to zero if omitted
-	(setq initial-element 0))
-
-    ;; check or derive element width
-    (if element-width
-	(ensure-width-can-store element-width (typecheck initial-element env) env)
-
-	;; set width from initial value
-	(setq element-width (bitwidth initial-element env)))
-
     ;; check or derive element type
     (if element-type
 	(ensure-subtype (typecheck initial-element env) element-type)
 
 	;; default is a fixed-width unsigned
-	(setq element-type `(fixed-width-unsigned ,element-width)))
+	(setq element-type `(unsigned-byte ,*default-register-width*)))
 
     ;; initial contents must either match the size of the array
     ;; or identify a file
@@ -208,7 +189,7 @@ probably should, for those that are statically determined."
 	      (length indices)))
        (every (lambda (i)
 		(subtypep (typecheck i env)
-			  'fixed-width-unsigned))
+			  'unsigned-byte))
 	      indices)))
 
 

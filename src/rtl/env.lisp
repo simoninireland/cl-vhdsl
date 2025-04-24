@@ -37,8 +37,8 @@ example 8, 16, 32, or 64 bits.")
 
 Signals TYPE-MISMATCH is the types are not compatible. This
 can be ignored for systems not concerned with loss of precision."
-  (if (not (subtypep ty1 ty2))
-      (signal 'type-mismatch :expected ty2 :got ty1)))
+  (when (not (subtypep ty1 ty2))
+    (signal 'type-mismatch :expected ty2 :got ty1)))
 
 
 ;; ---------- Type environments and frames ----------
@@ -75,6 +75,8 @@ ENV is unchanged by this operation."
 (defun declare-variable (n props env)
   "Declare a variable N with properties PROPS in the shallowest frame of ENV.
 
+Return the updated environment.
+
 Signals a DUPLICATE-VARIABLE error if the variable already exists in this frame."
   (ensure-has-frame env)
   (let ((frame (car env)))
@@ -83,7 +85,9 @@ Signals a DUPLICATE-VARIABLE error if the variable already exists in this frame.
 
     ;; copy properties to avoid re-writing the original
     (setf (cdr frame) (cons (cons n (copy-tree props)) (cdr frame)))
-    n))
+
+    ;; return the updated environment
+    env))
 
 
 ;; ---------- Frame operations ----------
@@ -158,11 +162,8 @@ An UNKNOWN-VARIABLE error is signalled if N is undefined."
 
 ;; ---------- Global environment operations ----------
 
-(defun get-environment-properties (n env)
-  "Return the key/value list for N in ENV.
-
-N can be a symbol (usually) or a string. In the latter case the
-variable is checked by string equality aginst the symbol name.
+(defun get-frame-declaring (n env)
+  "Return the shallowest frame in ENV that declares N.
 
 An UNKNOWN-VARIABLE error is signalled if N is undefined."
   (cond ((not (has-frame-p env))
@@ -170,10 +171,20 @@ An UNKNOWN-VARIABLE error is signalled if N is undefined."
 				  :hint "Make sure the variable is in scope"))
 
 	((variable-declared-in-frame-p n env)
-	 (get-frame-properties n env))
+	 env)
 
 	(t
-	 (get-environment-properties n (cdr env)))))
+	 (get-frame-declaring n (cdr env)))))
+
+
+(defun get-environment-properties (n env)
+  "Return the key/value list for N in ENV.
+
+N can be a symbol (usually) or a string. In the latter case the
+variable is checked by string equality aginst the symbol name.
+
+An UNKNOWN-VARIABLE error is signalled if N is undefined."
+  (get-frame-properties n (get-frame-declaring n env)))
 
 
 (defun get-environment-names (env)
@@ -194,6 +205,13 @@ returned: this can be changed by defining the :DEFAULT argument."
 
     ;; property doesn't exist, return the default
     default))
+
+
+(defun set-environment-property (n prop v env)
+  "Set the value of PROP of N in ENV to V.
+
+This affects the shallowest declaration of N."
+  (set-frame-property n prop v (get-frame-declaring n env)))
 
 
 (defun variable-declared-p (n env)
@@ -242,8 +260,14 @@ flat, regardless of the frame structure of ENV."
 ;;---------- Common property access ----------
 
 (defun get-type (n env)
-  "Return the type of N in ENV."
-  (get-environment-property n :type env))
+  "Return the type of N in ENV.
+
+The type is the most definite of an explicitly-provided type
+(the :TYPE attribute), an inferred type (:INFERRED-TYPE),
+and the default type (a standard-width unsigned integer)."
+  (or (get-environment-property n :type env :default nil)
+      (get-environment-property n :inferred-type env :default nil)
+      `(unsigned-byte ,*default-register-width*)))
 
 
 (defun get-representation (n env)

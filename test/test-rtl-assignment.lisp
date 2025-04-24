@@ -28,7 +28,7 @@
   (is (subtypep (rtl:typecheck '(let ((a 13))
 				 (setq a 9))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 8)))
+		'(unsigned-byte 8)))
 
   (signals (rtl:not-synthesisable)
     (rtl:typecheck '(let ((a 12 :as :constant))
@@ -41,7 +41,7 @@
   (is (subtypep (rtl:typecheck '(let ((a 10))
 				 (setq a 12))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 5))))
+		'(unsigned-byte 5))))
 
 
 (test test-assignment-same-width-sync
@@ -49,15 +49,49 @@
   (is (subtypep (rtl:typecheck '(let ((a 10))
 				 (setq a 12 :sync t))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 5))))
+		'(unsigned-byte 5))))
 
 
 (test test-assignment-too-wide
-  "Test we can't assign a value that's too wide."
+  "Test we catch assigning a value that's too wide for its explicit type."
   (signals (rtl:type-mismatch)
-    (rtl:typecheck '(let ((a 10))
+    (rtl:typecheck '(let ((a 10 :type (unsigned-byte 5)))
 		     (setq a 120))
 		   emptyenv)))
+
+
+(test test-assignment-too-wide-widenable
+  "Test we can assign a value to a variable that can be widened."
+  (is (subtypep (rtl:typecheck '(let ((a 10))
+				 (setq a 120))
+			       emptyenv)
+		'(unsigned-byte 7))))
+
+
+(test test-assignment-too-wide-updated
+  "Test we don't update the type when we have an explicit one already."
+  (let ((p (copy-tree '(let ((a 10 :type (unsigned-byte 5) :as :register))
+			(setq a 120)))))
+    (subtypep (rtl:typecheck p emptyenv)
+	      '(unsigned-byte 7))
+
+    ;; code tree not updated
+    (is (equal p
+	       '(let ((a 10 :type (unsigned-byte 5) :as :register))
+		  (setq a 120))))))
+
+
+(test test-assignment-too-wide-widenable-updated
+  "Test we update the code to match inferred types."
+  (let ((p (copy-tree'(let ((a 10))
+		       (setq a 120)))))
+    (is (subtypep (rtl:typecheck p emptyenv)
+		  '(unsigned-byte 7)))
+
+    ;; code tree updated to reflect inferred type
+    (is (equal p
+	       '(let ((a 10 :type (unsigned-byte 7) :as :register))
+		 (setq a 120))))))
 
 
 (test test-assignment-out-of-scope
@@ -88,7 +122,7 @@
 (test test-typecheck-setq-generalised-place
   "Test we catch the common mistake of using SETQ when we mean SETF."
   (signals (rtl:not-synthesisable)
-    (rtl:typecheck '(let ((a 0 :width 4))
+    (rtl:typecheck '(let ((a 0 :type (unsigned-byte 4)))
 		     (setq (bit a 0) 1))
 		   emptyenv)))
 
@@ -100,12 +134,12 @@
   (is (subtypep (rtl:typecheck '(let ((a 12))
 				 (setf a 9))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 8)))
+		'(unsigned-byte 8)))
 
   (is (subtypep (rtl:typecheck '(let ((a 12))
 				 (setf a 9 :sync t))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 8))))
+		'(unsigned-byte 8))))
 
 
 (test test-setf-variable
@@ -120,16 +154,26 @@
   (is (subtypep (rtl:typecheck '(let ((a 12))
 				 (setf (rtl::bits a 1 :end 0) 2))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 12)))
+		'(unsigned-byte 2)))
 
-  ;; fails because default width of a is too small
-  (signals (rtl:width-mismatch)
+  ;; signals a problem because default width of a is too small
+  (signals (rtl:type-mismatch)
     (rtl:typecheck '(let ((a 12))
 		     (setf (rtl::bits a 6 :end 0) 0))
 		   emptyenv))
 
-  ;; fixed with an explicit width
-  (is (subtypep (rtl:typecheck '(let ((a 12 :width 8))
-				 (setf (rtl::bits a 6 :end 0) 0))
-			       emptyenv)
-		'(rtl::fixed-width-unsigned 12))))
+  ;; ... and widens the variable
+  (let ((p (copy-tree '(let ((a 12))
+			(setf (rtl::bits a 6 :end 0) 0)))))
+    (rtl:typecheck p emptyenv)
+    (is (equal p
+	       '(let ((a 12 :type (unsigned-byte 7) :as :register))
+			(setf (rtl::bits a 6 :end 0) 0)))))
+
+  ;; but not when there's an explicit width
+  (let ((p (copy-tree '(let ((a 12 :type (unsigned-byte 8)))
+			(setf (rtl::bits a 6 :end 0) 0)))))
+    (rtl:typecheck p emptyenv)
+    (is (equal p
+	       '(let ((a 12 :type (unsigned-byte 8) :as :register))
+			(setf (rtl::bits a 6 :end 0) 0))))))

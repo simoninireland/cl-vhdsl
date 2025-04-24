@@ -131,6 +131,29 @@ L can be a list or a pair."
       (cdr l)))
 
 
+(defun safe-car (l)
+  "Return the car of L if it is a list, or L itself if it is an atom."
+  (if (listp l)
+      (car l)
+      l))
+
+
+(defun safe-car-cdr (l)
+  "Return a list of the car of L and its cdr (as a list).
+
+If L is not a list, return a list of L and nil. If L is
+a pair, its cdr is returned as a list anyway."
+  (if (listp l)
+      (list (car l) (let ((ls (cdr l)))
+		      (cond ((null ls)
+			     (list '()))
+			    ((listp ls)
+			     ls)
+			    (t
+			     (list ls)))))
+      (list l)))
+
+
 ;; ---------- Flat maps ----------
 
 (defun mapappend (f &rest ls)

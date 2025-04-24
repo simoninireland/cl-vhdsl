@@ -26,7 +26,7 @@
   (is (subtypep (rtl:typecheck '(let ((a 12))
 				 a)
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 8))))
+		'(unsigned-byte 8))))
 
 
 (test test-variable-not-scope

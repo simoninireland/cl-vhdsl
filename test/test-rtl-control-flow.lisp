@@ -41,7 +41,7 @@
 				 (rtl::@ ((rtl::posedge clk))
 				  (setf a 1)))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 1)))
+		'(unsigned-byte 1)))
 
   ;; multiple wires sensitivity
   (is (subtypep (rtl:typecheck '(let ((clk 0 :as :wire)
@@ -50,7 +50,7 @@
 				 (rtl::@ ((rtl::posedge clk) (rtl::negedge rst))
 				  (setf a 1)))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 1))))
+		'(unsigned-byte 1))))
 
 
 (test test-typecheck-edges
@@ -60,7 +60,7 @@
 				 (rtl::@ ((rtl::posedge clk))
 				  (setq a clk)))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 1))))
+		'(unsigned-byte 1))))
 
 
 (test test-typecheck-wire-singleton
@@ -70,7 +70,7 @@
 				 (rtl::@ clk
 				  (setq a clk)))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 1))))
+		'(unsigned-byte 1))))
 
 
 (test test-typecheck-wire-trigger
@@ -80,7 +80,7 @@
 				 (rtl::@ (rtl::posedge clk)
 				  (setq a clk)))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 1))))
+		'(unsigned-byte 1))))
 
 
 (test test-synthesise-edges

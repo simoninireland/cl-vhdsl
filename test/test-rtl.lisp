@@ -113,25 +113,25 @@
 
 (test test-unsigned-range
   "Test the range of an unsigned fixed-width integer."
-  (is (typep 12 '(rtl::fixed-width-unsigned 8)))
-  (is (typep 12 '(rtl::fixed-width-unsigned 16)))
+  (is (typep 12 '(unsigned-byte 8)))
+  (is (typep 12 '(unsigned-byte 16)))
 
-  (is (typep 512 '(rtl::fixed-width-unsigned 16)))
-  (is (not (typep 512 '(rtl::fixed-width-unsigned 8))))
+  (is (typep 512 '(unsigned-byte 16)))
+  (is (not (typep 512 '(unsigned-byte 8))))
 
-  (is (not (typep -64 '(rtl::fixed-width-unsigned 8)))))
+  (is (not (typep -64 '(unsigned-byte 8)))))
 
 
 (test test-signed-range
   "Test the range of a signed fixed-width integer."
-  (is (typep 12 '(rtl::fixed-width-signed 8)))
-  (is (typep 12 '(rtl::fixed-width-signed 16)))
-  (is (typep 127 '(rtl::fixed-width-signed 8)))
-  (is (typep -128 '(rtl::fixed-width-signed 8)))
+  (is (typep 12 '(signed-byte 8)))
+  (is (typep 12 '(signed-byte 16)))
+  (is (typep 127 '(signed-byte 8)))
+  (is (typep -128 '(signed-byte 8)))
 
-  (is (not (typep 128 '(rtl::fixed-width-signed 8))))
-  (is (not (typep -129 '(rtl::fixed-width-signed 8))))
-  (is (not (typep -64 '(rtl::fixed-width-signed 4)))))
+  (is (not (typep 128 '(signed-byte 8))))
+  (is (not (typep -129 '(signed-byte 8))))
+  (is (not (typep -64 '(signed-byte 4)))))
 
 
 (test test-bitwidths-integer-types
@@ -228,53 +228,53 @@
 (test test-literal-widths
   "Test we can extract the types of literals."
   (is (subtypep (rtl:typecheck 2 emptyenv)
-		'(rtl::fixed-width-unsigned 2)))
+		'(unsigned-byte 2)))
 
   (is (not (subtypep (rtl:typecheck -2 emptyenv)
-		     '(rtl::fixed-width-signed 2))))
+		     '(signed-byte 2))))
   (is (subtypep (rtl:typecheck -2 emptyenv)
-		'(rtl::fixed-width-signed 3))))
+		'(signed-byte 3))))
 
 
 (test test-add-widths
   "Test we can determine the widths of additions."
   (is (subtypep (rtl:typecheck '(+ 1 1)
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 2)))
+		'(unsigned-byte 2)))
   (is (subtypep (rtl:typecheck '(+ 15 2)
 			       emptyenv)
-		`(rtl::fixed-width-unsigned 5)))
+		`(unsigned-byte 5)))
 
   (is (not (subtypep (rtl:typecheck '(+ 15 -2)
 				    emptyenv)
-		     `(rtl::fixed-width-unsigned 5))))
+		     `(unsigned-byte 5))))
   (is (subtypep (rtl:typecheck '(+ 15 -2)
 			       emptyenv)
-		`(rtl::fixed-width-signed 5))))
+		`(signed-byte 5))))
 
 
 (test test-width-subtractions
   "Test we can extract the widths of subtractions."
     (is (subtypep (rtl:typecheck '(- 1)
 			       emptyenv)
-		  '(rtl::fixed-width-signed 2)))
+		  '(signed-byte 2)))
     (is (subtypep (rtl:typecheck '(- 2 1)
 			       emptyenv)
-		  '(rtl::fixed-width-signed 3))))
+		  '(signed-byte 3))))
 
 
 (test test-width-shifts
   "Test we can extract the widths of shifts."
   (is (subtypep (rtl:typecheck '(rtl::<< 1 2)
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 4)))
+		'(unsigned-byte 4)))
   (is (subtypep (rtl:typecheck '(rtl::<< 15 15)
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 19)))
+		'(unsigned-byte 19)))
 
   (is (subtypep (rtl:typecheck '(rtl::>> 16 4)
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 1)))
+		'(unsigned-byte 1)))
 
   ;; wrong number of arguments
   (dolist (op '(rtl::<< rtl::>>))
@@ -289,7 +289,7 @@
   (is (subtypep (rtl:typecheck '(let ((a #2r10110))
 				 (rtl::bits a 2 1))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 2))))
+		'(unsigned-byte 2))))
 
 
 (test test-let-single
@@ -297,7 +297,7 @@
   (is (subtypep (rtl:typecheck '(let ((a 1 :width 5))
 				 (+ 1 a))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 6))))
+		'(unsigned-byte 6))))
 
 
 (test test-let-single-infer-width
@@ -305,7 +305,7 @@
   (is (subtypep (rtl:typecheck '(let ((a 1))
 				 (+ 1 a))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 2))))
+		'(unsigned-byte 2))))
 
 
 (test test-let-double
@@ -314,7 +314,7 @@
 				      (b 6 :width 16))
 				 (+ a b))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 24))))
+		'(unsigned-byte 24))))
 
 
 (test test-let-too-narrow
@@ -327,10 +327,10 @@
 
 (test test-let-widen
   "Test we can take the width from a given type."
-  (is (subtypep (rtl:typecheck '(let ((a 5 :type (rtl::fixed-width-unsigned 8)))
+  (is (subtypep (rtl:typecheck '(let ((a 5 :type (unsigned-byte 8)))
 				 (+ 1 a))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 9))))
+		'(unsigned-byte 9))))
 
 
 (test test-let-scope
@@ -348,7 +348,7 @@
 				 (+ b 1)
 				 (+ b a b))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 10))))
+		'(unsigned-byte 10))))
 
 
 (test test-let-constant
@@ -356,7 +356,7 @@
   (is (subtypep (rtl:typecheck '(let ((a 15 :as :constant))
 				 a)
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 4))))
+		'(unsigned-byte 4))))
 
 
 (test test-setq
@@ -364,7 +364,7 @@
   (is (subtypep (rtl:typecheck '(let ((a 12))
 				 (setq a 9))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 8)))
+		'(unsigned-byte 8)))
 
   (signals (rtl:not-synthesisable)
     (rtl:typecheck '(let ((a 12 :as :constant))
@@ -377,12 +377,12 @@
   (is (subtypep (rtl:typecheck '(let ((a 12))
 				 (setf a 9))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 8)))
+		'(unsigned-byte 8)))
 
   (is (subtypep (rtl:typecheck '(let ((a 12))
 				 (setf a 9 :sync t))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 8))))
+		'(unsigned-byte 8))))
 
 
 (test test-let-naked
@@ -391,7 +391,7 @@
 				      b)
 				 (+ a b))
 			       emptyenv)
-		`(rtl::fixed-width-unsigned ,(1+ rtl::*default-register-width*)))))
+		`(unsigned-byte ,(1+ rtl::*default-register-width*)))))
 
 
 (test test-if-then-else
@@ -400,7 +400,7 @@
 				 (+ 1 2)
 				 (+ 16 8))
 			       emptyenv)
-		 '(rtl::fixed-width-unsigned 6))))
+		 '(unsigned-byte 6))))
 
 
 (test test-if-then
@@ -408,7 +408,7 @@
   (is (subtypep (rtl:typecheck '(if 1
 				 (+ 1 2))
 			       emptyenv)
-		 '(rtl::fixed-width-unsigned 3))))
+		 '(unsigned-byte 3))))
 
 
 (test test-case-compatible
@@ -423,7 +423,7 @@
 				   (t
 				    (setf b 0))))
 			       emptyenv)
-		 '(rtl::fixed-width-unsigned 8))))
+		 '(unsigned-byte 8))))
 
 
 (test test-case-incompatible
@@ -437,7 +437,7 @@
 			   (2456
 			    (setf b 34))))
 		       emptyenv)
-	'(rtl::fixed-width-unsigned 8))))
+	'(unsigned-byte 8))))
 
 
 (test test-assignment-same-width
@@ -445,7 +445,7 @@
   (is (subtypep (rtl:typecheck '(let ((a 10))
 				 (setf a 12))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 5))))
+		'(unsigned-byte 5))))
 
 
 (test test-assignment-same-width-sync
@@ -453,7 +453,7 @@
   (is (subtypep (rtl:typecheck '(let ((a 10))
 				 (setf a 12 :sync t))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 5))))
+		'(unsigned-byte 5))))
 
 
 (test test-assignment-too-wide
@@ -485,7 +485,7 @@
   (is (subtypep (rtl:typecheck '(let ((a 23 :as :constant))
 				 a)
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 8))))
+		'(unsigned-byte 8))))
 
 
 (test test-bit-access
@@ -493,7 +493,7 @@
   (is (subtypep (rtl:typecheck '(let ((a 1 :width 8))
 				 (setf a (+ a (bit a 0))))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 9))))
+		'(unsigned-byte 9))))
 
 
 (test test-typecheck-module
@@ -523,7 +523,7 @@
   (is (subtypep (rtl:typecheck '(let ((a 12))
 				 (setf (rtl::bits a 1 0) 2))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 2)))
+		'(unsigned-byte 2)))
 
   ;; fails because default width of a is too small
   (signals (rtl:not-synthesisable)
@@ -535,17 +535,17 @@
   (is (subtypep (rtl:typecheck '(let ((a 12 :width 8))
 				 (setf (rtl::bits a 6 0) 0))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 2))))
+		'(unsigned-byte 2))))
 
 
 (test test-the
   "Test we can typecheck THE."
-  (is (subtypep (rtl:typecheck '(the (rtl::fixed-width-unsigned 8) 12)
+  (is (subtypep (rtl:typecheck '(the (unsigned-byte 8) 12)
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 8)))
+		'(unsigned-byte 8)))
 
   (signals (rtl:type-mismatch)
-    (rtl:typecheck '(the (rtl::fixed-width-unsigned 8) 1230)
+    (rtl:typecheck '(the (unsigned-byte 8) 1230)
 		   emptyenv)))
 
 

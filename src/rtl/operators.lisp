@@ -1,6 +1,6 @@
 ;; Synthesisable operators
 ;;
-;; Copyright (C) 2024 Simon Dobson
+;; Copyright (C) 2024--2025 Simon Dobson
 ;;
 ;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
 ;;
@@ -26,7 +26,7 @@
 (defun ensure-number-of-arguments (fun args n)
   "Ensure that ARGS has exactly N arguments.
 
-A NOT-SYNTHESISABLE erre is raised if the arguments are wrong."
+A NOT-SYNTHESISABLE error is raised if the arguments are wrong."
    (if (/= (length args) n)
       (error 'not-synthesisable :hint (format nil "Operator needs exactly ~a arguments" n))))
 
@@ -43,12 +43,12 @@ plus the number of other arguments."
       (ensure-fixed-width ty))
 
     (let* ((ws (mapcar (rcurry #'bitwidth env) tys))
-	   (minus (some #'fixed-width-signed-p tys))
+	   (minus (some #'signed-byte-p tys))
 	   (w (+ (apply #'max ws)
 		 (1- (length args)))))
       (if minus
-	  `(fixed-width-signed ,w)
-	  `(fixed-width-unsigned ,w)))))
+	  `(signed-byte ,w)
+	  `(unsigned-byte ,w)))))
 
 
 (defun fold-constant-expressions-addition (fun args)
@@ -98,7 +98,7 @@ plus the number of other arguments."
 (defmethod typecheck-sexp ((fun (eql '-)) args env)
   ;; we force subtractions to be signed
   (let ((ty (typecheck-addition args env)))
-    `(fixed-width-signed ,(bitwidth ty env))))
+    `(signed-byte ,(bitwidth ty env))))
 
 
 (defmethod fold-constant-expressions-sexp ((fun (eql '-)) args)
@@ -149,8 +149,8 @@ plus the number of other arguments."
 
       ;; the width is the width of the value plus the
       ;; maximum number that can be in the offset
-      `(fixed-width-unsigned ,(+ (bitwidth tyval env)
-				 (1- (ash 1 (bitwidth tyoffset env))))))))
+      `(unsigned-byte ,(+ (bitwidth tyval env)
+			  (1- (ash 1 (bitwidth tyoffset env))))))))
 
 
 (defmethod fold-constant-expressions-sexp ((fun (eql '<<)) args)
@@ -175,6 +175,8 @@ plus the number of other arguments."
     `(ash ,@vals)))
 
 
+;; We shuld probably do sign extension here, like Lisp does
+
 (defmethod typecheck-sexp ((fun (eql '>>)) args env)
   (ensure-number-of-arguments fun args 2)
 
@@ -185,10 +187,9 @@ plus the number of other arguments."
       (ensure-fixed-width tyval)
       (ensure-fixed-width tyoffset)
 
-      ;; the width is the width of the value minus the
-      ;; maximum number that can be in the offset
-      `(fixed-width-unsigned ,(- (bitwidth tyval env)
-				 (1- (ash 1 (bitwidth tyoffset env))))))))
+      ;; use the width of the value as the maximum width, since
+      ;; shifting right can only make it smaller
+      `(unsigned-byte ,(bitwidth tyval env)))))
 
 
 (defmethod fold-constant-expressions-sexp ((fun (eql '>>)) args)
@@ -220,7 +221,7 @@ plus the number of other arguments."
   (let ((ty (foldr (lambda (ty1 arg)
 		     (lub ty1 (typecheck arg env) env))
 		   args nil)))
-    (ensure-subtype ty 'fixed-width-unsigned)
+    (ensure-subtype ty 'unsigned-byte)
 
     ty))
 
@@ -271,7 +272,7 @@ All arguments must be booleans."
 	  (let ((ty (typecheck arg env)))
 	    (ensure-boolean ty env)))
 	args)
-  '(fixed-width-unsigned 1))
+  '(unsigned-byte 1))
 
 
 (defmethod typecheck-sexp ((fun (eql 'and)) args env)
@@ -293,7 +294,7 @@ All arguments must be booleans."
 (defmethod typecheck-sexp ((fun (eql 'not)) args env)
   (ensure-number-of-arguments 'not args 1)
   (ensure-boolean (car args) env)
-  '(fixed-width-unsigned 1))
+  '(unsigned-byte 1))
 
 
 (defmethod synthesise-sexp ((fun (eql 'not)) args (context (eql :inexpression)))

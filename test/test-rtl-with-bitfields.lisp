@@ -65,7 +65,7 @@
 	       (setf a (+ b c))))))
     (is (subtypep (rtl:typecheck (rtl:expand-macros p)
 				 emptyenv)
-		  '(rtl::fixed-width-unsigned 10)))))
+		  '(unsigned-byte 10)))))
 
 
 (test test-with-bitfields-typo
@@ -79,9 +79,9 @@
 
 (test test-with-bitfields-extensive
   "Test a more extensive example of with-bitfields."
-  (let ((p `(rtl:module test ((clk :width 1 :direction :in))
-			(let ((ctrl 0 :width 6)
-			      (a 0 :width 1))
+  (let ((p `(rtl:module test ((clk :type (unsigned-byte 1) :direction :in))
+			(let ((ctrl 0 :type (unsigned-byte 6))
+			      (a 0 :type (unsigned-byte 1)))
 			  (rtl:with-bitfields (a b c
 						 d e f)
 			      ctrl

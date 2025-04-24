@@ -27,4 +27,4 @@
   "Test we can type-check equality."
   (is (subtypep (rtl:typecheck '(= 1 2)
 			       emptyenv)
-		'(rtl:fixed-width-unsigned 1))))
+		'(unsigned-byte 1))))

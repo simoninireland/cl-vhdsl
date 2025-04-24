@@ -1,6 +1,6 @@
 ;; References to variables
 ;;
-;; Copyright (C) 2024 Simon Dobson
+;; Copyright (C) 2024--2025 Simon Dobson
 ;;
 ;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
 ;;
@@ -20,66 +20,10 @@
 (in-package :cl-vhdsl/rtl)
 
 
-;; ---------- Identifiers ----------
+(defmethod bitwidth ((val symbol) env)
+  (let ((tys (safe-car-cdr (get-type val env))))
+    (bitwidth-type (car tys) (cadr tys) env)))
 
-(defparameter *identifier-legal-leading-character-regexp* (create-scanner "[A-Za-z_]")
-  "Regexp identifying the characters allowed as the first character of an identifier.")
-
-
-(defparameter *identifier-illegal-character-regexp* (create-scanner "[^A-Za-z0-9_]")
-  "Regexp identifying all chanaters that are illegal in an identifier.")
-
-
-(defparameter *identifier-illegal-character-replacement* "_"
-  "The character used to replace any illegal characters in identifiers.
-
-This is also added to the front of any identifiers that clash
-with *RESERVED-WORDS*.")
-
-;; There are probably more reserved words
-(defvar *reserved-words* '("module" "input" "output" "inout"
-			   "always" "@"  "posedge" "negedge" "assign"
-			   "parameter" "localparam" "reg" "wire"
-			   "signed")
-  "Reserved words in Verilog.")
-
-
-(defun ensure-legal-identifier (n)
-  "Ensure that N is a legal identifier.
-
-Any non-permitte characters (identifiers by *IDENTIFIER-ILLEGAL-CHARACTER-REGEXP*)
-are replaced with instances of *IDENTIFIER-ILLEGAL-CHARACTER-REPLACEMENT*. If
-the resulting identifier is a reserved word it is prefixed with an instance
-of *IDENTIFIER-ILLEGAL-CHARACTER-REPLACEMENT*."
-
-  ;; replace any unacceptable characters
-  (let ((no-illegal (regex-replace-all *identifier-illegal-character-regexp*
-				       (if (symbolp n)
-					   (symbol-name n)
-					   n)
-				       *identifier-illegal-character-replacement*)))
-
-    ;; prepend any keywords
-    (if (member no-illegal *reserved-words* :test #'string-equal)
-	(setq no-illegal (concat *identifier-illegal-character-replacement* no-illegal)))
-
-    ;; prepend any identifiers not starting with a legal starting character
-    (if (not (scan *identifier-legal-leading-character-regexp* (s-first no-illegal)))
-	(setq no-illegal (concat *identifier-illegal-character-replacement* no-illegal)))
-
-    ;; bomb-out if the identifier is still illegal
-    (if (string-equal no-illegal "_")
-	(error 'not-synthesisable :hint "Use meaningful variable names :-)"))
-
-    ;; signal if the variable has been re-written
-    (if (not (string-equal n no-illegal))
-	(signal 'bad-variable :variable n :rewritten-to no-illegal))
-
-    ;; return the legalised identifier
-    no-illegal))
-
-
-;; ---------- General references ----------
 
 (defmethod typecheck ((form symbol) env)
   (get-type form env))

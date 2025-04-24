@@ -36,7 +36,7 @@ in many applications."
     (ensure-boolean (typecheck l env) env)
     (ensure-boolean (typecheck r env) env)
 
-    '(fixed-width-unsigned 1)))
+    '(unsigned-byte 1)))
 
 
 (defmethod synthesise-sexp ((fun (eql '=)) args (context (eql :inexpression)))
@@ -55,7 +55,7 @@ in many applications."
     (ensure-boolean (typecheck l env) env)
     (ensure-boolean (typecheck r env) env)
 
-    '(fixed-width-unsigned 1)))
+    '(unsigned-byte 1)))
 
 
 (defmethod synthesise-sexp ((fun (eql '/=)) args (context (eql :inexpression)))
@@ -76,7 +76,7 @@ in many applications."
     (ensure-fixed-width (typecheck l env))
     (ensure-fixed-width (typecheck r env))
 
-    '(fixed-width-unsigned 1)))
+    '(unsigned-byte 1)))
 
 
 (defmethod synthesise-sexp ((fun (eql '<)) args (context (eql :inexpression)))

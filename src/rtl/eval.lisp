@@ -76,6 +76,19 @@ at compile time."
     (close-form-in-environment form staticenv)))
 
 
+(defun eval-lisp-in-static-environment (form env)
+  "Evaluate Lisp FORM in the static part of environment ENV.
+
+ENV is filtered to include only the static elements of the
+environment, consisting of package parameters. In other words,
+the evaluation takes place in an environment that is known at
+compile time.
+
+FORM should be in Lisp: to evaluate RTLisp forms use
+EVAL-IN-STATIC-ENVIRONMENT."
+  (eval (close-form-in-static-environment form env)))
+
+
 ;; ---------- RTLisp evaluation ----------
 
 ;; The forms passed to these functions should be RTLisp, which is
@@ -90,8 +103,9 @@ the evaluation takes place in an environment that is known at
 compile time.
 
 The resulting form is evaluated as Lisp, and so will signal
-standard Lisp conditions."
-  (eval (close-form-in-static-environment (lispify form env) env)))
+standard Lisp conditions. To run Lisp (rather than RTLisp) use
+EVAL-LISP-IN-STATIC-ENVIRONMENT."
+  (eval-lisp-in-static-environment (lispify form env) env))
 
 
 (defun ensure-static (form env)

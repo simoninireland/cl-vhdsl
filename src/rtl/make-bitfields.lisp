@@ -38,7 +38,7 @@
       (let ((w (foldr #'+
 		      (mapcar (rcurry #'bitwidth env) tys)
 		      0)))
-	`(fixed-width-unsigned ,w)))))
+	`(unsigned-byte ,w)))))
 
 
 (defmethod synthesise-sexp ((fun (eql 'make-bitfields)) args (context (eql :inexpression)))
@@ -59,7 +59,7 @@
 
       ;; evaluate the width, which must be statically determined
       (let ((w (ensure-static width env)))
-	`(fixed-width-unsigned ,w)))))
+	`(unsigned-byte ,w)))))
 
 
 (defun synthesise-fixed-width-constant (c width &optional (base 2))

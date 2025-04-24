@@ -44,7 +44,9 @@
    #:adjacent-pairs
 
    ;; data structure manipulations
+   #:safe-car
    #:safe-cadr
+   #:safe-car-cdr
    #:mapappend
    #:merge-alists
 

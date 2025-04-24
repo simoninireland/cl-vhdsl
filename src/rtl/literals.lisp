@@ -22,11 +22,19 @@
 
 ;; ---------- Integers ----------
 
+(defmethod bitwidth ((val integer) env)
+  (bits-for-integer val))
+
+
 (defmethod typecheck ((form integer) env)
   (let ((w (bitwidth form env)))
     (if (< form 0)
-	`(fixed-width-signed ,w)
-	`(fixed-width-unsigned ,w))))
+	`(signed-byte ,w)
+	`(unsigned-byte ,w))))
+
+
+(defmethod widthcheck ((form integer) env)
+  form)
 
 
 (defmethod float-let-blocks ((form integer))

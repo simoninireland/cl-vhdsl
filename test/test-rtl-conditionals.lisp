@@ -29,7 +29,7 @@ q
 				 (+ 1 2)
 				 (+ 16 8))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 6))))
+		'(unsigned-byte 6))))
 
 
 (test test-if-then
@@ -37,7 +37,7 @@ q
   (is (subtypep (rtl:typecheck '(if 1
 				 (+ 1 2))
 			       emptyenv)
-		 '(rtl::fixed-width-unsigned 3))))
+		 '(unsigned-byte 3))))
 
 
 (test test-synthesise-if-statement
@@ -86,7 +86,7 @@ q
 				   (t
 				    (setf b 0))))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 8))))
+		'(unsigned-byte 8))))
 
 
 (test test-case-incompatible
@@ -100,7 +100,7 @@ q
 			   (2456
 			    (setf b 34))))
 		       emptyenv)
-	'(rtl::fixed-width-unsigned 8))))
+	'(unsigned-byte 8))))
 
 
 (test test-synthesise-case

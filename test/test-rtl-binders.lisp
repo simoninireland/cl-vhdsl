@@ -26,12 +26,12 @@
   (is (subtypep (rtl:typecheck '(let ((a 1 :width 5))
 				 (+ 1 a))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 6))))
+		'(unsigned-byte 6))))
 
 
 (test test-let-at-least-one
   "Test that a variable gets at least a width of one bit."
-  (is (equal '(rtl::fixed-width-unsigned 1)
+  (is (equal '(unsigned-byte 1)
 	     (rtl:typecheck '(let ((a 0))
 			      a)
 			    emptyenv))))
@@ -42,7 +42,7 @@
   (is (subtypep (rtl:typecheck '(let ((a 1))
 				 (+ 1 a))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 2))))
+		'(unsigned-byte 2))))
 
 
 (test test-let-double
@@ -51,32 +51,23 @@
 				      (b 6 :width 16))
 				 (+ a b))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 24))))
+		'(unsigned-byte 24))))
 
 
 (test test-let-too-narrow
   "Test we pick up too-wide initial values."
-  (signals (rtl:width-mismatch)
-    (rtl:typecheck '(let ((a 100 :width 5))
+  (signals (rtl:type-mismatch)
+    (rtl:typecheck '(let ((a 100 :type (unsigned-byte 5)))
 		     (+ 1 a))
 		   emptyenv)))
 
 
 (test test-let-widen
   "Test we can take the width from a given type."
-  (is (subtypep (rtl:typecheck '(let ((a 5 :type (rtl::fixed-width-unsigned 8)))
+  (is (subtypep (rtl:typecheck '(let ((a 5 :type (unsigned-byte 8)))
 				 (setf a (+ 1 a)))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 9))))
-
-
-(test test-let-missing-width
-  "Test we annotate the code with an inferred width."
-  (let ((p '(let ((a 5))
-	     (+ 1 a))))
-    (signals (rtl::width-inferred rtl::type-inferred)
-      ;; copy the tree because of re-writing during inference
-      (rtl:typecheck (copy-tree p) emptyenv))))
+		'(unsigned-byte 9))))
 
 
 (test test-let-missing-width-type-conflicts
@@ -102,7 +93,7 @@
 				 (+ b 1)
 				 (+ b a b))
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 10))))
+		'(unsigned-byte 10))))
 
 
 (test test-let-constant
@@ -110,7 +101,7 @@
   (is (subtypep (rtl:typecheck '(let ((a 15 :as :constant))
 				 a)
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 4))))
+		'(unsigned-byte 4))))
 
 
 (test test-let-naked
@@ -119,7 +110,7 @@
 				      b)
 				 (+ a b))
 			       emptyenv)
-		`(rtl::fixed-width-unsigned ,(1+ rtl::*default-register-width*)))))
+		`(unsigned-byte ,(1+ rtl::*default-register-width*)))))
 
 
 (test test-synthesise-binders

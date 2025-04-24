@@ -69,75 +69,51 @@ Signal REPRESENTATION-MISMATCH as an error if not."
 ;; ---------- Typechecking ----------
 
 (defun name-in-decl (decl)
-  "Extract the name being defined by DECL."
-  (if (listp decl)
-      (car decl)
-      decl))
+  "Extract the name being declared by DECL.
+
+The name is the first element, whether or not DECL is a list."
+  (safe-car decl))
 
 
 (defun typecheck-decl (decl env)
-  "Extend ENV with the declarations in DECLS."
-  (declare (optmize debug))
-  (with-current-form decl
-    (if (listp decl)
-	;; full declaration
-	(destructuring-bind (n v &key width type (as :register))
-	    decl
-	  (ensure-representation as)
+  "Extend ENV with the variable declaed in DECL."
+  (if (listp decl)
+      ;; full declaration
+      (destructuring-bind (n v &key
+				 width
+				 type
+				 (as :register))
+	  decl
+	(let ((ity (or type
+		       `(unsigned-byte ,*default-register-width*))))
 
-	  ;; a decl may come with zero, one, or both of a type, and width
-	  (let ((tyv (typecheck v env))
-		inferred-type
-		inferred-width)
-	    (cond ((special-value-p v)
-		   ;; special values don't have widths
-		   (setq inferred-type tyv))
+	  ;; typecheck initial value
+	  (let ((vty (typecheck v env)))
+	    (if type
+		;; type provided, ensure it works
+		(ensure-subtype vty type)
 
-		  ((and (null type)
-			(null width))
-		   ;; no explicit settings, start from initial value
-		   (setq inferred-type tyv)
-		   (setq inferred-width (bitwidth tyv env)))
+		;; no type provided, infer from the value
+		(setq ity vty)))
 
-		  ((null type)
-		   ;; evaluate the width
-		   (setq inferred-width (eval-in-static-environment width env))
+	  ;; extract type constraint
+	  (let ((constraint (if (not (subtypep ity 'array))
+				type)))
 
-		   ;; check that the initial value fits in this width
-		   (ensure-width-can-store inferred-width tyv env)
+	    (declare-variable n `(,(if type
+				       `(:type ,type)
+				       `(:inferred-type ,ity))
+				  (:as ,as)
+				  (:initial-value ,v)
+				  ,(if constraint
+				       `(:type-constraints (,constraint))))
+			      env))))
 
-		   ;; set the type to this width
-		   (setq inferred-type `(fixed-width-unsigned ,inferred-width)))
-
-		  ((null width)
-		   ;; evaluate the type
-		   (setq inferred-type (expand-type-parameters type env))
-
-		   ;; check that the initial value fits in this type
-		   (ensure-subtype tyv inferred-type)
-
-		   ;; set the width to match this type
-		   (setq inferred-width (bitwidth inferred-type env)))
-
-		  (t
-		   ;; evaluate both
-		   (setq inferred-width (eval-in-static-environment width env))
-		   (setq inferred-type (expand-type-parameters tyv env))
-
-		   ;; make sure the type and width are consistent
-		   (unless (= inferred-width (bitwidth inferred-type env))
-		     (error 'width-mismatch :expected inferred-width
-					    :got inferred-type
-					    :hint "Explicit type and width must be consistent"))))
-
-	    (declare-variable n `((:initial-value ,v)
-				  (:type ,inferred-type)
-				  (:width ,inferred-width)
-				  (:as ,as))
-			      env)))
-
-	;; otherwise we have a naked name, so apply the defaults
-	(typecheck-decl `(,decl 0 :width ,*default-register-width* :as :register) env))))
+      ;; "naked" declaration
+      (declare-variable decl `((:inferred-type (unsigned-byte ,*default-register-width*))
+			       (:as :register)
+			       (:initial-value 0))
+			env)))
 
 
 (defun typecheck-env (decls env)
@@ -145,84 +121,47 @@ Signal REPRESENTATION-MISMATCH as an error if not."
   (mapc (rcurry #'typecheck-decl env) decls))
 
 
-(defun typecheck-infer-decl (decl env)
-  "Re-write declarations in DECL to match ENV.
+(defun typecheck-constraints (constraints env)
+  "Return the type satifying CONSTRAINTS in ENV.
 
-ENV may include :TYPE and :WIDTH assignments, which are used to
-update the values in DECL as long as they're consistent."
-  (with-current-form decl
-    (if (listp decl)
-	;; full declaration
-	(destructuring-bind (n v &key width type (as :register))
-	    decl
-	  (ensure-representation as)
+Each constraint is a type needed by some operation in the scope of a
+variable. The inferred type is the widest type (least uppoer-bound)
+that can accommodate all these constraints, assuming that there is
+one."
+  (foldr (rcurry #'lub env) constraints nil))
 
-	  ;; a decl may come with zero, one, or both of a type, and width
-	  (let ((inferred-type (get-type n env))
-		(inferred-width (get-width n env))
-		assigned-type
-		assigned-width)
-	    (cond ((special-value-p v)
-		   ;; special values don't have widths, do nothing
-		   t)
 
-		  ((and (null type)
-			(null width))
-		   ;; no explicit settings, set to the inferred values
-		   (setq assigned-type inferred-type)
-		   (setq assigned-width inferred-width))
+(defun typecheck-infer-decl (n env)
+  "Return a full declaration for N in ENV."
+  (declare (optimize debug))
 
-		  ((null type)
-		   ;; check explicit width is consistent
-		   (let ((w (eval-in-static-environment width env)))
-		     (unless (>= w inferred-width)
-		       (signal 'width-mismatch :expected inferred-width
-					       :got w
-					       :hint "Make sure assigned width is wide enough for the values assigned to it"))
+  ;; resolve type constraints
+  (let* ((constraints (get-environment-property n :type-constraints env))
+	 (inferred-type (typecheck-constraints constraints env)))
 
-		     ;; set the type to the assigned width
-		     (setq inferred-type `(fixed-width-unsigned ,w))))
+    ;; check inferred type against any explicit type
+    ;; this will signal a problem but not fail the type-checking
+    ;; pass, to allow for systems that don't care about precision
+    ;; TODO: Should we allow this, or be tighter?
+    (if-let ((ty (get-environment-property n :type env :default nil)))
+      (progn
+	(ensure-subtype inferred-type ty)
 
-		  ((null width)
-		   ;; check explicit type is consistent
-		   (let ((tyv (expand-type-parameters (typecheck v env) env)))
-		     (unless (subtypep inferred-type tyv)
-		       (signal 'type-mismatch :expected inferred-type
-					      :got tyv
-					      :hint "Make sure assigned type is widthe nough for the values assigned to it"))
+	;; the type we use is the one supplied
+	(setq inferred-type ty))
 
-		     ;; set the width to match this type
-		     (setq inferred-width (bitwidth tyv env))))
+      ;; no type privided, note that we inferred it
+      (signal 'type-inferred :variable n
+			     :inferred inferred-type))
 
-		  (t
-		   (let ((w (eval-in-static-environment width env))
-			 (tyv (expand-type-parameters (typecheck v env) env)))
-		     (unless (>= w inferred-width)
-		       (signal 'width-mismatch :expected inferred-width
-					       :got w
-					       :hint "Make sure assigned width is wide enough for the values assigned to it"))
-		     (unless (subtypep inferred-type tyv)
-		       (signal 'type-mismatch :expected inferred-type
-					      :got tyv
-					      :hint "Make sure assigned type is widthe nough for the values assigned to it")))))
-
-	    ;; update the declaration if it's changed
-	    (when assigned-type
-	      (setf (cdr (last decl 2)) (list (car (last decl)) :type assigned-type))
-	      (signal 'type-inferred :variable n
-				     :inferred assigned-type))
-	    (when assigned-width
-	      (setf (cdr (last decl 2)) (list (car (last decl)) :width assigned-width))
-	      (signal 'width-inferred :variable n
-				      :inferred assigned-width))))
-
-	;; otherwise we have a naked name, so apply the defaults
-	(typecheck-infer-decl `(,decl 0 :width ,*default-register-width* :as :register) env))))
+    `(,n ,(get-initial-value n env)
+	 :type ,inferred-type
+	 :as ,(get-representation n env))))
 
 
 (defun typecheck-infer-decls (decls env)
   "Re-write declarations in DECLS to match ENV."
-  (mapcar (rcurry #'typecheck-infer-decl env) decls))
+  (mapcar (rcurry #'typecheck-infer-decl env) (mapcar #'name-in-decl decls)))
 
 
 (defmethod typecheck-sexp ((fun (eql 'let)) args env)
@@ -234,8 +173,9 @@ update the values in DECL as long as they're consistent."
 
       ;; capture type of the last form
       (let ((ty (mapn (rcurry #'typecheck ext) body)))
-	;; resolve any inferred widths and types
-	(typecheck-infer-decls decls ext)
+	;; update declarations with any inferred types and other properties
+	(let ((newdecls (typecheck-infer-decls decls ext)))
+	  (setf (car args) newdecls))
 
 	;; return the type
 	ty))))

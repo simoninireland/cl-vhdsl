@@ -25,33 +25,33 @@
 
 (test test-unsigned-range
   "Test the range of an unsigned fixed-width integer."
-  (is (typep 12 '(rtl::fixed-width-unsigned 8)))
-  (is (typep 12 '(rtl::fixed-width-unsigned 16)))
+  (is (typep 12 '(unsigned-byte 8)))
+  (is (typep 12 '(unsigned-byte 16)))
 
-  (is (typep 512 '(rtl::fixed-width-unsigned 16)))
-  (is (not (typep 512 '(rtl::fixed-width-unsigned 8))))
+  (is (typep 512 '(unsigned-byte 16)))
+  (is (not (typep 512 '(unsigned-byte 8))))
 
-  (is (not (typep -64 '(rtl::fixed-width-unsigned 8)))))
+  (is (not (typep -64 '(unsigned-byte 8)))))
 
 
 (test test-signed-range
   "Test the range of a signed fixed-width integer."
-  (is (typep 12 '(rtl::fixed-width-signed 8)))
-  (is (typep 12 '(rtl::fixed-width-signed 16)))
-  (is (typep 127 '(rtl::fixed-width-signed 8)))
-  (is (typep -128 '(rtl::fixed-width-signed 8)))
+  (is (typep 12 '(signed-byte 8)))
+  (is (typep 12 '(signed-byte 16)))
+  (is (typep 127 '(signed-byte 8)))
+  (is (typep -128 '(signed-byte 8)))
 
-  (is (not (typep 128 '(rtl::fixed-width-signed 8))))
-  (is (not (typep -129 '(rtl::fixed-width-signed 8))))
-  (is (not (typep -64 '(rtl::fixed-width-signed 4)))))
+  (is (not (typep 128 '(signed-byte 8))))
+  (is (not (typep -129 '(signed-byte 8))))
+  (is (not (typep -64 '(signed-byte 4)))))
 
 
 ;; ---------- Widths ----------
 
 (test test-bitwidths-integer-types
   "Test we can extract the widths of integer types."
-  (is (= (rtl::bitwidth '(rtl:fixed-width-unsigned 8) ()) 8))
-  (is (= (rtl::bitwidth '(rtl:fixed-width-signed 8) ()) 8)))
+  (is (= (rtl::bitwidth '(unsigned-byte 8) ()) 8))
+  (is (= (rtl::bitwidth '(signed-byte 8) ()) 8)))
 
 
 (test test-bitwidths-integer-constants

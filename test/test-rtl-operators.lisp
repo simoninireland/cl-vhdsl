@@ -27,27 +27,27 @@
   "Test we can determine the widths of additions."
   (is (subtypep (rtl:typecheck '(+ 1 1)
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 2)))
+		'(unsigned-byte 2)))
   (is (subtypep (rtl:typecheck '(+ 15 2)
 			       emptyenv)
-		`(rtl::fixed-width-unsigned 5)))
+		`(unsigned-byte 5)))
 
   (is (not (subtypep (rtl:typecheck '(+ 15 -2)
 				    emptyenv)
-		     `(rtl::fixed-width-unsigned 5))))
+		     `(unsigned-byte 5))))
   (is (subtypep (rtl:typecheck '(+ 15 -2)
 			       emptyenv)
-		`(rtl::fixed-width-signed 5))))
+		`(signed-byte 5))))
 
 
 (test test-width-subtractions
   "Test we can extract the widths of subtractions."
     (is (subtypep (rtl:typecheck '(- 1)
 			       emptyenv)
-		  '(rtl::fixed-width-signed 2)))
+		  '(signed-byte 2)))
     (is (subtypep (rtl:typecheck '(- 2 1)
 			       emptyenv)
-		  '(rtl::fixed-width-signed 3))))
+		  '(signed-byte 3))))
 
 
 (test test-synthesise-addition-operators
@@ -73,14 +73,14 @@
   "Test we can extract the widths of shifts."
   (is (subtypep (rtl:typecheck '(rtl::<< 1 2)
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 4)))
+		'(unsigned-byte 4)))
   (is (subtypep (rtl:typecheck '(rtl::<< 15 15)
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 19)))
+		'(unsigned-byte 19)))
 
   (is (subtypep (rtl:typecheck '(rtl::>> 16 4)
 			       emptyenv)
-		'(rtl::fixed-width-unsigned 1)))
+		'(unsigned-byte 5)))
 
   ;; wrong number of arguments
   (dolist (op '(rtl::<< rtl::>>))
@@ -104,8 +104,8 @@
   "Test we can typecheck the logical operators."
   (is (subtypep (rtl:typecheck '(logand #2r10110 #2r11110)
 			       emptyenv)
-		'(rtl:fixed-width-unsigned 5)))
+		'(unsigned-byte 5)))
 
   (is (subtypep (rtl:typecheck '(logand #2r10110 #2r1111110)
 			       emptyenv)
-		'(rtl:fixed-width-unsigned 7))))
+		'(unsigned-byte 7))))

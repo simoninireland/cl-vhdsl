@@ -36,8 +36,8 @@
 
   (:export
    ;; fixed-width types
-   #:fixed-width-unsigned
-   #:fixed-width-signed
+   #:unsigned-byte
+   #:signed-byte
    #:bitwidth
 
    ;; environments
@@ -61,8 +61,8 @@
    #:eval-if-static
 
    ;; extra RTLisp functions and macros not in Common Lisp
-   #:fixed-width-unsigned
-   #:fixed-width-signed
+   #:unsigned-byte
+   #:signed-byte
    #:module
    #:<<
    #:>>
@@ -116,8 +116,6 @@
    #:bitfield-mismatch
    #:shape-mismatch
    #:state-machine-mismatch
-   #:width-mismatch
    #:type-inferred
-   #:width-inferred
    #:representation-mismatch
    ))

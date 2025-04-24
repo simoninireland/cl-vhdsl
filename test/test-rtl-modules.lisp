@@ -25,7 +25,7 @@
 
 (test test-typecheck-module
   "Test we can typecheck a module definition."
-  (is (equal (type-of (rtl:typecheck '(rtl:module test ((clk :width 1 :direction :in)
+  (is (equal (type-of (rtl:typecheck '(rtl:module test ((clk :type (unsigned-byte 1) :direction :in)
 							&key (p 1))
 				       (let ((a 1))
 					 (setq a 0)))
@@ -44,12 +44,12 @@
 
 (test test-synthesise-moduletest
   "Test we can syntheise a module with a variety of features."
-  (is (rtl:synthesise '(rtl::module test ((clk :width 1 :direction :in)
-					  (a   :width 8 :direction :in)
-					  (b   :width 4 :direction :in)
+  (is (rtl:synthesise '(rtl::module test ((clk :type (unsigned-byte 1) :direction :in)
+					  (a   :type (unsigned-byte 8) :direction :in)
+					  (b   :type (unsigned-byte 4) :direction :in)
 					  &key e (f 45))
-			(let ((x 0  :width 8)
-			      (y 10 :width 8)
+			(let ((x 0  :type (unsigned-byte 8))
+			      (y 10 :type (unsigned-byte 8))
 			      (z 44 :as :constant))
 			  (rtl::@ (rtl::posedge clk)
 				  (setf x (+ x b) :sync t))))
@@ -60,11 +60,11 @@
   "Test we can synthesise modules with late initialisation."
   (rtl::clear-module-late-initialisation)
 
-  (is (rtl:synthesise '(rtl::module test ((clk :width 1 :direction :in)
-					  (a   :width 8 :direction :in)
-					  (b   :width 4 :direction :in)
+  (is (rtl:synthesise '(rtl::module test ((clk :type (unsigned-byte 1) :direction :in)
+					  (a   :type (unsigned-byte 8) :direction :in)
+					  (b   :type (unsigned-byte 4) :direction :in)
 					  &key e (f 45))
-			(let ((x 0  :width 8)
+			(let ((x 0 :type (unsigned-byte 8))
 			      (a (make-array '(8) :initial-contents (:file "test.hex"))))
 			  (rtl::@ (rtl::posedge clk)
 				  (setf x (aref a 4)))))
@@ -81,13 +81,13 @@
 
   (rtl:clear-module-registry)
 
-  (rtl:defmodule clock ((clk-in  :direction :in  :as :wire :width 1)
-			(clk-out :direction :out :as :wire :width 1))
+  (rtl:defmodule clock ((clk-in  :direction :in  :as :wire :type (unsigned-byte 1))
+			(clk-out :direction :out :as :wire :type (unsigned-byte 1)))
     (setq clk-out clk-in))
 
   ;; ceck that the import types correctly
-  (is (subtypep (rtl:typecheck '(let ((clk 0 :width 1 :as :wire)
-				      (clk-in 0 :width 1 :as :wire))
+  (is (subtypep (rtl:typecheck '(let ((clk 0    :type (unsigned-byte 1) :as :wire)
+				      (clk-in 0 :type (unsigned-byte 1) :as :wire))
 				 (let ((clock (make-instance 'clock :clk-in clk-in
 								    :clk-out clk)))
 				   clock))
@@ -96,7 +96,7 @@
 
   ;; check we need to wire all arguments
   (signals (rtl:not-importable)
-    (rtl:typecheck '(let ((clk 0 :width 1 :as :wire))
+    (rtl:typecheck '(let ((clk 0 :type (unsigned-byte 1) :as :wire))
 		     (let ((clock (make-instance 'clock :clk-out clk)))
 		       clock))
 		   emptyenv))
@@ -109,8 +109,8 @@
   (is (rtl:synthesise (rtl:simplify-progn
 		       (car (rtl:float-let-blocks
 			     '(rtl:module module-instanciate
-			       ((clk-in :width 1 :direction :in :as :wire))
-			       (let ((clk 0 :width 1 :as :wire))
+			       ((clk-in :type (unsigned-byte 1) :direction :in :as :wire))
+			       (let ((clk 0 :type (unsigned-byte 1) :as :wire))
 				 (let ((clock (make-instance 'clock :clk-in clk-in
 								    :clk-out clk)))
 				   (setq clk 1)))))))
@@ -122,14 +122,14 @@
 
   (rtl:clear-module-registry)
 
-  (rtl:defmodule clock ((clk_in  :direction :in  :as :wire :width 1)
-			(clk_out :direction :out :as :wire :width 1))
+  (rtl:defmodule clock ((clk_in  :direction :in  :as :wire :type (unsigned-byte 1))
+			(clk_out :direction :out :as :wire :type (unsigned-byte 1)))
     (setq clk_out clk_in))
 
   (is (subtypep (type-of (rtl:typecheck (rtl::expand-macros
 					 '(rtl:module moduleinstanciatebitfields
-					   ((clk_in :width 1 :direction :in :as :wire))
-					   (let ((ctrl 0 :width 4 :as :wire))
+					   ((clk_in :type (unsigned-byte 1) :direction :in :as :wire))
+					   (let ((ctrl 0 :type (unsigned-byte 4) :as :wire))
 					     (rtl:with-bitfields (clk b2 b1 b0)
 						 ctrl
 					       (let ((clock (make-instance 'clock :clk_in clk_in
@@ -141,8 +141,8 @@
   (is (rtl:synthesise (rtl:simplify-progn (car (rtl:float-let-blocks
 						(rtl:expand-macros
 						 '(rtl:module moduleinstanciatebitfields
-						   ((clk_in :width 1 :direction :in :as :wire))
-						   (let ((ctrl 0 :width 4 :as :wire))
+						   ((clk_in :type (unsigned-byte 1) :direction :in :as :wire))
+						   (let ((ctrl 0 :type (unsigned-byte 4) :as :wire))
 						     (rtl:with-bitfields (clk b2 b1 b0)
 							 ctrl
 						       (let ((clock (make-instance 'clock :clk_in clk_in
@@ -155,16 +155,16 @@
   "Test we can synthesise a module instanciation."
   (rtl:clear-module-registry)
 
-  (rtl:defmodule clock ((clk_in  :direction :in  :as :wire :width 1)
-			(clk_out :direction :out :as :wire :width 1)
+  (rtl:defmodule clock ((clk_in  :direction :in  :as :wire :type (unsigned-byte 1))
+			(clk_out :direction :out :as :wire :type (unsigned-byte 1))
 			&key (p 1) (q 2))
     (setq clk_out clk_in))
 
-  (is (rtl:synthesise '(let ((c 0 :as :wire :width 1)
-			     (d 0 :as :wire :width 1))
+  (is (rtl:synthesise '(let ((c 0 :as :wire :type (unsigned-byte 1))
+			     (d 0 :as :wire :type (unsigned-byte 1)))
 			(let ((a (make-instance 'clock :clk_in c :clk_out d)))))
 		      :inmodule))
-  (is (rtl:synthesise '(let ((c 0 :as :wire :width 1)
-			     (d 0 :as :wire :width 1))
+  (is (rtl:synthesise '(let ((c 0 :as :wire :type (unsigned-byte 1))
+			     (d 0 :as :wire :type (unsigned-byte 1)))
 			(let ((a (make-instance 'clock :clk_in c :clk_out d :p 23)))))
 		      :inmodule)))

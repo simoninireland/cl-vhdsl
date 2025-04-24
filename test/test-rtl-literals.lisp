@@ -26,9 +26,9 @@
 (test test-literal-widths
   "Test we can extract the types of literals."
   (is (subtypep (rtl:typecheck 2 emptyenv)
-		'(rtl::fixed-width-unsigned 2)))
+		'(unsigned-byte 2)))
 
   (is (not (subtypep (rtl:typecheck -2 emptyenv)
-		     '(rtl::fixed-width-signed 2))))
+		     '(signed-byte 2))))
   (is (subtypep (rtl:typecheck -2 emptyenv)
-		'(rtl::fixed-width-signed 3))))
+		'(signed-byte 3))))

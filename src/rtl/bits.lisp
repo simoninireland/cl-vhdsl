@@ -26,9 +26,9 @@
 (defmethod typecheck-sexp ((fun (eql 'bit)) args env)
   (destructuring-bind (var bit)
       args
-    (ensure-subtype (typecheck var env) 'fixed-width-unsigned)
-    (ensure-subtype (typecheck bit env) '(fixed-width-unsigned 1))
-    '(fixed-width-unsigned 1)))
+    (ensure-subtype (typecheck var env) 'unsigned-byte)
+    (ensure-subtype (typecheck bit env) '(unsigned-byte 1))
+    '(unsigned-byte 1)))
 
 
 (defmethod generalised-place-sexp-p ((fun (eql 'bit)) args env)
@@ -61,9 +61,9 @@
 	  (progn
 	    (setq end (1+ (- start width)))
 	    (if (< end 0)
-		(error 'width-mismatch :expected 0
-				       :got end
-				       :hint "Width greater than the number of remaining bits")
+		(error 'type-mismatch :expected 0
+				      :got end
+				      :hint "Width greater than the number of remaining bits")
 		end))
 
 	  ;; default is to the end of the pattern
@@ -72,9 +72,9 @@
       (if width
 	  ;; if both are set, width and end must agree
 	  (if (/= width (1+ (- start end)))
-	      (error 'width-mismatch :expected (1+ (- start end))
-				     :gopt width
-				     :hint "Explicit width does not agree with start and end positions")
+	      (error 'type-mismatch :expected (1+ (- start end))
+				    :got width
+				    :hint "Explicit width does not agree with start and end positions")
 	      end)
 
 	  ;; otherwise just use the given end
@@ -91,15 +91,20 @@
     (let ((tyvar (typecheck var env)))
       (setq end (compute-end-bit start end width))
 
+      ;; check whether variable should be widened
       (let ((l (1+ (- start end)))
 	    (vw (bitwidth tyvar env)))
 	(when (> l vw)
-	  (error 'width-mismatch :expected vw
+	  ;; signal to allow this to be picked up
+	  (signal 'type-mismatch :expected vw
 				 :got l
-				 :hint "Width greater than base variable"))
+				 :hint "Width greater than base variable")
+
+	  ;; add a constraint
+	  (add-type-constraint var `(unsigned-byte ,l) env))
 
 	;; width is the nunmber of bits extracted
-	`(fixed-width-unsigned ,l)))))
+	`(unsigned-byte ,l)))))
 
 
 (defmethod synthesise-sexp ((fun (eql 'bits)) args (context (eql :inexpression)))

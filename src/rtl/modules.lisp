@@ -153,27 +153,16 @@ of other parameter values."
 
 (defun typecheck-module-arg (env decl)
   "Type-check a module argument declaration DECL in ENV."
-  (destructuring-bind (n &key (width 1) type (direction :in) (as :wire))
+  (destructuring-bind (n &key
+			   type
+			   (direction :in)
+			   (as :wire))
       decl
     (ensure-direction direction)
 
-    (let ((w (eval-in-static-environment width env)))
-      (if type
-	  ;; make sure the argument is wide enough to accommodate
-	  ;; the type
-	  (progn
-	    (ensure-width-can-store w type env)
-	    (setq width w))
-
-	  ;; no type, use width for a default unsigned
-	  (setq type `(fixed-width-unsigned ,w)))
-
-      (declare-variable n `((:type ,type)
-			    (:width ,width)
-			    (:direction ,direction))
-			env)
-
-      env)))
+    (declare-variable n `((:type ,type)
+			  (:direction ,direction))
+		      env)))
 
 
 (defun env-from-module-decls (args params)
@@ -258,18 +247,21 @@ of other parameter values."
 
 (defun synthesise-arg (decl)
   "Return the code for argument DECL."
-  (destructuring-bind (n &key direction width (as :wire))
+  (declare (optimize debug))
+
+  (destructuring-bind (n &key direction type (as :wire))
       decl
-    (as-literal (format nil "~a ~a"
-			(case direction
-			  (:in    "input")
-			  (:out   "output")
-			  (:inout "inout"))
-			(if (and (integerp width)
-				 (= width 1))
-			    ""
-			    (format nil "[ ~(~a~) - 1 : 0 ] " width))))
-    (synthesise n :indeclaration)))
+    (let ((width (bitwidth type (empty-environment))))
+      (as-literal (format nil "~a ~a"
+			  (case direction
+			    (:in    "input")
+			    (:out   "output")
+			    (:inout "inout"))
+			  (if (and (integerp width)
+				   (= width 1))
+			      ""
+			      (format nil "[ ~(~a~) - 1 : 0 ] " width))))
+      (synthesise n :indeclaration))))
 
 
 (defmethod synthesise-sexp ((fun (eql 'module)) args (context (eql :toplevel)))
