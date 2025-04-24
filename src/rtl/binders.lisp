@@ -77,6 +77,8 @@ The name is the first element, whether or not DECL is a list."
 
 (defun typecheck-decl (decl env)
   "Extend ENV with the variable declaed in DECL."
+  (declare (optimize debug))
+
   (if (listp decl)
       ;; full declaration
       (destructuring-bind (n v &key
@@ -84,24 +86,25 @@ The name is the first element, whether or not DECL is a list."
 				 type
 				 (as :register))
 	  decl
-	(let ((ity (or type
+	(let ((ity (if type
+		       (expand-type-parameters type env)
 		       `(unsigned-byte ,*default-register-width*))))
 
 	  ;; typecheck initial value
 	  (let ((vty (typecheck v env)))
 	    (if type
 		;; type provided, ensure it works
-		(ensure-subtype vty type)
+		(ensure-subtype vty ity)
 
 		;; no type provided, infer from the value
 		(setq ity vty)))
 
 	  ;; extract type constraint
 	  (let ((constraint (if (not (subtypep ity 'array))
-				type)))
+				ity)))
 
 	    (declare-variable n `(,(if type
-				       `(:type ,type)
+				       `(:type ,ity)
 				       `(:inferred-type ,ity))
 				  (:as ,as)
 				  (:initial-value ,v)
@@ -345,15 +348,17 @@ SPECIAL-VALUE-P. Specifically, normal values have a bit-width."
 
 The register has name N and initial value V, with the optional
 WIDTH defaulting to the system's global width."
-  (destructuring-bind  (n v &key (width *default-register-width*) &allow-other-keys)
+  (destructuring-bind  (n v &key type &allow-other-keys)
       decl
+
     (as-literal "reg [ ")
     (if (array-value-p v)
 	;; synthesise the width as the width of the array element
 	(synthesise (array-element-width v) :inexpression)
 
-	;; otherwise use the given width
-	(synthesise width :inexpression))
+	;; otherwise use the given type's width
+	(let ((width (bitwidth type '())))
+	  (synthesise width :inexpression)))
     (as-literal " - 1 : 0 ] ")
     (synthesise n :indeclaration)
     (if (array-value-p v)
@@ -373,32 +378,34 @@ WIDTH defaulting to the system's global width."
 The wire has name N and initial value V, with the optional WIDTH
 defaulting to the system's global width. If the initial value is zero
 the wire is left un-driven."
-  (destructuring-bind  (n v &key (width *default-register-width*) &allow-other-keys)
+  (destructuring-bind  (n v &key type &allow-other-keys)
       decl
-    (as-literal "wire ")
-    (when (> width 1)
-      (as-literal"[ ")
-      (synthesise width :inexpression)
-      (as-literal " - 1 : 0 ] "))
-    (synthesise n :indeclaration)
-    (if (array-value-p v)
-	;; synthesise the array constructor
-	(synthesise-array-init n v)
 
-	;; synthesise the assignment to the initial value
-	(if (static-constant-p v nil)
-	    (let ((iv (ensure-static v nil)))
-	      (unless (= iv 0)
-		;; initial value isn't statially zero, synthesise
+    (let ((width (bitwidth type '())))
+      (as-literal "wire ")
+      (when (> width 1)
+	(as-literal"[ ")
+	(synthesise width :inexpression)
+	(as-literal " - 1 : 0 ] "))
+      (synthesise n :indeclaration)
+      (if (array-value-p v)
+	  ;; synthesise the array constructor
+	  (synthesise-array-init n v)
+
+	  ;; synthesise the assignment to the initial value
+	  (if (static-constant-p v nil)
+	      (let ((iv (ensure-static v nil)))
+		(unless (= iv 0)
+		  ;; initial value isn't statially zero, synthesise
+		  (as-literal " = ")
+		  (synthesise v :inexpression))
+		(as-literal";"))
+
+	      ;; initial value is an expression, synthesise
+	      (progn
 		(as-literal " = ")
-		(synthesise v :inexpression))
-	      (as-literal";"))
-
-	    ;; initial value is an expression, synthesise
-	    (progn
-	      (as-literal " = ")
-	      (synthesise v :inexpression)
-	      (as-literal";"))))))
+		(synthesise v :inexpression)
+		(as-literal";")))))))
 
 
 (defun synthesise-constant (decl context)
@@ -425,7 +432,7 @@ Constants turn into local parameters."
 
 (defun synthesise-decl (decl context)
   "Synthesise DECL in CONTEXT."
-  (destructuring-bind (n v &key width type as)
+  (destructuring-bind (n v &key type as)
       decl
     (if (module-value-p v)
 	;; instanciating a module

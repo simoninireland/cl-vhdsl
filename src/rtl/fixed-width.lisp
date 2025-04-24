@@ -43,7 +43,7 @@
 			  :got ty)))
 
 
-(defmethod expand-type-parameters-sexp ((ty (eql 'unsigned-byte)) args env)
+(defmethod expand-type-parameters-type ((ty (eql 'unsigned-byte)) args env)
   (if (null args)
       ty
       (let ((bounds (car args)))
@@ -52,12 +52,12 @@
 	    `(unsigned-byte ,(eval-in-static-environment bounds env))))))
 
 
-(defmethod expand-type-parameters-sexp ((ty (eql 'signed-byte)) args env)
+(defmethod expand-type-parameters-type ((ty (eql 'signed-byte)) args env)
   (if (null args)
       ty
       (let ((bounds (car args)))
 	(if (eql bounds '*)
-	    '(fixed-width-usigned *)
+	    '(unsigned-byte *)
 	    `(signed-byte ,(eval-in-static-environment bounds env))))))
 
 

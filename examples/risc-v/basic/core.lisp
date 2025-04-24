@@ -21,23 +21,23 @@
 (declaim (optimize debug))
 
 
-(defmodule SOC ((clk-in   :as :wire :width 1 :direction :in)
-		;; (reset-in :as :wire :width 1 :direction :in)
-		(leds-out :as :wire :width 5 :direction :out)
-		(rxd      :as :wire :width 1 :direction :in)
-		(txd      :as :wire :width 1 :direction :out))
+(defmodule SOC ((clk-in   :as :wire :type (unsigned-byte 1) :direction :in)
+		;; (reset-in :as :wire :type (unsigned-byte 1) :direction :in)
+		(leds-out :as :wire :type (unsigned-byte 5) :direction :out)
+		(rxd      :as :wire :type (unsigned-byte 1) :direction :in)
+		(txd      :as :wire :type (unsigned-byte 1) :direction :out))
 
-  (let ((clk   0 :as :wire :width 1)
-	(reset 0 :as :wire :width 1)
+  (let ((clk   0 :as :wire :type (unsigned-byte 1))
+	(reset 0 :as :wire :type (unsigned-byte 1))
 
 	;; plug in to the output to visualise
-	(leds 0 :width 5 :as :register)
+	(leds 0 :type (unsigned-byte 5) :as :register)
 
 	;; core state
-	(mem   (make-array '(256) :element-type (fixed-width-unsigned 32)
+	(mem   (make-array '(256) :element-type (unsigned-byte 32)
 				  :initial-contents (:file "firmware.hex")))
-	(pc    0 :width 32 :as :register)
-	(instr 0 :width 32 :as :register)
+	(pc    0 :type (unsigned-byte 32) :as :register)
+	(instr 0 :type (unsigned-byte 32) :as :register)
 
 	;; clock management
 	(cw (make-instance 'clockworks :clk-in clk-in
@@ -50,71 +50,71 @@
     (setq leds-out leds)
 
     ;; instruction decoding
-    (let-wires ((isALUreg (= (bits instr 6) #2r0110011) :width 1)
-		(isALUimm (= (bits instr 6) #2r0010011) :width 1)
-		(isBranch (= (bits instr 6) #2r1100011) :width 1)
-		(isJALR   (= (bits instr 6) #2r1100111) :width 1)
-		(isJAL    (= (bits instr 6) #2r1101111) :width 1)
-		(isAIUPC  (= (bits instr 6) #2r0010111) :width 1)
-		(isLUT    (= (bits instr 6) #2r0110111) :width 1)
-		(isLoad   (= (bits instr 6) #2r0000011) :width 1)
-		(isStore  (= (bits instr 6) #2r0100011) :width 1)
-		(isSystem (= (bits instr 6) #2r1110011) :width 1)
+    (let-wires ((isALUreg (= (bits instr 6) #2r0110011) :type (unsigned-byte 1))
+		(isALUimm (= (bits instr 6) #2r0010011) :type (unsigned-byte 1))
+		(isBranch (= (bits instr 6) #2r1100011) :type (unsigned-byte 1))
+		(isJALR   (= (bits instr 6) #2r1100111) :type (unsigned-byte 1))
+		(isJAL    (= (bits instr 6) #2r1101111) :type (unsigned-byte 1))
+		(isAIUPC  (= (bits instr 6) #2r0010111) :type (unsigned-byte 1))
+		(isLUT    (= (bits instr 6) #2r0110111) :type (unsigned-byte 1))
+		(isLoad   (= (bits instr 6) #2r0000011) :type (unsigned-byte 1))
+		(isStore  (= (bits instr 6) #2r0100011) :type (unsigned-byte 1))
+		(isSystem (= (bits instr 6) #2r1110011) :type (unsigned-byte 1))
 
 		;; intermediate formats
 		(Uimm (make-bitfields (bit instr 31)
 				      (bits instr 30 :end 12)
 				      (extend-bits 0 12))
-		      :width 32)
+		      :type (unsigned-byte 32))
 		(Iimm (make-bitfields (extend-bits (bit instr 31) 21)
 				      (bits instr 30 :end 20))
-		      :width 32)
+		      :type (unsigned-byte 32))
 		(Simm (make-bitfields (extend-bits (bit instr 31) 21)
 				      (bits instr 30 :end 25)
 				      (bits instr 11 :end 7))
-		      :width 32)
+		      :type (unsigned-byte 32))
 		(Bimm (make-bitfields (extend-bits (bit instr 31) 20)
 				      (bit instr 7)
 				      (bits instr 30 :end 25)
 				      (bits instr 11 :end 8)
 				      (extend-bits 0 1))
 
-		      :width 32)
+		      :type (unsigned-byte 32))
 		(Jimm (make-bitfields (extend-bits (bit instr 31) 12)
 				      (bits instr 19 :end 12)
 				      (bit instr 20)
 				      (bits instr 30 :end 21)
 				      (extend-bits 0 1))
-		      :width 32)
+		      :type (unsigned-byte 32))
 
 		;; source and destination registers
-		(rs1Id (bits instr 19 :end 15) :width 5)
-		(rs2Id (bits instr 24 :end 20) :width 5)
-		(rdId  (bits instr 11 :end 7)  :width 5)
+		(rs1Id (bits instr 19 :end 15) :type (unsigned-byte 5))
+		(rs2Id (bits instr 24 :end 20) :type (unsigned-byte 5))
+		(rdId  (bits instr 11 :end 7)  :type (unsigned-byte 5))
 
 		;; function codes
-		(funct3 (bits instr 14 :end 12) :width 3)
-		(funct7 (bits instr 31 :end 25) :width 7))
+		(funct3 (bits instr 14 :end 12) :type (unsigned-byte 3))
+		(funct7 (bits instr 31 :end 25) :type (unsigned-byte 7)))
 
 	       ;; register bank
-	       (let ((RegisterBank  (make-array '(32) :element-type (fixed-width-unsigned 32)))
-		     (rs1           0 :width 32)
-		     (rs2           0 :width 32)
-		     (writeBackData 0 :width 32 :as :wire)
-		     (writeBackEn   0 :width 1  :as :wire))
+	       (let ((RegisterBank  (make-array '(32) :element-type (unsigned-byte 32)))
+		     (rs1           0 :type (unsigned-byte 32))
+		     (rs2           0 :type (unsigned-byte 32))
+		     (writeBackData 0 :type (unsigned-byte 32) :as :wire)
+		     (writeBackEn   0 :type (unsigned-byte 1) :as :wire))
 
 		 ;; the ALU
-		 (let-wires ((aluIn1 rs1 :width 32)
+		 (let-wires ((aluIn1 rs1 :type (unsigned-byte 32))
 			     (aluIn2 (if isALUreg
 					 rs2
 					 Iimm)
-				     :width 32)
+				     :type (unsigned-byte 32))
 			     (shamt (if isALUreg
 					(bits rs2 4)
 					(bits instr 24 :end 20))
-				    :width 5))
+				    :type (unsigned-byte 5)))
 
-			    (let-registers ((aluOut 0 :width 32))
+			    (let-registers ((aluOut 0 :type (unsigned-byte 32)))
 
 					   (@ (*)
 					      (case funct3
@@ -151,7 +151,7 @@
 					   (let ((FETCH-INSTR 0 :as :constant)
 						 (FETCH-REGS  1 :as :constant)
 						 (EXECUTE     2 :as :constant)
-						 (state       0 :width 3))
+						 (state       0 :type (unsigned-byte 3)))
 
 					     (let ((nextpc (cond (isJAL
 								  (+ pc Jimm))
@@ -159,7 +159,7 @@
 								  (+ rs1 Iimm))
 								 (t
 								  (+ pc 4)))
-							   :width 32))
+							   :type (unsigned-byte 32)))
 
 					       (setq writeBackData (if (or isJAL isJALR)
 								       (+ pc 4)

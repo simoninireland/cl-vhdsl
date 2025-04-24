@@ -20,14 +20,14 @@
 (in-package :cl-vhdsl/examples/risc-v/basic)
 
 
-(defmodule clockworks ((clk-in :width 1 :direction :in)
-		       (reset-in :width 1 :direction :in)
-		       (clk :width 1 :direction :out)
-		       (reset :width 1 :direction :out)
+(defmodule clockworks ((clk-in   :type (unsigned-byte 1) :direction :in)
+		       (reset-in :type (unsigned-byte 1) :direction :in)
+		       (clk      :type (unsigned-byte 1) :direction :out)
+		       (reset    :type (unsigned-byte 1) :direction :out)
 		       &key (slow 0))
 
   ;; clock divider
-  (let ((slow-clk 0 :width (1+ slow)))
+  (let ((slow-clk 0 :type (unsigned-byte (1+ slow))))
     (@ (posedge clk-in)
        (incf slow-clk))
     (setf clk (bit slow-clk slow)))

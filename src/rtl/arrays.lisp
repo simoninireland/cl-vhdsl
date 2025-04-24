@@ -53,6 +53,7 @@ whose values are statically determinable."
     (signal 'shape-mismatch :expected shape
 			    :hint "Ensure initial contents have the right shape")))
 
+
 ;; ---------- Array construction ----------
 
 (defmacro unquote (place)
@@ -65,6 +66,22 @@ RTLisp, but don't /require/ it."
 	    (listp ,place)
 	    (eql (car ,place) 'quote))
        (setq ,place (cadr ,place))))
+
+
+(defmethod expand-type-parameters-type ((ty (eql 'array)) args env)
+  (if (null args)
+      ty
+      (destructuring-bind (shape &key
+				   initial-element
+				   initial-contents
+				   element-type)
+	  args
+
+	;; expand the embedded type parts
+	(setq shape (list (expand-type-parameters (car shape) env)))
+	(setq element-type (expand-type-parameters element-type env))
+
+	`(array ,element-type ,shape))))
 
 
 (defun array-element-width (form)
