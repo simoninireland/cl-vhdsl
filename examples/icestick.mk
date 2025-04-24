@@ -54,8 +54,9 @@ GENERATED_STEMS = $(foreach fn,$(SOURCES), $(shell basename $(fn) .lisp))
 GENERATED += $(foreach stem,$(GENERATED_STEMS),$(stem).v $(stem).asc $(stem).bin $(stem).json)
 
 # Command to run tools in a container (if requested)
+# (Container must run privileged to be able to upload to the device.)
 ifneq ($(CONTAINER_TAG),)
-IN_CONTAINER = $(DOCKER) run -it --rm --mount type=bind,source=`pwd`,target=/work $(CONTAINER_TAG)
+IN_CONTAINER = $(DOCKER) run -it --rm --privileged --mount type=bind,source=`pwd`,target=/work $(CONTAINER_TAG)
 endif
 
 # ---------- Implicit rules ----------
