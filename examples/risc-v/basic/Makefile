@@ -51,7 +51,7 @@ $(OBJECT): $(ASM_OBJECT) $(SOURCES)
 
 # Upload the target bitstream to the device
 upload: $(TARGET)
-	$(PROGRAM) $(PROGRAM_OPTS) $<
+	$(IN_CONTAINER) $(PROGRAM) $(PROGRAM_OPTS) $<
 
 
 # Clean-up the build directory
