@@ -44,7 +44,7 @@ The type is tagged TYTAG with arguments TYARGS."))
 (defun lub (ty1 ty2 env)
   "Return the least upper-bound of types TY1 and TY2 in ENV.
 
-By default the upper bound is T, and if either is null the
+By default the upper bound is T, and if either is null thefcore.li
 upper bound is the other. For other combinations the type tag
 is extracted and used in a call to LUB-TYPE."
   (cond ((null ty1)
@@ -68,6 +68,21 @@ TY1ARGS and TY2ARGS respectively (both of which can be nil).
 The default LUB of two types is T.")
   (:method (ty1tag ty1args ty2tag ty2args env)
     t))
+
+
+;; ---------- Type parameter expansion ----------
+
+(defgeneric expand-type-parameters (ty env)
+  (:documentation "Expand any parameters in the type TY in ENV.
+
+This expands constants that appear within type declarations,
+which always need to be statically constant.")
+  (:method ((ty list) env)
+    (expand-type-parameters-type (car ty) (cdr ty) env)))
+
+
+(defgeneric expand-type-parameters-type (ty args env)
+  (:documentation "Expand any parameters in the type tag TY applied to ARGS in ENV."))
 
 
 ;; ---------- Type constraints in environments ----------

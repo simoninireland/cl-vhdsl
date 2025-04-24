@@ -63,21 +63,6 @@ form."
   (car *current-form-queue*))
 
 
-;; ---------- Type parameter expansion ----------
-
-(defgeneric expand-type-parameters (ty env)
-  (:documentation "Expand any parameters in the type TY in ENV.
-
-This expands constants that appear within type declarations,
-which always need to be statically constant.")
-  (:method (ty env)
-    (expand-type-parameters-sexp (car ty) (cdr ty) env)))
-
-
-(defgeneric expand-type-parameters-sexp (ty args env)
-  (:documentation "Expand any parameters in the type tag TY applied to ARGS in ENV."))
-
-
 ;; ---------- Variable shadowing ----------
 
 ;; For now we disallow shadowing variables in nested scopes
