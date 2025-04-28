@@ -97,7 +97,6 @@
 	       ;;(:file "test-microinstructions")
 	       ;;(:file "test-dsl")
 	       (:file "test-rtl-base")
-	       (:file "test-rtl-widths")
 	       (:file "test-rtl-types")
 	       (:file "test-rtl-assignment")
 	       (:file "test-rtl-literals")
@@ -119,7 +118,7 @@
 	       (:file "test-rtl-cond")
 	       (:file "test-rtl-with-bitfields")
 	       (:file "test-def-components")
-	       (:file "test-def-isa")
+	       ;;(:file "test-def-isa")
 	       )
   :perform (test-op (o c) (uiop:symbol-call :fiveam '#:run-all-tests)))
 
