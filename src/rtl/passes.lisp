@@ -164,12 +164,12 @@ method to change this behaviour.")
 ;; issues (which signal implementation-specific conditions)
 ;; into not-synthesisable conditions
 
-(defmethod typecheck :around (form env)
-  (handler-bind
-      ((error (lambda (cond)
-		(error 'not-synthesisable :underlying-condition cond
-					  :hint "Mistake"))))
-    (call-next-method)))
+;; (defmethod typecheck :around (form env)
+;;   (handler-bind
+;;       ((error (lambda (cond)
+;;		(error 'not-synthesisable :underlying-condition cond
+;;					  :hint "Mistake"))))
+;;     (call-next-method)))
 
 
 (defgeneric typecheck-sexp (fun args env)
