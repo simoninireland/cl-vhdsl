@@ -103,9 +103,8 @@ The name is the first element, whether or not DECL is a list."
 	  (let ((constraint (if (not (subtypep ity 'array))
 				ity)))
 
-	    (declare-variable n `(,(if type
-				       `(:type ,ity)
-				       `(:inferred-type ,ity))
+	    (declare-variable n `((:type ,type)
+				  (:inferred-type ,ity)
 				  (:as ,as)
 				  (:initial-value ,v)
 				  ,(if constraint
@@ -113,7 +112,9 @@ The name is the first element, whether or not DECL is a list."
 			      env))))
 
       ;; "naked" declaration
-      (declare-variable decl `((:inferred-type (unsigned-byte ,*default-register-width*))
+      ;; TODO: What is the correct default width? -- 1 means it'll get widened
+      ;; as needed, so is perhaps correct?
+      (declare-variable decl `((:inferred-type (unsigned-byte 1))
 			       (:as :register)
 			       (:initial-value 0))
 			env)))
@@ -147,13 +148,10 @@ one."
     ;; pass, to allow for systems that don't care about precision
     ;; TODO: Should we allow this, or be tighter?
     (if-let ((ty (get-environment-property n :type env :default nil)))
-      (progn
-	(ensure-subtype inferred-type ty)
+      ;; the type we use is the one supplied
+      (setq inferred-type ty)
 
-	;; the type we use is the one supplied
-	(setq inferred-type ty))
-
-      ;; no type privided, note that we inferred it
+      ;; no type provided, note that we inferred it
       (signal 'type-inferred :variable n
 			     :inferred inferred-type))
 
@@ -357,7 +355,7 @@ WIDTH defaulting to the system's global width."
 	(synthesise (array-element-width v) :inexpression)
 
 	;; otherwise use the given type's width
-	(let ((width (bitwidth type '())))
+	(let ((width (cadr type)))
 	  (synthesise width :inexpression)))
     (as-literal " - 1 : 0 ] ")
     (synthesise n :indeclaration)

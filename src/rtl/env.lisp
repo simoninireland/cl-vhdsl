@@ -262,11 +262,9 @@ flat, regardless of the frame structure of ENV."
 (defun get-type (n env)
   "Return the type of N in ENV.
 
-The type is the most definite of an explicitly-provided type
-(the :TYPE attribute), an inferred type (:INFERRED-TYPE),
+The type is the most definite of an inferred type (:INFERRED-TYPE),
 and the default type (a standard-width unsigned integer)."
-  (or (get-environment-property n :type env :default nil)
-      (get-environment-property n :inferred-type env :default nil)
+  (or (get-environment-property n :inferred-type env :default nil)
       `(unsigned-byte ,*default-register-width*)))
 
 

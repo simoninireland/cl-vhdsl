@@ -168,3 +168,25 @@
 			     (d 0 :as :wire :type (unsigned-byte 1)))
 			(let ((a (make-instance 'clock :clk_in c :clk_out d :p 23)))))
 		      :inmodule)))
+
+
+;; ---------- Larger examples ----------
+
+(test test-module-real
+  "Test module synthesis on a real-ish example."
+  (let ((p (copy-tree '(rtl:module clockworks ((clk-in   :type (unsigned-byte 1) :direction :in)
+					       (reset-in :type (unsigned-byte 1) :direction :in)
+					       (clk      :type (unsigned-byte 1) :direction :out)
+					       (reset    :type (unsigned-byte 1) :direction :out)
+					       &key (slow 0))
+
+			;; clock divider
+			(let ((slow-clk 0 :type (unsigned-byte (1+ slow))))
+			  (rtl:@ (rtl:posedge clk-in)
+				 (incf slow-clk))
+			  (setf clk (bit slow-clk slow)))
+
+			(setq reset reset-in)))))
+    (setq p (rtl:expand-macros p))
+    (rtl:typecheck p emptyenv)
+    (is (rtl:synthesise p :toplevel) :toplevel)))
