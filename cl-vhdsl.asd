@@ -28,7 +28,8 @@
 	       "str"
 	       "cl-ppcre"
 	       "closer-mop"
-	       "slot-extra-options")
+	       "slot-extra-options"
+	       "local-time")
   :pathname "src/"
   :serial t
   :components ((:file "package")

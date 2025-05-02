@@ -1,4 +1,5 @@
 ;; Package for commaond-line transpiler
+;;
 ;; Copyright (C) 2024--2025 Simon Dobson
 ;;
 ;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
@@ -20,7 +21,7 @@
 
 (defpackage cl-vhdsl/cli
   (:use :cl :alexandria
-	:cl-vhdsl :cl-vhdsl/rtl)
+	:cl-vhdsl :cl-vhdsl/rtl :local-time)
 
   (:export
    main))
