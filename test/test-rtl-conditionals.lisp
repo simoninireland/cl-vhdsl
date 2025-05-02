@@ -43,33 +43,34 @@ q
 (test test-synthesise-if-statement
   "Test we can synthesise if forms."
   ;; as statements
-  (is (rtl:synthesise '(let ((a 0 :width 4))
+  (dolist (x '((let ((a 0 :width 4))
 			(if (logand 1 1)
 			    (setf a (+ 1 2))
 			    (setf a (+ 1 3))))
-		      :inmodule))
-  (is (rtl:synthesise '(let ((a 0 :width 4))
+	       (let ((a 0 :width 4))
 			(if (logand 1 1)
 			    (setf a (+ 1 2))
 
 			    ;; a two-form else branch
 			    (setf a (+ 1 3))
 			    (setf a 12)))
-		      :inmodule))
-  (is (rtl:synthesise '(let ((a 0 :width 4))
+	       (let ((a 0 :width 4))
 			(if (logand 1 1)
 			    (progn
 			      ;; a two-form else branch
 			      (setf a (+ 1 2))
 			      (setf a (+ 1 3)))
-			    (setf a 12)))
-		      :inmodule))
+			    (setf a 12)))))
+    (let ((p (copy-tree x)))
+      (rtl:typecheck p emptyenv)
+      (is (rtl:synthesise p :inmodule))))
 
   ;; no else branch
-  (is (rtl:synthesise '(let ((a 0 :width 4))
-			(if (logand 1 1)
-			    (setf a (+ 1 2))))
-		      :inblock)))
+  (let ((p (copy-tree ' (let ((a 0 :width 4))
+			  (if (logand 1 1)
+			    (setf a (+ 1 2)))))))
+      (rtl:typecheck p emptyenv)
+      (is (rtl:synthesise p :inblock))))
 
 
 ;; ---------- Multi-armed value comparisons (CASE) ----------
@@ -105,41 +106,44 @@ q
 
 (test test-synthesise-case
   "Test we can synthesise a CASE."
-  (is (rtl:synthesise '(let ((a 12)
-			     (b 0))
-			(case a
-			  (1
-			   (setf b 23))
-			  (2
-			   (setf b 34 :sync t)
-			   (setf a 0))
-			  (t
-			   (setf b 0))))
-		      :inblock)))
+  (let ((p '(let ((a 12)
+		  (b 0))
+	     (case a
+	       (1
+		(setf b 23))
+	       (2
+		(setf b 34 :sync t)
+		(setf a 0))
+	       (t
+		(setf b 0))))))
+    (rtl:typecheck p emptyenv)
+    (is (rtl:synthesise p :inblock))))
 
 
 (test test-synthesise-case-assignment
   "Test we can assign to the results of a CASE block."
-  (is (rtl:synthesise '(let ((a 1)
-			     (b 2))
-			(setq a
-			 (case b
-			   (1 12)
-			   (2 (+ a 1))
-			   (t 0))))
-		      :inblock)))
+  (let ((p '(let ((a 1)
+		  (b 2))
+	     (setq a
+	      (case b
+		(1 12)
+		(2 (+ a 1))
+		(t 0))))))
+    (rtl:typecheck p emptyenv)
+    (is (rtl:synthesise p :inblock))))
 
 
 (test test-synthesise-case-complex-bodies
   "Test we can't synthesise CASE assignments where the bodies are too complicated."
   (signals (rtl:not-synthesisable)
-    (rtl:synthesise '(let ((a 1)
-			     (b 2))
-		      (setq a
-		       (case b
-			 (1 12)
-			 (2
-			  (setq b 12)
-			  (+ a 1))
-			 (t 0))))
-		    :inblock)))
+    (let ((p '(let ((a 1)
+		    (b 2))
+	       (setq a
+		(case b
+		  (1 12)
+		  (2
+		   (setq b 12)
+		   (+ a 1))
+		  (t 0))))))
+      (rtl:typecheck p emptyenv)
+      (rtl:synthesise p :inblock))))

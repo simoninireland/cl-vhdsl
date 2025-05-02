@@ -26,8 +26,8 @@
 (defmethod typecheck-sexp ((fun (eql 'bit)) args env)
   (destructuring-bind (var bit)
       args
-    (ensure-subtype (typecheck var env) 'unsigned-byte)
-    (ensure-subtype (typecheck bit env) '(unsigned-byte 1))
+    (ensure-subtype (typecheck var env) 'unsigned-byte env)
+    (ensure-subtype (typecheck bit env) '(unsigned-byte 1) env)
     '(unsigned-byte 1)))
 
 

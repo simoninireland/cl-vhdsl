@@ -51,7 +51,7 @@ constant or an input parameter."
 
     (let ((tyvar (typecheck n env))
 	  (tyval (typecheck v env)))
-      (ensure-subtype tyval tyvar)
+      (ensure-subtype tyval tyvar env)
       (ensure-writeable n env)
       (add-type-constraint n tyval env)
 
@@ -134,7 +134,7 @@ The default is for a form /not/ to be a generalised place.")
   (let* ((place `(,selector ,@selectorargs))
 	 (tyvar (typecheck place env))
 	 (tyval (typecheck val env)))
-    (ensure-subtype tyval tyvar)
+    (ensure-subtype tyval tyvar env)
     (ensure-generalised-place place env)
 
     tyvar))

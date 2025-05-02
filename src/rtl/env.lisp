@@ -32,13 +32,15 @@ example 8, 16, 32, or 64 bits.")
 
 ;; ---------- Type checking ----------
 
-(defun ensure-subtype (ty1 ty2)
-  "Ensure TY1 is a sub-type of TY2.
+(defun ensure-subtype (ty1 ty2 env)
+  "Ensure TY1 is a sub-type of TY2 in ENV.
 
 Signals TYPE-MISMATCH is the types are not compatible. This
 can be ignored for systems not concerned with loss of precision."
-  (when (not (subtypep ty1 ty2))
-    (signal 'type-mismatch :expected ty2 :got ty1)))
+  (let ((ety1 (expand-type-parameters ty1 env))
+	(ety2 (expand-type-parameters ty2 env)))
+    (when (not (subtypep ety1 ety2))
+      (signal 'type-mismatch :expected ty2 :got ty1))))
 
 
 ;; ---------- Type environments and frames ----------
@@ -263,8 +265,13 @@ flat, regardless of the frame structure of ENV."
   "Return the type of N in ENV.
 
 The type is the most definite of an inferred type (:INFERRED-TYPE),
-and the default type (a standard-width unsigned integer)."
+any explicitly-provided type (:TYPE), and the default type (a
+standard-width unsigned integer).
+
+(The logic of this orderig is o allow the same function
+to be used during and after type inferenece.)"
   (or (get-environment-property n :inferred-type env :default nil)
+      (get-environment-property n :type env :default nil)
       `(unsigned-byte ,*default-register-width*)))
 
 
@@ -273,20 +280,9 @@ and the default type (a standard-width unsigned integer)."
   (get-environment-property n :as env))
 
 
-(defun get-width (n env)
-  "Return the width of N in ENV."
-  (or (get-environment-property n :width env)
-
-      ;; default value
-      *default-register-width*))
-
-
 (defun get-initial-value (n env)
   "Return the initial value of N in ENV."
-  (or (get-environment-property n :initial-value env)
-
-      ;; default value
-      0))
+  (get-environment-property n :initial-value env :default 0))
 
 
 (defun get-constant (n env)

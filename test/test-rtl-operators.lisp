@@ -31,7 +31,6 @@
   (is (subtypep (rtl:typecheck '(+ 15 2)
 			       emptyenv)
 		`(unsigned-byte 5)))
-
   (is (not (subtypep (rtl:typecheck '(+ 15 -2)
 				    emptyenv)
 		     `(unsigned-byte 5))))
@@ -42,12 +41,12 @@
 
 (test test-width-subtractions
   "Test we can extract the widths of subtractions."
-    (is (subtypep (rtl:typecheck '(- 1)
+  (is (subtypep (rtl:typecheck '(- 1)
 			       emptyenv)
-		  '(signed-byte 2)))
-    (is (subtypep (rtl:typecheck '(- 2 1)
+		'(signed-byte 2)))
+  (is (subtypep (rtl:typecheck '(- 2 1)
 			       emptyenv)
-		  '(signed-byte 3))))
+		'(signed-byte 3))))
 
 
 (test test-synthesise-addition-operators

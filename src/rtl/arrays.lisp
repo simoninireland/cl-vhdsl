@@ -71,14 +71,10 @@ RTLisp, but don't /require/ it."
 (defmethod expand-type-parameters-type ((ty (eql 'array)) args env)
   (if (null args)
       ty
-      (destructuring-bind (shape &key
-				   initial-element
-				   initial-contents
-				   element-type)
+      (destructuring-bind (element-type shape)
 	  args
 
 	;; expand the embedded type parts
-	(setq shape (list (expand-type-parameters (car shape) env)))
 	(setq element-type (expand-type-parameters element-type env))
 
 	`(array ,element-type ,shape))))
@@ -112,7 +108,7 @@ RTLisp, but don't /require/ it."
 
     ;; check or derive element type
     (if element-type
-	(ensure-subtype (typecheck initial-element env) element-type)
+	(ensure-subtype (typecheck initial-element env) element-type env)
 
 	;; default is a fixed-width unsigned
 	(setq element-type `(unsigned-byte ,*default-register-width*)))
@@ -129,7 +125,7 @@ RTLisp, but don't /require/ it."
 		   ;; check all elements of literal data
 		   (ensure-data-has-shape initial-contents shape)
 		   (dolist (c initial-contents)
-		     (ensure-subtype (typecheck c env) element-type))))))
+		     (ensure-subtype (typecheck c env) element-type env))))))
 
     `(array ,element-type ,shape)))
 
@@ -226,7 +222,7 @@ probably should, for those that are statically determined."
   (destructuring-bind (var &rest indices)
       args
     (let ((ty (typecheck var env)))
-      (ensure-subtype ty 'array)
+      (ensure-subtype ty 'array env)
       (ensure-valid-array-index ty indices env)
 
       ;; the type is the type of the elements

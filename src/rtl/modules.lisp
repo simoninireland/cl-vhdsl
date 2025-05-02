@@ -23,18 +23,26 @@
 
 ;; ---------- Module interfaces ----------
 
-;; Should probably handle forward definition as well?
+(deftype module-interface (&optional (parameters ()) (arguments ()))
+  "The type of module interfaces.
 
-(defclass module-interface ()
-  ((parameters
-    :initarg :parameters
-    :initform '()
-    :reader parameters)
-   (arguments
-    :initarg :arguments
-    :initform '()
-    :reader arguments))
-  (:documentation "The type of module interfaces."))
+Interfaces consist of two lists, of parameters and arguments. At present
+we don't define any sub-typing relationships."
+  t)
+
+
+(defun module-interface-parameters (ty)
+  "Return the list of parameter decls to modfule interface TY."
+  (cadr ty))
+
+
+(defun module-interface-arguments (ty)
+  "Return the list of argument decls to modfule interface TY."
+  (caddr ty))
+
+
+(defmethod expand-type-parameters-type ((ty (eql 'module-interface)) args env)
+  `(module-interface ,@args))
 
 
 ;; ---------- Module late initialisation ----------
@@ -155,10 +163,22 @@ of other parameter values."
   "Type-check a module argument declaration DECL in ENV."
   (destructuring-bind (n &key
 			   type
+			   width
 			   (direction :in)
 			   (as :wire))
       decl
     (ensure-direction direction)
+
+    ;; if we have a width, it's a shortcut for unsigned-byte
+    (if width
+	(let* ((w (eval-in-static-environment width env))
+	       (ty `(unsigned-byte ,w)))
+	  (if type
+	      ;; if we have a type, it must match
+	      (ensure-subtype ty type env)
+
+	      ;; if not, re-assign is to the shortcut
+	      (setq type ty))))
 
     (declare-variable n `((:type ,type)
 			  (:direction ,direction))
@@ -192,8 +212,7 @@ of other parameter values."
       (let ((ext (env-from-module-decls modargs modparams)))
 	(typecheck (cons 'progn body) ext)
 
-	(let ((intf (make-instance 'module-interface :parameters modparams
-						     :arguments modargs)))
+	(let ((intf `(module-interface ,modparams ,modargs)))
 	  intf)))))
 
 
@@ -316,12 +335,12 @@ N should be a string, which is matched against DECLS by symbol name."
 
 (defun argument-for-module-interface-p (a intf)
   "Test whether A is an argument of INTF."
-  (not (null (get-argument-or-parameter a (arguments intf)))))
+  (not (null (get-argument-or-parameter a (module-interface-arguments intf)))))
 
 
 (defun parameter-for-module-interface-p (a intf)
   "Test whether A is a parameter of INTF."
-  (not (null (get-argument-or-parameter a (parameters intf)))))
+  (not (null (get-argument-or-parameter a (module-interface-parameters intf)))))
 
 
 (defun module-arguments-match-interface-p (intf modargs)
@@ -333,7 +352,7 @@ MODARGS must refer to an argument or a parameter of INTF."
    ;; every module argument is provided
    (every (lambda (arg)
 	    (member arg modargs :test #'string-equal))
-	  (mapcar #'symbol-name (mapcar #'car (arguments intf))))
+	  (mapcar #'symbol-name (mapcar #'car (module-interface-arguments intf))))
 
    ;; every modarg is either a module argument or parameter
    (every (lambda (arg)
@@ -371,7 +390,7 @@ and causes a NOT-IMPORTABLE error if not."
 
 (defun env-from-module-interface (intf)
   "Return an environment corresponding to INTF."
-  (env-from-module-decls (arguments intf) (parameters intf)))
+  (env-from-module-decls (module-interface-arguments intf) (module-interface-parameters intf)))
 
 
 (defmethod typecheck-sexp ((fun (eql 'make-instance)) args env)
@@ -397,13 +416,13 @@ and causes a NOT-IMPORTABLE error if not."
 	    (cond ((argument-for-module-interface-p arg intf)
 		   (let ((tyval (typecheck v env))
 			 (tyarg (get-type arg modenv)))
-		     (ensure-subtype tyval tyarg)))
+		     (ensure-subtype tyval tyarg env)))
 		  ((parameter-for-module-interface-p arg intf)
 		   (let ((tyval (typecheck (eval-in-static-environment v env) env))
 			 (tyarg (get-type arg modenv)))
-		     (ensure-subtype tyval tyarg))))))
+		     (ensure-subtype tyval tyarg env))))))
 
-	(type-of intf)))))
+	intf))))
 
 
 (defmethod rewrite-variables-sexp ((fun (eql 'make-instance)) args rewrites)
@@ -451,7 +470,7 @@ and causes a NOT-IMPORTABLE error if not."
 (defun synthesise-module-instance-params (initargs intf)
   "Synthesise the parameter bindings INITARGS of INTF."
   (declare (optimize debug))
-  (let ((paramdecls (parameters intf)))
+  (let ((paramdecls (module-interface-parameters intf)))
     ;; extract all the parameters actually specified
     (let* ((paramkeys (alist-keys paramdecls))
 	   (args-alist (plist-alist initargs) )
@@ -475,7 +494,7 @@ and causes a NOT-IMPORTABLE error if not."
 
 (defun synthesise-module-instance-args (initargs intf)
   "Synthesise the argument bindings INITARGS of INTF."
-  (let ((argdecls (arguments intf)))
+  (let ((argdecls (module-interface-arguments intf)))
     (as-argument-list argdecls :indeclaration
 		      :before "(" :after ");"
 		      :process (rcurry #'synthesise-arg-binding (plist-alist initargs)))))

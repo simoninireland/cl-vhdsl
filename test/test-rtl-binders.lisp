@@ -110,30 +110,38 @@
 				      b)
 				 (+ a b))
 			       emptyenv)
-		`(unsigned-byte ,(1+ rtl::*default-register-width*)))))
+		`(unsigned-byte 5))))
 
 
 (test test-synthesise-binders
   "Test we can synthesise binders."
   ;; as statements
-  (is (rtl:synthesise `(let ((a 1 :width 8))
-			 (setf a (+ a 1)))
-		      :inblock))
-
-  ;; with constants
-  (is (rtl:synthesise '(let ((a 1 :width 8)
-			     (b 23 :as :constant))
-			(setf c (+ a b)))
-		      :inblock))
-
-  ;; with wires
-  (is (rtl:synthesise '(let ((a 1 :width 8)
-			     (b 0 :width 16 :as :wire))
-			(setf c (+ a b)))
-		      :inblock))
+  (dolist (x '((let ((a 1 :width 8))
+		 (setf a (+ a 1)))
+	       (let ((a 1 :width 8)
+		     (b 23 :as :constant)
+		     c)
+		 (setf c (+ a b)))
+	       (let ((a 1 :width 8)
+		     (b 0 :width 16 :as :wire)
+		     c)
+		 (setf c (+ a b)))))
+    (let ((p (copy-tree x)))
+      (rtl:typecheck p emptyenv)
+      (is (rtl:synthesise p :inblock))))
 
   ;; can't return values in statement role
   (signals (error)
-    (rtl:synthesise `(let ((a 1 :width 8))
-		       (+ a 1))
-		    :inblock)))
+    (let ((p (copy-tree `(let ((a 1 :width 8))
+			   (+ a 1)))))
+      (rtl:synthesise p :inblock))))
+
+
+
+
+(test test-let-width
+  "Test the :width shortcuts works."
+  (is (subtypep (rtl:typecheck '(let ((a 0 :width 12))
+				  a)
+			       emptyenv)
+		'(unsigned-byte 12))))

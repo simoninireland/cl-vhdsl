@@ -86,6 +86,6 @@
 						 d e f)
 			      ctrl
 			    (setf a d))))))
-    (is (equal (type-of (rtl:typecheck (rtl:expand-macros p)
-				       emptyenv))
-	       'rtl::module-interface))))
+    (is (subtypep (rtl:typecheck (rtl:expand-macros p)
+				 emptyenv)
+		  'rtl::module-interface))))

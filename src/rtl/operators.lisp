@@ -44,8 +44,9 @@ plus the number of other arguments."
 
     (let* ((ws (mapcar (rcurry #'bitwidth env) tys))
 	   (minus (some #'signed-byte-p tys))
-	   (w (+ (apply #'max ws)
-		 (1- (length args)))))
+	   (w `(+ (max ,@ws)
+		  (1- ,(length args)))))
+
       (if minus
 	  `(signed-byte ,w)
 	  `(unsigned-byte ,w)))))
@@ -96,9 +97,15 @@ plus the number of other arguments."
 
 
 (defmethod typecheck-sexp ((fun (eql '-)) args env)
-  ;; we force subtractions to be signed
-  (let ((ty (typecheck-addition args env)))
-    `(signed-byte ,(bitwidth ty env))))
+  (if (= (length args) 1)
+      ;; unary negation
+      (let ((ty (typecheck (car args) env)))
+	`(signed-byte ,(1+ (bitwidth ty env))))
+
+      ;; general substraction
+      ;; we force subtractions to be signed
+      (let ((ty (typecheck-addition args env)))
+	`(signed-byte ,(bitwidth ty env)))))
 
 
 (defmethod fold-constant-expressions-sexp ((fun (eql '-)) args)
@@ -221,7 +228,7 @@ plus the number of other arguments."
   (let ((ty (foldr (lambda (ty1 arg)
 		     (lub ty1 (typecheck arg env) env))
 		   args nil)))
-    (ensure-subtype ty 'unsigned-byte)
+    (ensure-subtype ty 'unsigned-byte env)
 
     ty))
 

@@ -24,7 +24,7 @@
 
 Signals TYPE-MISMATCH if TY isn't boolean, which may be ignored
 in many applications."
-  (ensure-subtype ty 'bit))
+  (ensure-subtype ty 'bit env))
 
 
 

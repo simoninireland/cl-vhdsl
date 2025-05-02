@@ -76,7 +76,7 @@ The name is the first element, whether or not DECL is a list."
 
 
 (defun typecheck-decl (decl env)
-  "Extend ENV with the variable declaed in DECL."
+  "Extend ENV with the variable declared in DECL."
   (declare (optimize debug))
 
   (if (listp decl)
@@ -86,35 +86,44 @@ The name is the first element, whether or not DECL is a list."
 				 type
 				 (as :register))
 	  decl
+
+	;; if we have a width, it's a shortcut for unsigned-byte
+	(if width
+	    (let* ((w (eval-in-static-environment width env))
+		   (ty `(unsigned-byte ,w)))
+	      (if type
+		  ;; if we have a type, it must match
+		  (ensure-subtype ty type env)
+
+		  ;; if not, re-assign is to the shortcut
+		  (setq type ty))))
+
+	;; initial inferred type
 	(let ((ity (if type
 		       (expand-type-parameters type env)
-		       `(unsigned-byte ,*default-register-width*))))
+		       '(unsigned-byte 1))))
 
 	  ;; typecheck initial value
 	  (let ((vty (typecheck v env)))
 	    (if type
 		;; type provided, ensure it works
-		(ensure-subtype vty ity)
+		(ensure-subtype vty type env)
 
 		;; no type provided, infer from the value
 		(setq ity vty)))
 
-	  ;; extract type constraint
-	  (let ((constraint (if (not (subtypep ity 'array))
-				ity)))
-
-	    (declare-variable n `((:type ,type)
-				  (:inferred-type ,ity)
-				  (:as ,as)
-				  (:initial-value ,v)
-				  ,(if constraint
-				       `(:type-constraints (,constraint))))
-			      env))))
+	  (declare-variable n `((:type ,type)
+				(:inferred-type ,ity)
+				(:as ,as)
+				(:initial-value ,v)
+				(:type-constraints (,ity)))
+			    env)))
 
       ;; "naked" declaration
       ;; TODO: What is the correct default width? -- 1 means it'll get widened
       ;; as needed, so is perhaps correct?
       (declare-variable decl `((:inferred-type (unsigned-byte 1))
+			       (:type-constraints ((unsigned-byte 1)))
 			       (:as :register)
 			       (:initial-value 0))
 			env)))
@@ -313,6 +322,17 @@ by LET and MODULE forms."
 
 ;; ---------- Synthesis ----------
 
+(defun array-type-p (type)
+  "Test whether TYPE is an array type.
+
+There's a slight problem in that the size or shape of the array
+type may be RTLisp expressions, whcih don't play well with SUBTYPEP.
+To avoid this we do the check manually."
+  (or (and (listp type)
+	   (eql (car type) 'array))
+      (eql type 'array)))
+
+
 (defun array-value-p (form)
   "Test whether FORM is an array constructor."
   (and (listp form)
@@ -349,25 +369,29 @@ WIDTH defaulting to the system's global width."
   (destructuring-bind  (n v &key type &allow-other-keys)
       decl
 
-    (as-literal "reg [ ")
-    (if (array-value-p v)
-	;; synthesise the width as the width of the array element
-	(synthesise (array-element-width v) :inexpression)
+    (as-literal "reg ")
+    (let ((width (if (array-type-p type)
+		     ;; width is the width of the element type
+		     (bitwidth (cadr type) '())
 
-	;; otherwise use the given type's width
-	(let ((width (cadr type)))
-	  (synthesise width :inexpression)))
-    (as-literal " - 1 : 0 ] ")
-    (synthesise n :indeclaration)
-    (if (array-value-p v)
-	;; synthesise the array bounds and initialisation
-	(synthesise-array-init n v)
+		     ;; width is of the type itself
+		     (bitwidth type '()))))
+      (when (or (not (numberp width))
+		(> width 1))
+	;; we have a width (or a width expression)
+	(as-literal"[ ")
+	(synthesise width :inexpression)
+	(as-literal " - 1 : 0 ] "))
+      (synthesise n :indeclaration)
+      (if (array-value-p v)
+	  ;; synthesise the array bounds and initialisation
+	  (synthesise-array-init n v)
 
-	;; synthesise the assignment to the initial value
-	(progn
-	  (as-literal " = ")
-	  (synthesise v :inexpression)))
-    (as-literal ";")))
+	  ;; synthesise the assignment to the initial value
+	  (progn
+	    (as-literal " = ")
+	    (synthesise v :inexpression)))
+      (as-literal ";"))))
 
 
 (defun synthesise-wire (decl context)
@@ -379,9 +403,16 @@ the wire is left un-driven."
   (destructuring-bind  (n v &key type &allow-other-keys)
       decl
 
-    (let ((width (bitwidth type '())))
+    (let ((width (if (array-type-p type)
+		     ;; width is the width of the element type
+		     (bitwidth (cadr type) '())
+
+		     ;; width is of the type itself
+		     (bitwidth type '()))))
       (as-literal "wire ")
-      (when (> width 1)
+      (when (or (not (numberp width))
+		(> width 1))
+	;; we have a width (or a width expression)
 	(as-literal"[ ")
 	(synthesise width :inexpression)
 	(as-literal " - 1 : 0 ] "))

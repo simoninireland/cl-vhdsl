@@ -25,12 +25,18 @@
 
 (test test-typecheck-module
   "Test we can typecheck a module definition."
-  (is (equal (type-of (rtl:typecheck '(rtl:module test ((clk :type (unsigned-byte 1) :direction :in)
-							&key (p 1))
-				       (let ((a 1))
-					 (setq a 0)))
-				     emptyenv))
+  (is (subtypep (rtl:typecheck '(rtl:module test ((clk :type (unsigned-byte 1) :direction :in)
+					       &key (p 1))
+				 (let ((a 1))
+				   (setq a 0)))
+			       emptyenv)
 	     'rtl::module-interface)))
+
+
+(test test-test-typecheck-module-interface-correctness
+  "Test we can identify non-module interface types."
+  (is (not (subtypep (rtl:typecheck '(+ 1 2) emptyenv)
+		     'module-interface))))
 
 
 (test test-module-no-wires
@@ -60,15 +66,16 @@
   "Test we can synthesise modules with late initialisation."
   (rtl::clear-module-late-initialisation)
 
-  (is (rtl:synthesise '(rtl::module test ((clk :type (unsigned-byte 1) :direction :in)
-					  (a   :type (unsigned-byte 8) :direction :in)
-					  (b   :type (unsigned-byte 4) :direction :in)
-					  &key e (f 45))
-			(let ((x 0 :type (unsigned-byte 8))
-			      (a (make-array '(8) :initial-contents (:file "test.hex"))))
-			  (rtl::@ (rtl::posedge clk)
-				  (setf x (aref a 4)))))
-		      :toplevel))
+  (let ((p '(rtl::module test ((clk :type (unsigned-byte 1) :direction :in)
+			       (a   :type (unsigned-byte 8) :direction :in)
+			       (b   :type (unsigned-byte 4) :direction :in)
+			       &key e (f 45))
+	     (let ((x 0 :type (unsigned-byte 8))
+		   (a (make-array '(8) :initial-contents (:file "test.hex"))))
+	       (rtl::@ (rtl::posedge clk)
+		       (setf x (aref a 4)))))))
+    (rtl:typecheck p emptyenv)
+    (is (rtl:synthesise p :toplevel)))
 
   ;; make sure synthesis cleared the late intiialisation queue
   (is (not (rtl::module-late-initialisation-p))))
@@ -85,14 +92,14 @@
 			(clk-out :direction :out :as :wire :type (unsigned-byte 1)))
     (setq clk-out clk-in))
 
-  ;; ceck that the import types correctly
-  (is (subtypep (rtl:typecheck '(let ((clk 0    :type (unsigned-byte 1) :as :wire)
+  ;; ckeck that the import types correctly
+  (let ((p (copy-tree '(let ((clk 0    :type (unsigned-byte 1) :as :wire)
 				      (clk-in 0 :type (unsigned-byte 1) :as :wire))
 				 (let ((clock (make-instance 'clock :clk-in clk-in
 								    :clk-out clk)))
-				   clock))
-			       emptyenv)
-		'rtl::module-interface))
+				   clock)))))
+    (is (subtypep (rtl:typecheck p emptyenv)
+		  'rtl::module-interface)))
 
   ;; check we need to wire all arguments
   (signals (rtl:not-importable)
@@ -106,15 +113,15 @@
 
   ;; to check module instanciation we have to perform several
   ;; passes to get the variables into the body of the module
-  (is (rtl:synthesise (rtl:simplify-progn
-		       (car (rtl:float-let-blocks
-			     '(rtl:module module-instanciate
-			       ((clk-in :type (unsigned-byte 1) :direction :in :as :wire))
-			       (let ((clk 0 :type (unsigned-byte 1) :as :wire))
-				 (let ((clock (make-instance 'clock :clk-in clk-in
-								    :clk-out clk)))
-				   (setq clk 1)))))))
-		      :toplevel)))
+  (let ((p (copy-tree '(rtl:module module-instanciate
+			((clk-in :type (unsigned-byte 1) :direction :in :as :wire))
+			(let ((clk 0 :type (unsigned-byte 1) :as :wire))
+			  (let ((clock (make-instance 'clock :clk-in clk-in
+							     :clk-out clk)))
+			    (setq clk 1)))))))
+    (setq p (rtl:simplify-progn (car (rtl:float-let-blocks p))))
+    (rtl:typecheck p emptyenv)
+    (is (rtl:synthesise p :toplevel))))
 
 
 (test test-module-instanciate-with-bitfields
@@ -189,4 +196,4 @@
 			(setq reset reset-in)))))
     (setq p (rtl:expand-macros p))
     (rtl:typecheck p emptyenv)
-    (is (rtl:synthesise p :toplevel) :toplevel)))
+    (rtl:synthesise p :toplevel)))

@@ -90,7 +90,7 @@ Return the type of the clause body."
       clause
     (if (not (eql val 't))
 	(let ((tyval (typecheck val env)))
-	  (ensure-subtype tyval ty)))
+	  (ensure-subtype tyval ty env)))
     (typecheck (cons 'progn body) env)))
 
 

@@ -146,7 +146,7 @@ block, and are represented by the symbol *."
   (destructuring-bind (pin)
       args
     (let ((ty (typecheck pin env)))
-      (ensure-subtype ty '(unsigned-byte 1))
+      (ensure-subtype ty '(unsigned-byte 1) env)
       ty)))
 
 
@@ -162,7 +162,7 @@ block, and are represented by the symbol *."
   (destructuring-bind (pin)
       args
     (let ((ty (typecheck pin env)))
-      (ensure-subtype ty '(unsigned-byte 1))
+      (ensure-subtype ty '(unsigned-byte 1) env)
       ty)))
 
 

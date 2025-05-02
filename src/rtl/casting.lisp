@@ -1,4 +1,4 @@
-;; Type casting
+;; Type asserting and casting
 ;;
 ;; Copyright (C) 2024--2025 Simon Dobson
 ;;
@@ -21,15 +21,25 @@
 (declaim (optimize debug))
 
 
+;; ---------- Type assertions ----------
+
 (defmethod typecheck-sexp ((fun (eql 'the)) args env)
   (destructuring-bind (ty val)
       args
     (let ((tyval (typecheck val env)))
-      (ensure-subtype tyval ty)
-      ty)))
+      (ensure-subtype tyval ty env)
+
+      ;; type is the type of the value itself, once we're
+      ;; assured it's a sub-type of what was expected
+      tyval)))
 
 
 (defmethod synthesise-sexp ((fun (eql 'the)) args context)
   (destructuring-bind (ty val)
       args
     (synthesise val context)))
+
+
+;; ---------- Type coercion (casting) ----------
+
+;; TBD

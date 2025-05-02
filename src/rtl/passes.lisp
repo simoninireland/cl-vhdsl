@@ -132,7 +132,10 @@ method to change this behaviour.")
 ;; ---------- Constant folding ----------
 
 (defgeneric fold-constant-expressions (form)
-  (:documentation "Fold constants in expressions in FORM.")
+  (:documentation "Fold constants in expression FORM.
+
+This folds and simplifies expressions, eliminating any
+calculations that can be done early.")
   (:method (form)
     form)
   (:method ((form list))
@@ -157,7 +160,7 @@ method to change this behaviour.")
 	  (args (cdr form)))
       (with-rtl-errors-not-synthesisable
 	(with-current-form (cons fun args)
-	  (typecheck-sexp fun args env))))))
+	  (expand-type-parameters (typecheck-sexp fun args env) env))))))
 
 
 ;; Wrap an error catcher around the function to convert parsing
@@ -260,7 +263,7 @@ well as PROGNs nested inside other PROGNs.")
 
 
 (defgeneric expand-macros-sexp (fun args)
-  (:documentation "Expand macros in  FUN applied to ARGS.")
+  (:documentation "Expand macros in FUN applied to ARGS.")
   (:method (fun args)
     (declare (optimize debug))
     (with-rtl-errors-not-synthesisable
@@ -279,6 +282,8 @@ well as PROGNs nested inside other PROGNs.")
 
 	;; macro is not expandable, descend into the form
 	(expand-descend fun args)))))
+
+
 
 
 ;; ---------- Synthesis ----------
@@ -340,4 +345,10 @@ which can be used to specialise the method."))
 
 
 (defgeneric lispify-sexp (fun args env)
-  (:documentation "Convert FUN applied to ARGS in ENV to Lisp."))
+  (:documentation "Convert FUN applied to ARGS in ENV to Lisp.
+
+The default leaves the expression unchanged, i.e., assumes that
+this RTLisp fragment is valid Lisp.")
+  (:method (fun args env)
+    (let ((lispargs (mapcar (rcurry #'lispify env) args)))
+      `(,fun ,@lispargs))))
