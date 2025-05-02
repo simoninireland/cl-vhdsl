@@ -17,10 +17,6 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
-(in-package :cl-vhdsl/examples/risc-v/basic)
-(declaim (optimize debug))
-
-
 (defmodule SOC ((clk-in   :as :wire :type (unsigned-byte 1) :direction :in)
 		;; (reset-in :as :wire :type (unsigned-byte 1) :direction :in)
 		(leds-out :as :wire :type (unsigned-byte 5) :direction :out)

@@ -17,9 +17,6 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
-(in-package :cl-vhdsl/examples/risc-v/basic)
-
-
 (defmodule clockworks ((clk-in   :type (unsigned-byte 1) :direction :in)
 		       (reset-in :type (unsigned-byte 1) :direction :in)
 		       (clk      :type (unsigned-byte 1) :direction :out)

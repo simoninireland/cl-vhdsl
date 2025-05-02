@@ -25,7 +25,7 @@ TARGET = core.bin
 TOPMODULE = soc
 
 # Sources
-SOURCES = package.lisp clockworks.lisp core.lisp
+SOURCES = clockworks.lisp core.lisp
 CONFIG = core.pcf
 OBJECT = core.v
 
