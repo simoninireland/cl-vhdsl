@@ -154,7 +154,7 @@ a .v (Verilog) extension."
 
 
 (defun iso-8601-timestamp ()
-  "Return the ISO 8602 timestamp for the current time.
+  "Return the ISO 8602 (RFC3339) timestamp for the current time.
 
 See https://en.wikipedia.org/wiki/ISO_8601"
   (format-rfc3339-timestring nil (universal-to-timestamp (get-universal-time))))
