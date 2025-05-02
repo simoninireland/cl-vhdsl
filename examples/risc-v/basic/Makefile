@@ -56,7 +56,7 @@ upload: $(TARGET)
 
 # Clean-up the build directory
 clean:
-	$(RM) $(GENERATED) $(OBJECT)
+	$(RM) $(FPGA_GENERATED) $(ASM_GENERATED) $(OBJECT)
 
 
 # Print a help message
@@ -79,8 +79,8 @@ OD = od
 AS_OPTS = -march=rv32i -mabi=ilp32 -mno-relax
 LD_OPTS = -T bram.ld -m elf32lriscv -nostdlib
 
-GENERATED_STEMS = $(foreach fn,$(ASM_SOURCES), $(shell basename $(fn) .s))
-GENERATED += $(foreach stem,$(GENERATED_STEMS),$(stem).o $(stem).hex)
+ASM_STEMS = $(foreach fn,$(ASM_SOURCES), $(shell basename $(fn) .s))
+ASM_GENERATED += $(foreach stem,$(ASM_STEMS),$(stem).o $(stem).hex)
 
 .SUFFIXES: .s .o .hex
 

@@ -50,8 +50,8 @@ TOPMODULE = $(TARGET_BASENAME)
 endif
 
 # Generated files
-GENERATED_STEMS = $(foreach fn,$(SOURCES), $(shell basename $(fn) .lisp))
-GENERATED += $(foreach stem,$(GENERATED_STEMS),$(stem).v $(stem).asc $(stem).bin $(stem).json)
+FPGA_STEMS = $(foreach fn,$(SOURCES), $(shell basename $(fn) .lisp))
+FPGA_GENERATED += $(foreach stem,$(FPGA_STEMS),$(stem).v $(stem).asc $(stem).bin $(stem).json)
 
 # Command to run tools in a container (if requested)
 # (Container must run privileged to be able to upload to the device.)
