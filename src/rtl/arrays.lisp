@@ -76,6 +76,7 @@ RTLisp, but don't /require/ it."
 
 	;; expand the embedded type parts
 	(setq element-type (expand-type-parameters element-type env))
+	(setq shape (mapcar (rcurry #'eval-in-static-environment env) shape))
 
 	`(array ,element-type ,shape))))
 

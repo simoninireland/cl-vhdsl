@@ -177,7 +177,7 @@
 		      :inmodule)))
 
 
-;; ---------- Larger examples ----------
+;; ---------- Larger and more complicated/contrived examples ----------
 
 (test test-module-real
   "Test module synthesis on a real-ish example."
@@ -194,6 +194,38 @@
 			  (setf clk (bit slow-clk slow)))
 
 			(setq reset reset-in)))))
+
     (setq p (rtl:expand-macros p))
     (rtl:typecheck p emptyenv)
-    (rtl:synthesise p :toplevel)))
+    (is (rtl:synthesise p :toplevel))))
+
+
+(test test-module-array-size-param
+  "Test we can use a parameter to instanciate an array."
+  (let ((p (copy-tree '(rtl:module memory ((clk      :width 1  :direction :in)
+					   (addr-in  :width 32 :direction :in)
+					   (data-out :width 32 :direction :out)
+					   &key (size 256))
+			(let ((mem (make-array '((rtl:>> size 2))
+					       :element-type (unsigned-byte 8) )))
+			  (rtl:@ (rtl:posedge clk)
+			     (setq data-out (aref mem addr-in))))))))
+
+    (is (subtypep (rtl:typecheck p emptyenv)
+		  'rtl::module-interface))))
+
+
+(test test-module-array-type-correct
+  "Test we can create an array with size given by a parameter."
+  (let ((env (rtl::make-module-environment '((clk      :width 1  :direction :in)
+					     (addr-in  :width 32 :direction :in)
+					     (data-out :width 32 :direction :out)
+					     &key (size 256))))
+	(p (copy-tree '(let ((mem (make-array '((rtl:>> size 2))
+				   :element-type (unsigned-byte 8)))
+			     b)
+			(setq b (aref mem addr-in))))))
+
+    (is (subtypep (rtl:typecheck p env)
+		  '(unsigned-byte 8)))
+    (is (rtl:synthesise p :inmodule))))

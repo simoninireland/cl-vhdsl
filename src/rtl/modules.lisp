@@ -197,23 +197,36 @@ of other parameter values."
   (foldr #'typecheck-module-arg decls env))
 
 
+(defun make-module-environment (decls)
+  "Return an environment built from the DECLS of a module."
+  (destructuring-bind (modargs modparams)
+      (split-args-params decls)
+
+    ;; catch modules with no wires or registers
+    (unless (> (length modargs) 0)
+      (error 'not-synthesisable :hint "Module must import at least one wire or register"))
+
+    ;; create the environment
+    (env-from-module-decls modargs modparams)))
+
+
+(defun make-module-interface-type (decls)
+  "Return the module interface type of the DECLS of a module."
+  (destructuring-bind (modargs modparams)
+      (split-args-params decls)
+    `(module-interface ,modparams ,modargs)))
+
+
 (defmethod typecheck-sexp ((fun (eql 'module)) args env)
-  (declare (optimize debug))
   (destructuring-bind (modname decls &rest body)
       args
 
-    (destructuring-bind (modargs modparams)
-	(split-args-params decls)
+    (let ((ext (make-module-environment decls)))
+      ;; typecheck the body of the module in its environment
+      (typecheck (cons 'progn body) ext)
 
-      ;; catch modules with no wires or registers
-      (unless (> (length modargs) 0)
-	(error 'not-synthesisable :hint "Module must import at least one wire or register"))
-
-      (let ((ext (env-from-module-decls modargs modparams)))
-	(typecheck (cons 'progn body) ext)
-
-	(let ((intf `(module-interface ,modparams ,modargs)))
-	  intf)))))
+      ;; return the interface type
+      (make-module-interface-type decls))))
 
 
 (defmethod float-let-blocks-sexp ((fun (eql 'module)) args)
