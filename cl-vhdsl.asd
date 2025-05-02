@@ -28,8 +28,7 @@
 	       "str"
 	       "cl-ppcre"
 	       "closer-mop"
-	       "slot-extra-options"
-	       "local-time")
+	       "slot-extra-options")
   :pathname "src/"
   :serial t
   :components ((:file "package")
@@ -130,7 +129,7 @@
   :description "Command line tool to transpile VHDSL to Verilog."
   :author "Simon Dobson <simoninireland@gmail.com"
   :license "GPL3"
-  :depends-on ("alexandria" "serapeum" "unix-opts" "cl-vhdsl")
+  :depends-on ("alexandria" "serapeum" "unix-opts" "local-time" "cl-vhdsl")
   :pathname "src/cli/"
   :serial t
   :components ((:file "package")
