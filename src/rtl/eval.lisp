@@ -153,8 +153,8 @@ If the form isn't statically constant, return NIL."
 (defun eval-if-constant-or-return (form env)
   "Evaluate RTLisp FORM in the constant environment of ENV, returning its value.
 
-If FORM is not a constant, return FORM unchanged. Thi is essentially a function
-to simplify simplee expressions."
+If FORM is not a constant, return FORM unchanged. This is essentially a function
+to simplify constant expressions."
    (handler-case
       (eval-in-constant-environment form env)
     (error () form)))
