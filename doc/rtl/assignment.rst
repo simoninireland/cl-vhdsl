@@ -16,21 +16,21 @@ Simple assignment to a variable:
 
 .. code-block:: lisp
 
-   (let ((a 12 :width 8))
+   (let ((a 12 :type (unsigned-byte 8)))
       (setq a (* a 2))
 
 Assignment to a single bit within a variable:
 
 .. code-block:: lisp
 
-   (let ((a 12 :width 8))
+   (let ((a 12 :type (unsigned-byte 8)))
       (setf (bit a 0) 1))
 
 Assignment to several slices of bits within a variable:
 
 .. code-block:: lisp
 
-   (let ((a 12 :width 8))
+   (let ((a 12 :type (unsigned-byte 8)))
       (setf (bits a 2) #2r101)
       (setf (bits a 2 :width 1) #2r1)
       (setf (bits a 2 :end 1) #2r10))

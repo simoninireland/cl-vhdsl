@@ -12,7 +12,7 @@ using the `make-instance`` function.
 
 .. code-block:: lisp
 
-   (let ((a (make-array '(16) :element-type (fixed-width-unsigned 8)))
+   (let ((a (make-array '(16) :element-type (unsigned-byte 8)))
 	 (b 0))
       (setq b (aref a 0)))
 
@@ -28,11 +28,11 @@ The keyword arguments are:
 ``:element-type`` *type*
   The type of elements.
 
-``:initial-value`` *val*
+``:initial-element`` *val*
   The initial value assigned to each element.
 
 ``:initial-contents`` *data*
-  The initial contents of all the elements.
+  The initial contents of all the elements (see below).
 
 
 Initial contents

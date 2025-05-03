@@ -13,28 +13,29 @@ Example
 
 .. code-block:: lisp
 
-   (let ((a 12 :width 8 :type (fixed-width-unsigned 8)))
+   (let ((a 12 :type (unsigned-byte 8) :as :register))
       (setq a 34))
 
 defines a ``let`` block that bring a variable ``a`` into scope in its
-body. ``a`` is defined to be 8 bits wide and have a type
-``(fixed-width-unsigned 8)`` (8-bit unsigned).
+body. ``a`` is defined to have a type ``(unsigned-byte 8)`` (8-bit
+unsigned), and will be represented as a register.
 
 
 Keyword arguments
 -----------------
-
-``:width`` *bits*
-  Specifies the number of bits used to represent the variable.
 
 ``:type`` *type*
   Specifies the Lisp type for the variable. This is closely related to
   the width: width defines the *representation* in terms of bits,
   while type defines the *interpretation* of those bits.
 
+``:width`` *bits*
+  Shortcut for ``:type (unsigned-byte *bits*)``.
+
 ``:as`` *representation*
   Specifies how the variable is represented. Options include
-  ``:register`` for a register, and ``:wire`` for wires.
+  ``:register`` for a register, ``:wire`` for wires, and ``:constant``
+  for constants.
 
 
 .. note::

@@ -3,16 +3,8 @@
 Fixed-width types
 =================
 
+RTLisp re-uses the Lisp types as far as possible. The types
+``unsigned-byte`` and ``signed-byte`` are used to represent
+integers with a fixed bit-width, which may be unsigned or signed.
 
-Fixed-width integers
---------------------
-
-The type ``(fixed-width-unsigned 8)`` denotes the type of unsigned
-integers represented in 8 bits. The type ``fixed-width-unsigned``
-denotes the type of unsigned integers of any width.
-
-The type ``(fixed-width-signed 8)`` denotes the type of signed
-integers represented in 8 bits. The type ``fixed-width-signed``
-denotes the type of signed integers of any width.
-
-The type ``bit`` corresponds to the type ``(fixed-width-unsigned 1)``.
+The type ``bit`` corresponds to the type ``(unsigned-byte 1)``.
