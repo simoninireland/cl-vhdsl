@@ -127,14 +127,14 @@ a list of files to be processed."
 	    (opts:get-opts))
 
 	(opts:missing-arg (condition)
-	  (format t "fatal: option ~s needs an argument~%"
+	  (format t "Option ~s needs an argument~%"
 		  (opts:option condition)))
 	(opts:arg-parser-failed (condition)
-	  (format t "fatal: cannot parse ~s as argument of ~s~%"
+	  (format t "Cannot parse ~s as argument of ~s~%"
 		  (opts:raw-arg condition)
 		  (opts:option condition)))
 	(opts:missing-required-option (con)
-	  (format t "fatal: ~a~%" con)
+	  (format t "Fatal: ~a~%" con)
 	  (opts:exit 1)))
 
     (when-option (options :verbose)
@@ -143,13 +143,11 @@ a list of files to be processed."
       (setq *fail-on-load* nil))
     (when-option (options :help)
       (opts:describe
-       :prefix "Transpiler from RTLisp to Verilog."
-       :suffix "Lisp files can use all of Lisp."
-       :usage-of (car (opts:argv))
-       :args     "[LISP-FILES]"))
-
-    ;; use standard input if - appears as a filename
-    ;; TBD
+	:prefix   "Transpiler from RTLisp to Verilog."
+	:suffix   "Lisp files can use all of Lisp."
+	:usage-of (car (opts:argv))
+	:args     "[LISP-FILES]")
+      (opts:exit 0))
 
     ;; return the files, which are all the non-option arguments
     free-args))
@@ -211,7 +209,7 @@ The header will need to be preceded by an appropriate comment string."
     ;; exit if no files given
     (when (= (length files) 0)
       (format *error-output* "No input files given~%")
-      (uiop:quit 0))
+      (uiop:exit 0))
 
     (handler-bind
 	((error (lambda (c)
@@ -224,6 +222,9 @@ The header will need to be preceded by an appropriate comment string."
 	(dolist (fn files)
 	  (restart-case
 	      (progn
+		;; use standard input if - appears as a filename
+		;; TBD
+
 		(info "Loading ~a~%" fn)
 		(load fn :if-does-not-exist t)
 		(record-new-modules fn))
@@ -237,7 +238,7 @@ The header will need to be preceded by an appropriate comment string."
 		 (> *errors* 0))
 	(format *error-output* "~a errors~%" *errors*)
 	(format *error-output* "Not synthsising")
-	(uiop:quit 1))
+	(uiop:exit 1))
 
       ;; generate elaborated Lisp if requested
       (if *elaborated-file*
@@ -316,6 +317,6 @@ The header will need to be preceded by an appropriate comment string."
       (info "~a errors~%" *errors*))
 
     ;; exit
-    (uiop:quit (if (> *errors* 0)
+    (uiop:exit (if (> *errors* 0)
 		   1
 		   0))))
