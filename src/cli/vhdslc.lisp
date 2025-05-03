@@ -76,6 +76,10 @@ If absent, don;t output the Lisp code.")
 
 
 (opts:define-opts
+  (:name :help
+   :description "print this help text"
+   :short #\h
+   :long "help")
   (:name :verbose
    :description "Verbose output"
    :short #\v
@@ -88,12 +92,14 @@ If absent, don;t output the Lisp code.")
    :description "File name for all synthesised code"
    :arg-parser (lambda (fn) (setq *output-file* fn))
    :short #\o
-   :long "output-file")
+   :long "output-file"
+   :meta-var "VERILOG-FILE")
   (:name :elaborated-file
    :description "File name for elaborated Lisp code"
    :arg-parser (lambda (fn) (setq *elaborated-file* fn))
    :short #\e
-   :long "elaborated-file"))
+   :long "elaborated-file"
+   :meta-var "LISP-FILE"))
 
 
 (defun unknown-option (condition)
@@ -135,6 +141,12 @@ a list of files to be processed."
       (setq *verbosity* 1))
     (when-option (options :continue-on-fail)
       (setq *fail-on-load* nil))
+    (when-option (options :help)
+      (opts:describe
+       :prefix "Transpiler from RTLisp to Verilog."
+       :suffix "Lisp files can use all of Lisp."
+       :usage-of (car (opts:argv))
+       :args     "[LISP-FILES]"))
 
     ;; use standard input if - appears as a filename
     ;; TBD
