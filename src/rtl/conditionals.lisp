@@ -55,10 +55,21 @@
 
     ;; else arm
     (when else
-      (as-literal "else" :newline t)
-      (as-block else :inblock
-		:before "begin" :after "end"
-		:always t))))
+      (if (and (listp else)
+	       (eql (caar else) 'if))
+	  ;; else arm is another if, don't indent
+	  (progn
+	    (as-literal "else ")
+	    (as-block else :inblock
+		      :indent nil
+		      :always t))
+
+	  ;; otherwise indent
+	  (progn
+	    (as-literal "else" :newline t)
+	    (as-block else :inblock
+		      :before "begin" :after "end"
+		      :always t))))))
 
 
 (defmethod synthesise-sexp ((fun (eql 'if)) args (context (eql :inmodule)))
@@ -141,7 +152,7 @@ The type is the lub of the clause types."
 
 
 (defun synthesise-nested-if (condition clauses)
-  "Synthesise a nested IF cvorresponding to CLAUSES applied to testing CONDITION."
+  "Synthesise a nested IF corresponding to CLAUSES applied to testing CONDITION."
   (let* ((clause (car clauses))
 	 (val (car clause))
 	 (body (cdr clause)))
