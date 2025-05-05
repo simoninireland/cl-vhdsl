@@ -135,7 +135,7 @@ a list of files to be processed."
 		  (opts:option condition)))
 	(opts:missing-required-option (con)
 	  (format t "Fatal: ~a~%" con)
-	  (opts:exit 1)))
+	  (uiop:quit 1)))
 
     (when-option (options :verbose)
       (setq *verbosity* 1))
@@ -147,7 +147,7 @@ a list of files to be processed."
 	:suffix   "Lisp files can use all of Lisp."
 	:usage-of (car (opts:argv))
 	:args     "[LISP-FILES]")
-      (opts:exit 0))
+      (uiop:quit 0))
 
     ;; return the files, which are all the non-option arguments
     free-args))
@@ -206,10 +206,10 @@ The header will need to be preceded by an appropriate comment string."
 (defun main ()
   (let ((files (parse-command-line)))
 
-    ;; exit if no files given
+    ;; quit if no files given
     (when (= (length files) 0)
       (format *error-output* "No input files given~%")
-      (uiop:exit 0))
+      (uiop:quit 0))
 
     (handler-bind
 	((error (lambda (c)
@@ -238,7 +238,7 @@ The header will need to be preceded by an appropriate comment string."
 		 (> *errors* 0))
 	(format *error-output* "~a errors~%" *errors*)
 	(format *error-output* "Not synthsising")
-	(uiop:exit 1))
+	(uiop:quit 1))
 
       ;; generate elaborated Lisp if requested
       (if *elaborated-file*
@@ -316,7 +316,7 @@ The header will need to be preceded by an appropriate comment string."
     (when (> *errors* 0)
       (info "~a errors~%" *errors*))
 
-    ;; exit
-    (uiop:exit (if (> *errors* 0)
+    ;; quit
+    (uiop:quit (if (> *errors* 0)
 		   1
 		   0))))
