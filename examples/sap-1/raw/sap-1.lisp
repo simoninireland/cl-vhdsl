@@ -19,8 +19,8 @@
 
 ;; ---------- Memory ----------
 
-(defmodule memory ((addr :width 4 :direction :in)
-		   (data :width 8 :direction :out))
+(defmodule memory ((addr :type (unsigned-byte 4) :direction :in)
+		   (data :type (unsigned-byte 8) :direction :out))
 
   (let ((mem (make-array '(16) :element-type (unsigned-byte 8)
 			       :initial-element 0)))
@@ -31,10 +31,10 @@
 
 ;; ---------- ALU ----------
 
-(defmodule alu ((a  :width 8 :direction :in)
-		(b  :width 8 :direction :in)
-		(op :width 1 :direction :in)
-		(c  :width 8 :direction :out))
+(defmodule alu ((a  :type (unsigned-byte 8) :direction :in)
+		(b  :type (unsigned-byte 8) :direction :in)
+		(op :type (unsigned-byte 1) :direction :in)
+		(c  :type (unsigned-byte 8) :direction :out))
 
   ;; c always holds the result of op on a and b
   (setf c (case op
@@ -48,21 +48,21 @@
 
 ;; ---------- Core ----------
 
-(defmodule core ((clk :width 1  :direction :in)
-		 (rst :width 1  :direction :in)
-		 (leds :width 8 :direction :out))
+(defmodule core ((clk  :type (unsigned-byte 1) :direction :in)
+		 (rst  :type (unsigned-byte 1) :direction :in)
+		 (leds :type (unsigned-byte 8) :direction :out))
 
-  (let ((pc       0 :width 4)
-	(ir       0 :width 8)
-	(tstate   0 :width 3)
-	(a        0 :width 8)
-	(alu-a    0 :width 8)
-	(alu-b    0 :width 8)
-	(alu-op   0 :width 1)
-	(alu-c    0 :width 8)
-	(out      0 :width 8)
-	(mem-addr 0 :width 4)
-	(mem-data 0 :width 8))
+  (let ((pc       0 :type (unsigned-byte 4))
+	(ir       0 :type (unsigned-byte 8))
+	(tstate   0 :type (unsigned-byte 3))
+	(a        0 :type (unsigned-byte 8))
+	(alu-a    0 :type (unsigned-byte 8))
+	(alu-b    0 :type (unsigned-byte 8))
+	(alu-op   0 :type (unsigned-byte 1))
+	(alu-c    0 :type (unsigned-byte 8))
+	(out      0 :type (unsigned-byte 8))
+	(mem-addr 0 :type (unsigned-byte 4))
+	(mem-data 0 :type (unsigned-byte 8)))
 
     ;; components
     (let ((mem (make-instance 'memory :addr mem-addr
