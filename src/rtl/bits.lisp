@@ -112,7 +112,7 @@
       args
     (setq end (compute-end-bit start end width))
 
-    (synthesise var env :inassignment)
+    (synthesise var env :inexpression)
     (as-literal "[ ")
     (synthesise start env :inexpression)
     (as-literal " : ")

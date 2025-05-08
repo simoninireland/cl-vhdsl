@@ -110,6 +110,7 @@
    #:value-mismatch
    #:direction-mismatch
    #:type-mismatch
+   #:coercion-mismatch
    #:bitfield-mismatch
    #:shape-mismatch
    #:state-machine-mismatch

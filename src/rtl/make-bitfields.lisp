@@ -42,9 +42,10 @@
 
 
 (defmethod synthesise-sexp ((fun (eql 'make-bitfields)) args env (context (eql :inexpression)))
-  (as-list args :inexpression
-	   :before "{"
-	   :after "}"))
+  (as-literal "{")
+  (as-inline-forms args env :inexpression
+		   :sep ",")
+  (as-literal "}"))
 
 
 ;; ---------- extend-bits ----------

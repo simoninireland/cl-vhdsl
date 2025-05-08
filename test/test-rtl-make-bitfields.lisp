@@ -54,4 +54,15 @@
   (signals (rtl::not-static)
     (rtl:typecheck '(let ((a 8))
 		     (rtl:make-bitfields (rtl:extend-bits 0 a)))
-		   emptyenv)q))
+		   emptyenv)))
+
+
+(test test-test-synthesise-make-bitfields
+  "Test we can synthesise constructed bitfields."
+  (is (rtl:synthesise '(rtl:make-bitfields #2r111 #2r100)
+		      emptyenv :inexpression))
+  (let ((p (copy-tree '(let ((a 1)
+			     b)
+			(setq b (rtl:make-bitfields (rtl:extend-bits a 5)))))))
+    (rtl:typecheck p emptyenv)
+    (rtl:synthesise p emptyenv :inmodule)))

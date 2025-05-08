@@ -98,8 +98,8 @@
 				 (let ((clock (make-instance 'clock :clk-in clk-in
 								    :clk-out clk)))
 				   clock)))))
-    (is (subtypep (rtl:typecheck p emptyenv)
-		  'rtl::module-interface)))
+    (subtypep (rtl:typecheck p emptyenv)
+	      'rtl::module-interface))
 
   ;; check we need to wire all arguments
   (signals (rtl:not-importable)
@@ -220,7 +220,8 @@
   (let ((env (rtl::make-module-environment '((clk      :width 1  :direction :in)
 					     (addr-in  :width 32 :direction :in)
 					     (data-out :width 32 :direction :out)
-					     &key (size 256))))
+					     &key (size 256))
+					   emptyenv))
 	(p (copy-tree '(let ((mem (make-array '((rtl:>> size 2))
 				   :element-type (unsigned-byte 8)))
 			     b)

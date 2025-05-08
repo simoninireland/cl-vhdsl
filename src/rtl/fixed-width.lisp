@@ -35,6 +35,12 @@
        (not (subtypep ty 'unsigned-byte))))
 
 
+(defun unsigned-byte-p (ty)
+  "Test whether TY is an unsigned fixed-width type."
+  (and (fixed-width-p ty)
+       (not (signed-byte-p ty))))
+
+
 (defun ensure-fixed-width (ty)
   "Ensure that TY is a fixed-width integer."
   (unless (fixed-width-p ty)

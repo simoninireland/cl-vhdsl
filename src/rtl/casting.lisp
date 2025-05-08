@@ -42,4 +42,130 @@
 
 ;; ---------- Type coercion (casting) ----------
 
-;; TBD
+(defmethod typecheck-sexp ((fun (eql 'coerce)) args env)
+  (destructuring-bind (val ty)
+      args
+    (let ((vty (typecheck val env)))
+      (if (and (fixed-width-p ty)
+	       (fixed-width-p vty))
+	  ;; can coerce fixed-width types
+	  (let ((tyw (bitwidth-type (car ty) (cdr ty) env))
+		(vtyw (bitwidth-type (car vty) (cdr vty) env))))
+	  ty
+
+	  ;; can't coerce anything else for now
+	  (error 'coercion-mismatch :expected ty :got vty
+				    :hint "Make sure the two types are coercible.")))))
+
+
+(defmethod synthesise-sexp ((fun (eql 'coerce)) args env context)
+  (declare (optimize debug))
+
+  (destructuring-bind (val ty)
+      args
+    (let* ((vty (typecheck val env))
+	   (tyw (bitwidth-type (car ty) (cdr ty) env))
+	   (vtyw (bitwidth-type (car vty) (cdr vty) env)))
+
+      (cond
+	;; type are both unsigned
+	((and (unsigned-byte-p vty)
+	      (unsigned-byte-p ty))
+	 (cond ((= vtyw tyw)
+		;; types have equal width, synthesise unchanged
+		(synthesise val env context))
+
+	       ((> vtyw tyw)
+		;; value is wider, shrink it
+		(synthesise `(bits ,val (- ,tyw 1) :end 0)
+			    env context))
+
+	       (t
+		;; value is narrower, zero-extend
+		(let ((zeros (- tyw vtyw)))
+		  (synthesise `(make-bitfields (extend-bits 0 ,zeros)
+					       ,val)
+			      env context)))))
+
+	;; type are both signed
+	((and (signed-byte-p vty)
+	      (signed-byte-p ty))
+	 (cond ((= vtyw tyw)
+		;; types have equal width, leave unchanged
+		(synthesise val env context))
+
+	       ((> vtyw tyw)
+		;; value is wider, shrink it by using the same
+		;; sign bit and the low-order bits
+		(let* ((signbit (1- vtyw))
+		       (startbit (- tyw 2)))
+		  (synthesise `(make-bitfields (bit ,val ,signbit)
+					       (bits ,val ,startbit :end 0))
+			      env context)))
+
+	       (t
+		;; value is narrower, sign-extend
+		(let ((signbit (1- vtyw))
+		      (signs (- tyw vtyw)))
+		  (synthesise `(make-bitfields (extend-bits (bit ,val ,signbit) ,signs)
+					       ,val)
+			      env context)))))
+
+	;; value is unsigned, needed as signed
+	((and (unsigned-byte-p vty)
+	      (signed-byte-p ty))
+	 (cond  ((= vtyw tyw)
+		 ;; types have equal width, reduce value and zero-extend
+		 (let ((reduced (- tyw 2)))
+		   (synthesise `(make-bitfields 0
+						(bits ,val ,reduced :end 0))
+			       env context)))
+
+		((> vtyw tyw)
+		 ;; value is wider, shrink it
+		 (let* ((startbit (- tyw 2)))
+		   (synthesise `(make-bitfields 0
+						(bits ,val ,startbit :end 0))
+			       env context)))
+
+		(t
+		 ;; value is narrower, zero-extend
+		 (let ((signs (- tyw vtyw)))
+		   (synthesise `(make-bitfields (extend-bits 0 ,signs)
+						,val)
+			       env context)))))
+
+	;; value is signed, needed as unsigned
+	((and (signed-byte-p vty)
+	      (unsigned-byte-p ty))
+	 (cond ((= vtyw tyw)
+		;; types have equal width, reduce value and zero-extend
+		(let ((reduced (- tyw 2)))
+		  (synthesise `(make-bitfields 0
+					       (bits (if (< ,val 0)
+							 (- ,val)
+							 ,val)
+						     ,reduced :end 0))
+
+			      env context)))
+
+	       ((> vtyw tyw)
+		;; value is wider, shrink it
+		(let ((reduced (- tyw 2)))
+		  (synthesise `(make-bitfields 0
+					       (bits (if (< ,val 0)
+							 (- ,val)
+							 ,val)
+						     ,reduced :end 0))
+			      env context)))
+
+	       (t
+		;; value is narrower, zero-extend
+		(let ((signs (1+ (- tyw vtyw)))
+		      (reduced (- vtyw 2)))
+		  (synthesise `(make-bitfields (extend-bits 0 ,signs)
+					       (bits (if (< ,val 0)
+							 (- ,val)
+							 ,val)
+						     ,reduced :end 0))
+			      env context)))))))))

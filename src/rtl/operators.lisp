@@ -115,7 +115,10 @@ plus the number of other arguments."
 (defmethod synthesise-sexp ((fun (eql '-)) args env (context (eql :inexpression)))
   (if (= (length args) 1)
       ;; unary minus
-      (as-literal (format nil "(-~a)" (car args)))
+      (progn
+	(as-literal "(- ")
+	(synthesise (car args) env :inexpression)
+	(as-literal ")"))
 
       ;; application
       (as-infix '- args env)))

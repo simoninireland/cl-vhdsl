@@ -233,6 +233,25 @@ sometimes-acceptable default action to risk the loss of precision
 caused by the assignment."))
 
 
+(define-condition coercion-mismatch (rtl-condition)
+  ((expected
+    :documentation "The type we tried to coerce to."
+    :initarg :expected
+    :reader expected-type)
+   (received
+    :documentation "The received type."
+    :initarg :got
+    :reader received-type))
+  (:report (lambda (c str)
+	     (format-condition-context (format nil "Can't coerce a value of type ~a to one of type ~a"
+					       (received-type c)
+					       (expected-type c))
+				       c str)))
+  (:documentation "Condition signalled when a coercion can't happen.
+
+Coercion only currently works between fixed-width types."))
+
+
 (define-condition bitfield-mismatch (rtl-condition)
   ((pattern
     :documentation "The bitfield pattern."

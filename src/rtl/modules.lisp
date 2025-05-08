@@ -185,20 +185,21 @@ of other parameter values."
 		      env)))
 
 
-(defun env-from-module-decls (args params)
-  "Create an environment from PARAMS and ARGS declarations of a module interface."
-  (let* ((env (add-frame (empty-environment)))
-	 (extparams (typecheck-module-params params env)))
-    (typecheck-module-args args extparams)))
-
-
 (defun typecheck-module-args (decls env)
   "Type-check the module argument declarations DECLS to extend ENV."
   (foldr #'typecheck-module-arg decls env))
 
 
-(defun make-module-environment (decls)
-  "Return an environment built from the DECLS of a module."
+(defun env-from-module-decls (args params env)
+  "Create an environment extending ENV from PARAMS and ARGS declarations of a module interface."
+  (let* ((ext (add-frame env))
+	 (extparams (typecheck-module-params params ext))
+	 (extargs (typecheck-module-args args extparams)))
+    extargs))
+
+
+(defun make-module-environment (decls env)
+  "Return an environment extended on ENV built from the DECLS of a module."
   (destructuring-bind (modargs modparams)
       (split-args-params decls)
 
@@ -207,7 +208,7 @@ of other parameter values."
       (error 'not-synthesisable :hint "Module must import at least one wire or register"))
 
     ;; create the environment
-    (env-from-module-decls modargs modparams)))
+    (env-from-module-decls modargs modparams env)))
 
 
 (defun make-module-interface-type (decls)
@@ -221,7 +222,7 @@ of other parameter values."
   (destructuring-bind (modname decls &rest body)
       args
 
-    (let ((ext (make-module-environment decls)))
+    (let ((ext (make-module-environment decls env)))
       ;; typecheck the body of the module in its environment
       (typecheck (cons 'progn body) ext)
 
@@ -319,8 +320,9 @@ of other parameter values."
     (as-blank-line)
 
     ;; body
-    (with-indentation
-	(as-block-forms body env :inmodule))
+    (let ((ext (make-module-environment decls env)))
+      (with-indentation
+	(synthesise `(progn ,@body) ext :inmodule)))
 
     ;; late initialisationn (if any)
     (when (module-late-initialisation-p)
@@ -401,9 +403,9 @@ and causes a NOT-IMPORTABLE error if not."
     (mapcar #'symbol-name (every-argument modargs))))
 
 
-(defun env-from-module-interface (intf)
-  "Return an environment corresponding to INTF."
-  (env-from-module-decls (module-interface-arguments intf) (module-interface-parameters intf)))
+(defun env-from-module-interface (intf env)
+  "Return an environment corresponding to INTF in ENV."
+  (env-from-module-decls (module-interface-arguments intf) (module-interface-parameters intf) env))
 
 
 (defmethod typecheck-sexp ((fun (eql 'make-instance)) args env)
@@ -420,7 +422,7 @@ and causes a NOT-IMPORTABLE error if not."
       (ensure-module-arguments-match-interface modname intf modargs)
 
       ;; typecheck the provided arguments against the interface
-      (let ((modenv (env-from-module-interface intf))
+      (let ((modenv (env-from-module-interface intf env))
 	    (initargs-plist (plist-alist initargs)))
 	(dolist (arg modargs)
 	  (let ((v (cdr (assoc arg initargs-plist

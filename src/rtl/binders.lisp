@@ -191,6 +191,18 @@ one."
 	ty))))
 
 
+(defun make-binder-environment (decls body env)
+  "Return an extended version of ENV including the DECLS of a binder.
+
+This may look into BODY to find more information. The DECLS are assumed
+to be fully elaborated (i.e., as having passed type inference).
+
+This function is used for type-aware synthesis."
+  (let ((ext (add-frame env)))
+    (typecheck-env decls ext)
+    ext))
+
+
 ;; ---------- Variable re-writing ----------
 
 (defun rewrite-variables-keys (kvs rewrite)
@@ -489,7 +501,8 @@ Constants turn into local parameters."
 	(as-blank-line))
 
     ;; synthesise the body
-    (as-block-forms body env :inmodule)))
+    (let ((ext (make-binder-environment decls body env)))
+      (as-block-forms body ext :inmodule))))
 
 
 (defmethod synthesise-sexp ((fun (eql 'let)) args env (context (eql :inblock)))
