@@ -39,13 +39,13 @@ in many applications."
     '(unsigned-byte 1)))
 
 
-(defmethod synthesise-sexp ((fun (eql '=)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql '=)) args env (context (eql :inexpression)))
   (destructuring-bind (l r)
       args
     (as-literal "(")
-    (synthesise l :inexpression)
+    (synthesise l env :inexpression)
     (as-literal " == ")
-    (synthesise r :inexpression)
+    (synthesise r env :inexpression)
     (as-literal ")")))
 
 
@@ -58,13 +58,13 @@ in many applications."
     '(unsigned-byte 1)))
 
 
-(defmethod synthesise-sexp ((fun (eql '/=)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql '/=)) args env (context (eql :inexpression)))
   (destructuring-bind (l r)
       args
     (as-literal "(")
-    (synthesise l :inexpression)
+    (synthesise l env :inexpression)
     (as-literal " != ")
-    (synthesise r :inexpression)
+    (synthesise r env :inexpression)
     (as-literal ")")))
 
 
@@ -79,11 +79,11 @@ in many applications."
     '(unsigned-byte 1)))
 
 
-(defmethod synthesise-sexp ((fun (eql '<)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql '<)) args env (context (eql :inexpression)))
   (destructuring-bind (l r)
       args
     (as-literal "(")
-    (synthesise l :inexpression)
+    (synthesise l env :inexpression)
     (as-literal " < ")
-    (synthesise r :inexpression)
+    (synthesise r env :inexpression)
     (as-literal ")")))

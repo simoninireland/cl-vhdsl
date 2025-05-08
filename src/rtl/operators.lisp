@@ -85,8 +85,8 @@ plus the number of other arguments."
   (fold-constant-expressions-addition '+args))
 
 
-(defmethod synthesise-sexp ((fun (eql '+)) args (context (eql :inexpression)))
-  (as-infix '+ args))
+(defmethod synthesise-sexp ((fun (eql '+)) args env (context (eql :inexpression)))
+  (as-infix '+ args env))
 
 
 (defmethod lispify-sexp ((fun (eql '+)) args env)
@@ -112,17 +112,17 @@ plus the number of other arguments."
   (fold-constant-expressions-addition '- args))
 
 
-(defmethod synthesise-sexp ((fun (eql '-)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql '-)) args env (context (eql :inexpression)))
   (if (= (length args) 1)
       ;; unary minus
       (as-literal (format nil "(-~a)" (car args)))
 
       ;; application
-      (as-infix '- args)))
+      (as-infix '- args env)))
 
 
-(defmethod synthesise-sexp ((fun (eql '*)) args (context (eql :inexpression)))
-  (as-infix '* args))
+(defmethod synthesise-sexp ((fun (eql '*)) args env (context (eql :inexpression)))
+  (as-infix '* args env))
 
 
 (defmethod lispify-sexp ((fun (eql '-)) args env)
@@ -169,10 +169,10 @@ plus the number of other arguments."
 	`('<< ,val ,offset))))
 
 
-(defmethod synthesise-sexp ((fun (eql '<<)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql '<<)) args env (context (eql :inexpression)))
   (destructuring-bind (val offset)
       args
-    (as-infix '<< args)))
+    (as-infix '<< args env)))
 
 
 (defmethod lispify-sexp ((fun (eql '<<)) args env)
@@ -182,7 +182,7 @@ plus the number of other arguments."
     `(ash ,@vals)))
 
 
-;; We shuld probably do sign extension here, like Lisp does
+;; We should probably do sign extension here, like Lisp does
 
 (defmethod typecheck-sexp ((fun (eql '>>)) args env)
   (ensure-number-of-arguments fun args 2)
@@ -208,10 +208,10 @@ plus the number of other arguments."
 	`('<< ,val ,offset))))
 
 
-(defmethod synthesise-sexp ((fun (eql '>>)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql '>>)) args env (context (eql :inexpression)))
   (destructuring-bind (val offset)
       args
-    (as-infix '>> args)))
+    (as-infix '>> args env)))
 
 
 (defmethod lispify-sexp ((fun (eql '>>)) args env)
@@ -241,8 +241,8 @@ plus the number of other arguments."
   (fold-constant-expressions-addition 'logand args))
 
 
-(defmethod synthesise-sexp ((fun (eql 'logand)) args (context (eql :inexpression)))
-  (as-infix '& args))
+(defmethod synthesise-sexp ((fun (eql 'logand)) args env (context (eql :inexpression)))
+  (as-infix '& args env))
 
 
 (defmethod typecheck-sexp ((fun (eql 'logior)) args env)
@@ -253,8 +253,8 @@ plus the number of other arguments."
   (fold-constant-expressions-addition 'logior args))
 
 
-(defmethod synthesise-sexp ((fun (eql 'logior)) args (context (eql :inexpression)))
-  (as-infix '|\|| args))
+(defmethod synthesise-sexp ((fun (eql 'logior)) args env (context (eql :inexpression)))
+  (as-infix '|\|| args env))
 
 
 (defmethod typecheck-sexp ((fun (eql 'logxor)) args env)
@@ -265,8 +265,8 @@ plus the number of other arguments."
   (fold-constant-expressions-addition 'logxor args))
 
 
-(defmethod synthesise-sexp ((fun (eql 'logxor)) args (context (eql :inexpression)))
-  (as-infix '^ args))
+(defmethod synthesise-sexp ((fun (eql 'logxor)) args env (context (eql :inexpression)))
+  (as-infix '^ args env))
 
 
 ;; ---------- Logical ----------
@@ -286,16 +286,16 @@ All arguments must be booleans."
   (typecheck-logical-operator args env))
 
 
-(defmethod synthesise-sexp ((fun (eql 'and)) args (context (eql :inexpression)))
-  (as-infix '&& args))
+(defmethod synthesise-sexp ((fun (eql 'and)) args env (context (eql :inexpression)))
+  (as-infix '&& args env))
 
 
 (defmethod typecheck-sexp ((fun (eql 'or)) args env)
   (typecheck-logical-operator args env))
 
 
-(defmethod synthesise-sexp ((fun (eql 'or)) args (context (eql :inexpression)))
-  (as-infix '|\|\|| args))
+(defmethod synthesise-sexp ((fun (eql 'or)) args env (context (eql :inexpression)))
+  (as-infix '|\|\|| args env))
 
 
 (defmethod typecheck-sexp ((fun (eql 'not)) args env)
@@ -304,8 +304,8 @@ All arguments must be booleans."
   '(unsigned-byte 1))
 
 
-(defmethod synthesise-sexp ((fun (eql 'not)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'not)) args env (context (eql :inexpression)))
   (as-literal "(")
   (as-literal "!")
-  (synthesise (car args) :inexpression)
+  (synthesise (car args) env :inexpression)
   (as-literal ")"))

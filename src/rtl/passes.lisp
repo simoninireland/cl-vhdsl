@@ -309,8 +309,8 @@ well as PROGNs nested inside other PROGNs.")
 ;; - :indeclaration -- for declarations
 ;; - :inassignment -- as the target for an assignment
 
-(defgeneric synthesise (form context)
-  (:documentation "Synthesise the Verilog for FORM.
+(defgeneric synthesise (form env context)
+  (:documentation "Synthesise the Verilog for FORM in ENV.
 
 The form may have a specified role of position indicated by CONTEXT.
 This may be used to specialise synthesis methods according to
@@ -318,16 +318,16 @@ syntactic classes and the like.
 
 A NOT-SYNTHESISABLE error will be signalled for all underlying
 conditions.")
-  (:method ((form list) context)
+  (:method ((form list) env context)
     (let ((fun (car form))
 	  (args (cdr form)))
       (with-rtl-errors-not-synthesisable
-	(synthesise-sexp fun args context)
+	(synthesise-sexp fun args env context)
 	t))))
 
 
-(defgeneric synthesise-sexp (fun args context)
-  (:documentation "Write the synthesised Verilog of FUN called with ARGS.
+(defgeneric synthesise-sexp (fun args env context)
+  (:documentation "Write the synthesised Verilog of FUN called with ARGS in ENV.
 
 The synthesised code may depend on the role or position CONTEXT,
 which can be used to specialise the method."))

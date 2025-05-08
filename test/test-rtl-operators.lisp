@@ -55,15 +55,15 @@
   (dolist (op '(+ - *))
     ;; conventional two-operand
     (is (rtl:synthesise `(,op 1 2)
-			:inexpression))
+			emptyenv :inexpression))
 
     ;; Lisp-y multi-operand
     (is (rtl:synthesise `(,op 1 2 3)
-			:inexpression)))
+			emptyenv :inexpression)))
 
   ;; unary minus
   (is (rtl:synthesise `(- 1)
-		      :inexpression)))
+		      emptyenv :inexpression)))
 
 
 ;; ---------- Shifts ----------
@@ -94,7 +94,7 @@
   (dolist (op '(rtl::<< rtl::>>))
     ;; conventional two-operand
     (is (rtl:synthesise `(,op 1 2)
-			:inexpression))))
+			emptyenv :inexpression))))
 
 
 ;; ---------- Bitwise operators ----------

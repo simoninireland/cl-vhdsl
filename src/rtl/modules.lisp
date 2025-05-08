@@ -260,25 +260,25 @@ of other parameter values."
     t))
 
 
-(defun synthesise-param (decl)
-  "Return the code for parameter DECL."
+(defun synthesise-param (decl env)
+  "Return the code for parameter DECL in ENV."
   (if (listp decl)
       ;; parameter with an initial value
       (destructuring-bind (n v)
 	  decl
 	(as-literal "parameter ")
-	(synthesise n :indeclaration)
+	(synthesise n env :indeclaration)
 	(as-literal " = ")
-	(synthesise v :inexpression))
+	(synthesise v env :inexpression))
 
       ;; naked parameter
       (progn
 	(as-literal "parameter ")
-	(synthesise decl :indeclaration))))
+	(synthesise decl env :indeclaration))))
 
 
-(defun synthesise-arg (decl)
-  "Return the code for argument DECL."
+(defun synthesise-arg (decl env)
+  "Return the code for argument DECL in ENV."
   (declare (optimize debug))
 
   (destructuring-bind (n &key direction type (as :wire))
@@ -293,34 +293,34 @@ of other parameter values."
 				   (= width 1))
 			      ""
 			      (format nil "[ ~(~a~) - 1 : 0 ] " width))))
-      (synthesise n :indeclaration))))
+      (synthesise n env :indeclaration))))
 
 
-(defmethod synthesise-sexp ((fun (eql 'module)) args (context (eql :toplevel)))
+(defmethod synthesise-sexp ((fun (eql 'module)) args env (context (eql :toplevel)))
   (destructuring-bind (modname decls &rest body)
       args
     (as-literal "module ")
-    (synthesise modname :inexpression)
+    (synthesise modname env :inexpression)
 
     (destructuring-bind (args params)
 	(split-args-params decls)
       ;; parameters
       (if params
-	  (as-argument-list params :indeclaration :before " #(" :after ")"
-						  :sep ", "
-						  :process (lambda (form context)
-							     (synthesise-param form))))
+	  (as-argument-list params env :indeclaration :before " #(" :after ")"
+						      :sep ", "
+						      :process (lambda (form env context)
+								 (synthesise-param form env))))
 
       ;; arguments
-      (as-argument-list args :indeclaration :before "(" :after ");"
-					    :sep ", "
-					    :process (lambda (form context)
-						       (synthesise-arg form))))
+      (as-argument-list args env :indeclaration :before "(" :after ");"
+						:sep ", "
+						:process (lambda (form env context)
+							   (synthesise-arg form env))))
     (as-blank-line)
 
     ;; body
     (with-indentation
-	(as-block-forms body :inmodule))
+	(as-block-forms body env :inmodule))
 
     ;; late initialisationn (if any)
     (when (module-late-initialisation-p)
@@ -451,8 +451,8 @@ and causes a NOT-IMPORTABLE error if not."
       `(,fun ,modname ,@(rewrite-args initargs)))))
 
 
-(defun synthesise-param-binding (decl context args)
-  "Synthesise the binding of parameter DECLs from ARGS."
+(defun synthesise-param-binding (decl env context args)
+  "Synthesise the binding of parameter DECLs from ARGS in ENV."
   (destructuring-bind (n v)
       decl
     (if-let ((m (assoc n args
@@ -460,28 +460,28 @@ and causes a NOT-IMPORTABLE error if not."
 		       :test #'string-equal)))
       (let ((v (cdr m)))
 	(as-literal ".")
-	(synthesise n :indeclaration)
+	(synthesise n env :indeclaration)
 	(as-literal "(")
-	(synthesise v :inexpression)
+	(synthesise v env :inexpression)
 	(as-literal ")")))))
 
 
-(defun synthesise-arg-binding (decl context args)
-  "Synthesise the binding of DECL from ARGS."
+(defun synthesise-arg-binding (decl env context args)
+  "Synthesise the binding of DECL from ARGS in ENV."
   (destructuring-bind (n &key &allow-other-keys)
       decl
     (let ((v (cdr (assoc n args
 			 :key #'symbol-name
 			 :test #'string-equal))))
       (as-literal ".")
-      (synthesise n :indeclaration)
+      (synthesise n env :indeclaration)
       (as-literal "(")
-      (synthesise v :inexpression)
+      (synthesise v env :inexpression)
       (as-literal ")"))))
 
 
-(defun synthesise-module-instance-params (initargs intf)
-  "Synthesise the parameter bindings INITARGS of INTF."
+(defun synthesise-module-instance-params (initargs intf env)
+  "Synthesise the parameter bindings INITARGS of INTF in ENV."
   (declare (optimize debug))
   (let ((paramdecls (module-interface-parameters intf)))
     ;; extract all the parameters actually specified
@@ -498,36 +498,36 @@ and causes a NOT-IMPORTABLE error if not."
       (if paramdeclsgiven
 	  (progn
 	    (as-literal " ")
-	    (as-argument-list paramdeclsgiven :indeclaration
+	    (as-argument-list paramdeclsgiven env :indeclaration
 			      :before "#(" :after ")"
 			      :process (rcurry #'synthesise-param-binding args-alist)))
 
 	  (as-literal " ")))))
 
 
-(defun synthesise-module-instance-args (initargs intf)
-  "Synthesise the argument bindings INITARGS of INTF."
+(defun synthesise-module-instance-args (initargs intf env)
+  "Synthesise the argument bindings INITARGS of INTF in ENV."
   (let ((argdecls (module-interface-arguments intf)))
-    (as-argument-list argdecls :indeclaration
+    (as-argument-list argdecls env :indeclaration
 		      :before "(" :after ");"
 		      :process (rcurry #'synthesise-arg-binding (plist-alist initargs)))))
 
 
-(defun synthesise-module-instance (n modname initargs)
-  "Synthesise the module instanciation MODNAME with gibven INITARGS assigning the instance to N."
+(defun synthesise-module-instance (n modname initargs env)
+  "Synthesise the module instanciation MODNAME in ENV with given INITARGS assigning the instance to N."
   ;; skip over leading quote of module name,
   ;; for compatability with Common Lisp usage
   (unquote modname)
 
   (let ((intf (get-module-interface modname)))
-    (synthesise modname :indeclaration)
-    (synthesise-module-instance-params initargs intf)
-    (synthesise n :indeclaration)
+    (synthesise modname env :indeclaration)
+    (synthesise-module-instance-params initargs intf env)
+    (synthesise n env :indeclaration)
     (as-literal " ")
-    (synthesise-module-instance-args initargs intf)))
+    (synthesise-module-instance-args initargs intf env)))
 
 
-(defmethod synthesise-sexp ((fun (eql 'make-instance)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'make-instance)) args env (context (eql :inexpression)))
   (labels ((args-to-alist (plist)
 	     "Convert a plist of arguments to an alist, respecting sub-lists. "
 	     (if (null plist)
@@ -546,9 +546,9 @@ and causes a NOT-IMPORTABLE error if not."
 	    (modargs (keys-to-arguments modname initargs)))
 
 	;; arguments
-	(as-argument-list (arguments intf) :indeclaration
+	(as-argument-list (arguments intf) env :indeclaration
 			  :before "(" :after ");"
 			  :process (rcurry #'synthesise-arg-binding (args-to-alist initargs)))))))
 
-(defmethod synthesise-sexp ((fun (eql 'make-instance)) args (context (eql :inblock)))
-  (synthesise-sexp fun args :inmodule))
+(defmethod synthesise-sexp ((fun (eql 'make-instance)) args env (context (eql :inblock)))
+  (synthesise-sexp fun args env :inmodule))

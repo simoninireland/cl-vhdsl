@@ -59,7 +59,7 @@
 			      (z 44 :as :constant))
 			  (rtl::@ (rtl::posedge clk)
 				  (setf x (+ x b) :sync t))))
-		      :toplevel)))
+		      emptyenv :toplevel)))
 
 
 (test test-synthesise-module-late-init
@@ -75,7 +75,7 @@
 	       (rtl::@ (rtl::posedge clk)
 		       (setf x (aref a 4)))))))
     (rtl:typecheck p emptyenv)
-    (is (rtl:synthesise p :toplevel)))
+    (is (rtl:synthesise p emptyenv :toplevel)))
 
   ;; make sure synthesis cleared the late intiialisation queue
   (is (not (rtl::module-late-initialisation-p))))
@@ -121,7 +121,7 @@
 			    (setq clk 1)))))))
     (setq p (rtl:simplify-progn (car (rtl:float-let-blocks p))))
     (rtl:typecheck p emptyenv)
-    (is (rtl:synthesise p :toplevel))))
+    (is (rtl:synthesise p emptyenv :toplevel))))
 
 
 (test test-module-instanciate-with-bitfields
@@ -155,7 +155,7 @@
 						       (let ((clock (make-instance 'clock :clk_in clk_in
 											  :clk_out clk)))
 							 (setf ctrl 1)))))))))
-		      :toplevel)))
+		      emptyenv :toplevel)))
 
 
 (test test-synthesise-module-instanciation
@@ -170,11 +170,11 @@
   (is (rtl:synthesise '(let ((c 0 :as :wire :type (unsigned-byte 1))
 			     (d 0 :as :wire :type (unsigned-byte 1)))
 			(let ((a (make-instance 'clock :clk_in c :clk_out d)))))
-		      :inmodule))
+		      emptyenv :inmodule))
   (is (rtl:synthesise '(let ((c 0 :as :wire :type (unsigned-byte 1))
 			     (d 0 :as :wire :type (unsigned-byte 1)))
 			(let ((a (make-instance 'clock :clk_in c :clk_out d :p 23)))))
-		      :inmodule)))
+		      emptyenv :inmodule)))
 
 
 ;; ---------- Larger and more complicated/contrived examples ----------
@@ -197,7 +197,7 @@
 
     (setq p (rtl:expand-macros p))
     (rtl:typecheck p emptyenv)
-    (is (rtl:synthesise p :toplevel))))
+    (is (rtl:synthesise p emptyenv :toplevel))))
 
 
 (test test-module-array-size-param
@@ -226,6 +226,6 @@
 			     b)
 			(setq b (aref mem addr-in))))))
 
-    (is (subtypep (rtl:typecheck p env)
-		  '(unsigned-byte 8)))
-    (is (rtl:synthesise p :inmodule))))
+    (subtypep (rtl:typecheck p env)
+	      '(unsigned-byte 8))
+    (rtl:synthesise p env :inmodule)))

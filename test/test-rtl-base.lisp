@@ -61,8 +61,10 @@
      (is (equal (rtl::get-frame-property 'a :b env) 2))
 
      (is (null (rtl::get-frame-property 'a :c env)))
-     (is (eql (rtl::get-frame-property 'a :c env :default 'ttt)
-	      'ttt))))
+
+     (rtl::declare-variable 'c '((:a 1) (:b 2)) env)
+     (is (eql (rtl::get-frame-property 'c :c env :default 'ttt)
+		'ttt))))
 
 
 (test test-set-property

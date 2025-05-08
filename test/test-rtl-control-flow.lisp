@@ -28,7 +28,7 @@
   (is (rtl:synthesise '(progn
 			(setf a 5)
 			(setf b 34))
-		      :inblock)))
+		      emptyenv :inblock)))
 
 
 ;; ---------- @ ----------
@@ -90,7 +90,7 @@
 	     (rtl::@ ((rtl::posedge clk) a)
 	      (setq a clk)))))
     (rtl:typecheck p emptyenv)
-    (is (rtl:synthesise p :inblock))))
+    (is (rtl:synthesise p emptyenv :inblock))))
 
 
 (test test-synthesise-wire-singleton
@@ -100,7 +100,7 @@
 	      (rtl::@ clk
 	       (setq a clk)))))
     (rtl:typecheck p emptyenv)
-    (is (rtl:synthesise p :inblock))))
+    (is (rtl:synthesise p emptyenv :inblock))))
 
 
 (test test-synthesise-wire-trigger
@@ -110,4 +110,4 @@
 	      (rtl::@ (rtl:posedge clk)
 	       (setq a clk)))))
     (rtl:typecheck p emptyenv)
-    (is (rtl:synthesise p :inblock))))
+    (is (rtl:synthesise p emptyenv :inblock))))

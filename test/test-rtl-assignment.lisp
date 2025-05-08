@@ -114,9 +114,9 @@
   "Test we can synthesise assignments."
   ;; as statements
   (is (rtl:synthesise '(setq a 5)
-		      :inblock))
+		      emptyenv :inblock))
   (is (rtl:synthesise '(setq a 5 :sync t)
-		      :inblock)))
+		      emptyenv :inblock)))
 
 
 (test test-typecheck-setq-generalised-place

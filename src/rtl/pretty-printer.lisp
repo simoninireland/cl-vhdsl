@@ -83,16 +83,16 @@ to *INDENTATION-LEVEL*.")
 ;; actual form (synthesise by default).
 
 
-(defun as-form (arg context &key (process #'synthesise))
+(defun as-form (arg env context &key (process #'synthesise))
   "Format a single ARG in the given CONTEXT.."
-  (funcall process arg context))
+  (funcall process arg env context))
 
 
-(defun as-block-forms (args context &key sep (process #'synthesise))
+(defun as-block-forms (args env context &key sep (process #'synthesise))
   "Format all ARGS with indentation."
   (let ((n (length args)))
     (dolist (i (iota n))
-      (as-form (elt args i) context :process process)
+      (as-form (elt args i) env context :process process)
 
       (when (and sep
 		 (< i (- n 1)))
@@ -101,12 +101,12 @@ to *INDENTATION-LEVEL*.")
       (as-newline))))
 
 
-(defun as-inline-forms (args context &key sep (process #'synthesise))
+(defun as-inline-forms (args env context &key sep (process #'synthesise))
   "Format all ARGS as an inline list along with any separator strings."
   (let ((n (length args)))
     (dolist (i (iota n))
       ;; form
-      (as-form (elt args i) context :process process)
+      (as-form (elt args i) env context :process process)
 
       ;; seperator
       (when (and sep
@@ -143,7 +143,7 @@ to *INDENTATION-LEVEL*.")
     (format *synthesis-stream* "~%")))
 
 
-(defun as-list (args context
+(defun as-list (args env context
 		&key before after
 		  (sep ", ")
 		  per-row
@@ -165,20 +165,20 @@ PER-ROW, if set, generates a newline after that number of elements."
 		 (l (min (- n i) per-row))
 		 (j (1- (+ i l))))
 	    (let ((row (sublist args i j)))
-	      (as-inline-forms row :inexpression :sep sep :process process)
+	      (as-inline-forms row env :inexpression :sep sep :process process)
 	      (when (and (= l per-row)
 			 (< j (- n 1)))
 		(as-literal sep :newline t))))))
 
       ;; output everything in one line
-      (as-inline-forms args :inexpression :sep sep :process process ))
+      (as-inline-forms args env :inexpression :sep sep :process process ))
 
   ;; trailing bracket
   (when after
     (as-literal after)))
 
 
-(defun as-argument-list (args context
+(defun as-argument-list (args env context
 			 &key before after
 			   (sep ", ")
 			   (process #'synthesise))
@@ -189,18 +189,18 @@ PER-ROW, if set, generates a newline after that number of elements."
 
   ;; arguments
   (with-indentation
-    (as-block-forms args :inexpression :sep sep :process process))
+    (as-block-forms args env :inexpression :sep sep :process process))
 
   ;; trailing bracket
   (when after
     (as-literal after :newline t)))
 
 
-(defun as-block (args context &key before after
-				always
-				(indent t)
-				(sep "")
-				(process #'synthesise))
+(defun as-block (args env context &key before after
+				    always
+				    (indent t)
+				    (sep "")
+				    (process #'synthesise))
   "Output ARGS in CONTEXT within a block."
   (let ((n (length args)))
     ;; leading bracket
@@ -212,9 +212,9 @@ PER-ROW, if set, generates a newline after that number of elements."
     ;; arguments
     (if indent
 	(with-indentation
-	  (as-block-forms args context :sep sep :process process))
+	  (as-block-forms args env context :sep sep :process process))
 
-	(as-block-forms args context :sep sep :process process))
+	(as-block-forms args env context :sep sep :process process))
 
     ;; trailing bracket
     (when (and after
@@ -223,9 +223,9 @@ PER-ROW, if set, generates a newline after that number of elements."
       (as-literal after :newline t))))
 
 
-(defun as-infix (op args)
+(defun as-infix (op args env)
   "Synthesise ARGS with OP between them.
 
 Every argument is sythesised in the :inexpression context."
   ;; arguments
-  (as-list args :inexpression :before "(" :after ")" :sep (format nil " ~a " op)))
+  (as-list args env :inexpression :before "(" :after ")" :sep (format nil " ~a " op)))

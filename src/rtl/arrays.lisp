@@ -134,28 +134,28 @@ RTLisp, but don't /require/ it."
 ;; Only works for one-dimensional arrays at the moment
 ;; Should expand constants
 
-(defun synthesise-array-init-from-data (data shape)
-  "Return the initialisation of DATA with the given SHAPE."
-  (as-list data :inexpression
+(defun synthesise-array-init-from-data (data shape env)
+  "Return the initialisation of DATA with the given SHAPE in ENV."
+  (as-list data env :inexpression
 	   :before "{ " :after " }"
 	   :per-row 16))
 
 
-(defun synthesise-array-init-from-file (n fn)
-  "Synthesise the code to load array data for N from a file FN.
+(defun synthesise-array-init-from-file (n fn env)
+  "Synthesise the code to load array data for N from a file FN in ENV.
 
 Thi is implemented using a late initialisation function."
   (flet ((initialise-array-from-file ()
 	   (as-literal "$readmemh(\"")
 	   (as-literal fn)
 	   (as-literal "\", ")
-	   (synthesise n :inexpression)
+	   (synthesise n env :inexpression)
 	   (as-literal ");" :newline t)))
     (add-module-late-initialisation #'initialise-array-from-file)))
 
 
-(defun synthesise-array-init (n v)
-  "Parse the initial contents of N as described by V.
+(defun synthesise-array-init (n v env)
+  "Parse the initial contents of N as described by V in ENV.
 
 If the initial value is a list of the form (:FILE FN) the data is read from file FN.
 Otheriwse it is read as a literal list."
@@ -169,7 +169,7 @@ Otheriwse it is read as a literal list."
 
     ;; 1d arrays only for now
     (as-literal "[ 0 : ")
-    (synthesise (car shape) :inexpression)
+    (synthesise (car shape) env :inexpression)
     (as-literal " - 1 ]")
 
     ;; intialisation data, if any
@@ -178,13 +178,13 @@ Otheriwse it is read as a literal list."
 	  (cond ((eql (car initial-contents) :file)
 		 ;; initialising from file
 		 (let ((fn (cadr initial-contents)))
-		   (synthesise-array-init-from-file n fn)))
+		   (synthesise-array-init-from-file n fn env)))
 
 		(t
 		 ;; inline initial data
 		 (as-literal " = " :newline t)
 		 (with-indentation
-		   (synthesise-array-init-from-data initial-contents shape))))))))
+		   (synthesise-array-init-from-data initial-contents shape env))))))))
 
 
 ;; ---------- Array access ----------
@@ -234,16 +234,16 @@ probably should, for those that are statically determined."
   t)
 
 
-(defmethod synthesise-sexp ((fun (eql 'aref)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'aref)) args env (context (eql :inexpression)))
   (destructuring-bind (var &rest indices)
       args
-    (synthesise var :inexpression)
+    (synthesise var env :inexpression)
     (as-literal "[ ")
-    (as-list indices :inexpression)
+    (as-list indices env :inexpression)
     (as-literal " ]")))
 
-(defmethod synthesise-sexp ((fun (eql 'aref)) args (context (eql :inassignment)))
-  (synthesise-sexp fun args :inexpression))
+(defmethod synthesise-sexp ((fun (eql 'aref)) args env (context (eql :inassignment)))
+  (synthesise-sexp fun args env :inexpression))
 
 
 (defmethod lispify-sexp ((fun (eql 'aref)) args env)

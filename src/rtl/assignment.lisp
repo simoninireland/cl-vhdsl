@@ -58,24 +58,24 @@ constant or an input parameter."
       tyval)))
 
 
-(defmethod synthesise-sexp ((fun (eql 'setq)) args (context (eql :inblock)))
+(defmethod synthesise-sexp ((fun (eql 'setq)) args env (context (eql :inblock)))
   (destructuring-bind (var val &key (sync nil))
       args
-    (synthesise var :inassignment)
+    (synthesise var env :inassignment)
     (if sync
 	(as-literal " = ")
 	(as-literal " <= "))
-    (synthesise val :inexpression)
+    (synthesise val env :inexpression)
     (format *synthesis-stream* ";")))
 
 
-(defmethod synthesise-sexp ((fun (eql 'setq)) args (context (eql :inmodule)))
+(defmethod synthesise-sexp ((fun (eql 'setq)) args env (context (eql :inmodule)))
   (destructuring-bind (var val)
       args
     (as-literal "assign ")
-    (synthesise var :inassignment)
+    (synthesise var env :inassignment)
     (as-literal " = ")
-    (synthesise val :inexpression)
+    (synthesise val env :inexpression)
     (as-literal ";")))
 
 
@@ -140,22 +140,22 @@ The default is for a form /not/ to be a generalised place.")
     tyvar))
 
 
-(defmethod synthesise-sexp ((fun (eql 'setf)) args (context (eql :inblock)))
+(defmethod synthesise-sexp ((fun (eql 'setf)) args env (context (eql :inblock)))
   (destructuring-bind (var val &key (sync nil))
       args
-    (synthesise var :inassignment)
+    (synthesise var env :inassignment)
     (if sync
 	(as-literal " = ")
 	(as-literal " <= "))
-    (synthesise val :inexpression)
+    (synthesise val env :inexpression)
     (as-literal ";")))
 
 
-(defmethod synthesise-sexp ((fun (eql 'setf)) args (context (eql :inmodule)))
+(defmethod synthesise-sexp ((fun (eql 'setf)) args env (context (eql :inmodule)))
   (destructuring-bind (var val)
       args
     (as-literal "assign ")
-    (synthesise var :inassignment)
+    (synthesise var env :inassignment)
     (as-literal " = ")
-    (synthesise val :inexpression)
+    (synthesise val env :inexpression)
     (as-literal ";")))

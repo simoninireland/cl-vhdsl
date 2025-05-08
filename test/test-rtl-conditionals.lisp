@@ -63,14 +63,14 @@ q
 			    (setf a 12)))))
     (let ((p (copy-tree x)))
       (rtl:typecheck p emptyenv)
-      (is (rtl:synthesise p :inmodule))))
+      (is (rtl:synthesise p emptyenv :inmodule))))
 
   ;; no else branch
   (let ((p (copy-tree ' (let ((a 0 :width 4))
 			  (if (logand 1 1)
 			    (setf a (+ 1 2)))))))
       (rtl:typecheck p emptyenv)
-      (is (rtl:synthesise p :inblock))))
+      (is (rtl:synthesise p emptyenv :inblock))))
 
 
 ;; ---------- Multi-armed value comparisons (CASE) ----------
@@ -117,7 +117,7 @@ q
 	       (t
 		(setf b 0))))))
     (rtl:typecheck p emptyenv)
-    (is (rtl:synthesise p :inblock))))
+    (is (rtl:synthesise p emptyenv :inblock))))
 
 
 (test test-synthesise-case-assignment
@@ -130,7 +130,7 @@ q
 		(2 (+ a 1))
 		(t 0))))))
     (rtl:typecheck p emptyenv)
-    (is (rtl:synthesise p :inblock))))
+    (is (rtl:synthesise p emptyenv :inblock))))
 
 
 (test test-synthesise-case-complex-bodies
@@ -146,4 +146,4 @@ q
 		   (+ a 1))
 		  (t 0))))))
       (rtl:typecheck p emptyenv)
-      (rtl:synthesise p :inblock))))
+      (rtl:synthesise p emptyenv :inblock))))

@@ -34,10 +34,10 @@
       tyval)))
 
 
-(defmethod synthesise-sexp ((fun (eql 'the)) args context)
+(defmethod synthesise-sexp ((fun (eql 'the)) args env context)
   (destructuring-bind (ty val)
       args
-    (synthesise val context)))
+    (synthesise val env context)))
 
 
 ;; ---------- Type coercion (casting) ----------

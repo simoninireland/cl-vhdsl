@@ -35,12 +35,12 @@
   t)
 
 
-(defmethod synthesise-sexp ((fun (eql 'bit)) args context)
+(defmethod synthesise-sexp ((fun (eql 'bit)) args env context)
   (destructuring-bind (var bit)
       args
-    (synthesise var :indeclaration)
+    (synthesise var env :indeclaration)
     (as-literal "[ ")
-    (synthesise bit :inexpression)
+    (synthesise bit env :inexpression)
     (as-literal " ]")))
 
 
@@ -107,16 +107,16 @@
 	`(unsigned-byte ,l)))))
 
 
-(defmethod synthesise-sexp ((fun (eql 'bits)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'bits)) args env (context (eql :inexpression)))
   (destructuring-bind (var start &key end width)
       args
     (setq end (compute-end-bit start end width))
 
-    (synthesise var :inassignment)
+    (synthesise var env :inassignment)
     (as-literal "[ ")
-    (synthesise start :inexpression)
+    (synthesise start env :inexpression)
     (as-literal " : ")
-    (synthesise end :inexpression)
+    (synthesise end env :inexpression)
     (as-literal " ]")))
 
 

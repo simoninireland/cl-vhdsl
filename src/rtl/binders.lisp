@@ -361,7 +361,7 @@ SPECIAL-VALUE-P. Specifically, normal values have a bit-width."
   (not (special-value-p form)))
 
 
-(defun synthesise-register (decl context)
+(defun synthesise-register (decl env context)
   "Synthesise a register declaration within a LET block.
 
 The register has name N and initial value V, with the optional
@@ -380,21 +380,21 @@ WIDTH defaulting to the system's global width."
 		(> width 1))
 	;; we have a width (or a width expression)
 	(as-literal"[ ")
-	(synthesise width :inexpression)
+	(synthesise width env :inexpression)
 	(as-literal " - 1 : 0 ] "))
-      (synthesise n :indeclaration)
+      (synthesise n env :indeclaration)
       (if (array-value-p v)
 	  ;; synthesise the array bounds and initialisation
-	  (synthesise-array-init n v)
+	  (synthesise-array-init n v env)
 
 	  ;; synthesise the assignment to the initial value
 	  (progn
 	    (as-literal " = ")
-	    (synthesise v :inexpression)))
+	    (synthesise v env :inexpression)))
       (as-literal ";"))))
 
 
-(defun synthesise-wire (decl context)
+(defun synthesise-wire (decl env context)
   "Synthesise a wire declaration within a LET block.
 
 The wire has name N and initial value V, with the optional WIDTH
@@ -414,12 +414,12 @@ the wire is left un-driven."
 		(> width 1))
 	;; we have a width (or a width expression)
 	(as-literal"[ ")
-	(synthesise width :inexpression)
+	(synthesise width env :inexpression)
 	(as-literal " - 1 : 0 ] "))
-      (synthesise n :indeclaration)
+      (synthesise n env :indeclaration)
       (if (array-value-p v)
 	  ;; synthesise the array constructor
-	  (synthesise-array-init n v)
+	  (synthesise-array-init n v env)
 
 	  ;; synthesise the assignment to the initial value
 	  (if (static-constant-p v nil)
@@ -427,70 +427,70 @@ the wire is left un-driven."
 		(unless (= iv 0)
 		  ;; initial value isn't statially zero, synthesise
 		  (as-literal " = ")
-		  (synthesise v :inexpression))
+		  (synthesise v env :inexpression))
 		(as-literal";"))
 
 	      ;; initial value is an expression, synthesise
 	      (progn
 		(as-literal " = ")
-		(synthesise v :inexpression)
+		(synthesise v env :inexpression)
 		(as-literal";")))))))
 
 
-(defun synthesise-constant (decl context)
+(defun synthesise-constant (decl env context)
   "Synthesise a constant declaration DECL within a LET block.
 
 Constants turn into local parameters."
   (destructuring-bind (n v &key &allow-other-keys)
       decl
     (as-literal "localparam ")
-    (synthesise n :inexpression)
+    (synthesise n env :inexpression)
     (as-literal " = ")
-    (synthesise v :inexpression)
+    (synthesise v env :inexpression)
     (as-literal ";")))
 
 
-(defun synthesise-module-instanciation (decl)
+(defun synthesise-module-instanciation (decl env)
   "Synthesise DECL as a module instanciation."
   (destructuring-bind (n v &key &allow-other-keys)
       decl
     (destructuring-bind (modname &rest initargs)
 	(cdr v)
-      (synthesise-module-instance n modname initargs))))
+      (synthesise-module-instance n modname initargs env))))
 
 
-(defun synthesise-decl (decl context)
-  "Synthesise DECL in CONTEXT."
+(defun synthesise-decl (decl env context)
+  "Synthesise DECL in ENV in CONTEXT."
   (destructuring-bind (n v &key type as)
       decl
     (if (module-value-p v)
 	;; instanciating a module
-	(synthesise-module-instanciation decl)
+	(synthesise-module-instanciation decl env)
 
 	;; otherwise, creating a variable
 	(case as
 	  (:constant
-	   (synthesise-constant decl context))
+	   (synthesise-constant decl env context))
 	  (:register
-	   (synthesise-register decl context))
+	   (synthesise-register decl env context))
 	  (:wire
-	   (synthesise-wire decl context))
+	   (synthesise-wire decl env context))
 	  (t
-	   (synthesise-register decl context))))))
+	   (synthesise-register decl env context))))))
 
 
-(defmethod synthesise-sexp ((fun (eql 'let)) args (context (eql :inmodule)))
+(defmethod synthesise-sexp ((fun (eql 'let)) args env (context (eql :inmodule)))
   (let ((decls (car args))
 	(body (cdr args)))
 
     ;; synthesise the constants and registers
-    (as-block-forms decls context :process #'synthesise-decl)
+    (as-block-forms decls env context :process #'synthesise-decl)
     (if (> (length decls) 0)
 	(as-blank-line))
 
     ;; synthesise the body
-    (as-block-forms body :inmodule)))
+    (as-block-forms body env :inmodule)))
 
 
-(defmethod synthesise-sexp ((fun (eql 'let)) args (context (eql :inblock)))
-  (synthesise-sexp fun args :inmodule))
+(defmethod synthesise-sexp ((fun (eql 'let)) args env (context (eql :inblock)))
+  (synthesise-sexp fun args env :inmodule))

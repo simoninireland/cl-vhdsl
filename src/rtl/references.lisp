@@ -37,14 +37,14 @@
   form)
 
 
-(defmethod synthesise ((form symbol) (context (eql :inexpression)))
+(defmethod synthesise ((form symbol) env (context (eql :inexpression)))
   (as-literal (format nil "~(~a~)" (ensure-legal-identifier (symbol-name form)))))
 
-(defmethod synthesise ((form symbol) (context (eql :inassignment)))
-  (synthesise form :inexpression))
+(defmethod synthesise ((form symbol) env (context (eql :inassignment)))
+  (synthesise form env :inexpression))
 
-(defmethod synthesise ((form symbol) (context (eql :indeclaration)))
-  (synthesise form :inexpression))
+(defmethod synthesise ((form symbol) env (context (eql :indeclaration)))
+  (synthesise form env :inexpression))
 
 
 (defmethod lispify ((form symbol) env)

@@ -41,7 +41,7 @@
 	`(unsigned-byte ,w)))))
 
 
-(defmethod synthesise-sexp ((fun (eql 'make-bitfields)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'make-bitfields)) args env (context (eql :inexpression)))
   (as-list args :inexpression
 	   :before "{"
 	   :after "}"))
@@ -62,11 +62,11 @@
 	`(unsigned-byte ,w)))))
 
 
-(defun synthesise-fixed-width-constant (c width &optional (base 2))
-  "Synthesise C as a constant with the given WIDTH.
+(defun synthesise-fixed-width-constant (c width env &optional (base 2))
+  "Synthesise C as a constant with the given WIDTH in ENV.
 
 The BASE used can be 2, 8, 10, or 16."
-  (synthesise width :inexpression)
+  (synthesise width env :inexpression)
   (as-literal "'")
   (as-literal (ecase base
 		(2  "b")
@@ -74,21 +74,21 @@ The BASE used can be 2, 8, 10, or 16."
 		(10 "d")
 		(16 "x")))
   (let ((*print-base* base))
-    (synthesise c :inexpression)))
+    (synthesise c env :inexpression)))
 
 
-(defmethod synthesise-sexp ((fun (eql 'extend-bits)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'extend-bits)) args env (context (eql :inexpression)))
   (destructuring-bind (bs width)
       args
     (as-literal "{")
-    (synthesise width :inexpression)
+    (synthesise width env :inexpression)
     (as-literal "{")
     (if (static-constant-p bs nil)
 	;; value is a static constant, output it
 	(let ((w (bitwidth (ensure-static bs nil) nil)))
-	  (synthesise-fixed-width-constant bs w))
+	  (synthesise-fixed-width-constant bs w env))
 
 	;; value is an expression, synthesise it
 	(progn
-	  (synthesise bs :inexpression)))
+	  (synthesise bs env :inexpression)))
     (as-literal "}}")))
