@@ -194,7 +194,15 @@ ADD/SUB selects between add (0) and subtract (1), or logical (0) and arithmetic 
 	     ))
 
 	  ;; write-back register
-	  (setf (aref register-file rdid) write-back))
+	  (when (and (/= rdid 0)
+		     (or (= opcode #2r0110011)	 ; ALUreg
+			 (= opcode #2r0010011)	 ; ALUimm
+			 (= opcode #2r1100111)	 ; JALR
+			 (= opcode #2r1101111))) ; JAL
+	    (setf (aref register-file rdid) write-back)))
 
 	;; update PC
-	(setf pc next-pc)))))
+	(setf pc next-pc)))
+
+    ;; return the register file
+    register-file))
