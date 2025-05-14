@@ -197,7 +197,4 @@ ADD/SUB selects between add (0) and subtract (1), or logical (0) and arithmetic 
 	  (setf (aref register-file rdid) write-back))
 
 	;; update PC
-	(setf pc next-pc)))
-
-    ;; return the value of x1 for now
-    (aref register-file 1)))
+	(setf pc next-pc)))))
