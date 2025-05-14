@@ -128,7 +128,7 @@ ADD/SUB selects between add (0) and subtract (1), or logical (0) and arithmetic 
 
 	  (case opcode
 	    (#2r0110011
-	     ;; ALU register
+	     ;; ALU register-with-register arithmetic
 	     (let ((rs1 (aref register-file rs1id))
 		   (rs2 (aref register-file rs2id)))
 
@@ -139,7 +139,7 @@ ADD/SUB selects between add (0) and subtract (1), or logical (0) and arithmetic 
 				  (1bit instr 5))))))
 
 	    (#2r0010011
-	     ;; ALU immediate
+	     ;; ALU register-with-immediate arithmetic
 	     (let ((rs1 (aref register-file rs1id))
 		   (Iimm (coerce (nbits instr 31 :end 20) '(signed-byte 12))))
 
@@ -199,12 +199,5 @@ ADD/SUB selects between add (0) and subtract (1), or logical (0) and arithmetic 
 	;; update PC
 	(setf pc next-pc)))
 
-    (aref register-file 1)
-
-
-
-    )
-
-
-
-  )
+    ;; return the value of x1 for now
+    (aref register-file 1)))
