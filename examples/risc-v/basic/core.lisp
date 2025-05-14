@@ -64,7 +64,7 @@
 		      :type (unsigned-byte 32))
 		(Iimm (make-bitfields (extend-bits (bit instr 31) 21)
 				      (bits instr 30 :end 20))
-		      :type (unsigned-byte 32))
+		      :type (signed-byte 32))
 		(Simm (make-bitfields (extend-bits (bit instr 31) 21)
 				      (bits instr 30 :end 25)
 				      (bits instr 11 :end 7))
@@ -75,13 +75,13 @@
 				      (bits instr 11 :end 8)
 				      (extend-bits 0 1))
 
-		      :type (unsigned-byte 32))
+		      :type (signed-byte 32))
 		(Jimm (make-bitfields (extend-bits (bit instr 31) 12)
 				      (bits instr 19 :end 12)
 				      (bit instr 20)
 				      (bits instr 30 :end 21)
 				      (extend-bits 0 1))
-		      :type (unsigned-byte 32))
+		      :type (signed-byte 32))
 
 		;; source and destination registers
 		(rs1Id (bits instr 19 :end 15) :type (unsigned-byte 5))
