@@ -31,7 +31,6 @@ OBJECT = core.v
 
 # Assembly code
 ASM_SOURCES = firmware.s
-ASM_OBJECT = firmware.hex
 
 
 # ---------- Tools ----------
@@ -40,13 +39,20 @@ ASM_OBJECT = firmware.hex
 RM = rm -fr
 
 
+# ---------- Derived filenames ----------
+
+ASM_STEMS = $(foreach fn,$(ASM_SOURCES), $(shell basename $(fn) .s))
+ASM_GENERATED = $(foreach stem,$(ASM_STEMS),$(stem).o $(stem).hex)
+ASM_OBJECTS = $(foreach stem,$(ASM_STEMS),$(stem).o)
+
+
 # ---------- Top-level targets ----------
 
 # Build the target bitstream
 $(TARGET): $(OBJECT) $(CONFIG)
 
 
-$(OBJECT): $(ASM_OBJECT) $(SOURCES)
+$(OBJECT): $(ASM_OBJECTS) $(SOURCES)
 
 
 # Upload the target bitstream to the device
@@ -78,9 +84,6 @@ OD = od
 
 AS_OPTS = -march=rv32i -mabi=ilp32 -mno-relax
 LD_OPTS = -T bram.ld -m elf32lriscv -nostdlib
-
-ASM_STEMS = $(foreach fn,$(ASM_SOURCES), $(shell basename $(fn) .s))
-ASM_GENERATED += $(foreach stem,$(ASM_STEMS),$(stem).o $(stem).hex)
 
 .SUFFIXES: .s .o .hex
 
