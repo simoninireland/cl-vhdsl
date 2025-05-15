@@ -64,6 +64,37 @@ ADD/SUB selects between add (0) and subtract (1), or logical (0) and arithmetic 
      (logand a b))))
 
 
+(defun comparator (a b op)
+  "Compare A to B under OP."
+  (case op
+    (#2r000
+     ;; equality
+     (= a b))
+
+    (#2r001
+     ;; inequality
+     (/= a b))
+
+    (#2r100
+     ;; less-than (signed)
+     (< a b))
+
+    (#2r101
+     ;; greater-than or equal-to (signed)
+     (>= a b))
+
+    (#2r110
+     ;; less-than (unsigned)
+     (< a b))  ; FIXME
+
+    (#2r111
+     ;; greater-than or equal-to (unsigned)
+     (>= a b))  ; FIXME
+
+    (t
+     0)))
+
+
 (defun whitespace-char-p (x)
   (or (char= #\space x)
       (not (graphic-char-p x))))
@@ -123,7 +154,7 @@ ADD/SUB selects between add (0) and subtract (1), or logical (0) and arithmetic 
 	(with-bitfields ((funct7 7) (rs2id 5) (rs1id 5) (funct3 3) (rdid 5) (opcode 7))
 	    instr
 
-	  ;; increment PC
+	  ;; increment target PC for next instruction cycle
 	  (setq next-pc (+ pc 4))
 
 	  (case opcode
@@ -151,7 +182,19 @@ ADD/SUB selects between add (0) and subtract (1), or logical (0) and arithmetic 
 
 	    (#2r1100011
 	     ;; branch
-	     )
+	     (let ((Bimm (make-bitfields (signed-byte 32)
+					 ((copy-bit (1bit instr 31) 20) 20)
+					 ((1bit instr 7) 1)
+					 ((nbits instr 30 :end 25) 6)
+					 ((nbits instr 11 :end 8) 4)
+					 (0 1))))
+
+	       (let ((rs1 (aref register-file rs1id))
+		     (rs2 (aref register-file rs2id)))
+
+		 (if (comparator rs1 rs2
+				 funct3)
+		     (setf next-pc (+ pc Bimm))))))
 
 	    (#2r1100111
 	     ;; jump and link relative to register
