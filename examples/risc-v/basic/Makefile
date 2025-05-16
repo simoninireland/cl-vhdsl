@@ -16,6 +16,7 @@
 # along with this software. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 include ../../icestick.mk
+include ../../risc-v.mk
 
 
 # ---------- Target code ----------

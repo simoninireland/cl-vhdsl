@@ -15,13 +15,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this software. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
+include ../risc-v.mk
+
+
 # ---------- Target code ----------
 
 # Sources
-SOURCES = package.lisp utils.lisp straight.isp
+SOURCES = package.lisp utils.lisp straight.lisp
 
 # Assembly code
-ASM_SOURCES = count.s boundedcount.s
+ASM_SOURCES = count.s boundedcount.s slowcount1.s sum.s
 
 
 # ---------- Tools ----------
@@ -52,35 +55,6 @@ clean:
 # Print a help message
 help:
 	@make usage
-
-
-# ---------- Assembler rules ----------
-
-AS = riscv64-linux-gnu-as
-LD = riscv64-linux-gnu-ld
-OBJDUMP = riscv64-linux-gnu-objdump
-GREP = grep
-BASH = bash
-SED = sed
-AWK = awk
-DD = dd
-OD = od
-
-AS_OPTS = -march=rv32i -mabi=ilp32 -mno-relax
-LD_OPTS = -T bram.ld -m elf32lriscv -nostdlib
-
-.SUFFIXES: .s .o .hex
-
-.s.o:
-	$(AS) $(AS_OPTS) $*.s -o $*.o
-
-.o.hex:
-	$(OBJDUMP) -h $*.o | \
-	$(GREP) .text |\
-	$(SED) -e 's|\s\+|\t|g' -e 's|^\s\+||g'| \
-	$(AWK) '{print "$(DD) if=$*.o bs=1 count=$$((0x"$$3")) skip=$$((0x"$$6")) status=none";}' | \
-	$(BASH) | \
-	$(OD) -Anone -tx4 >$*.hex
 
 
 # ----- Usage -----
