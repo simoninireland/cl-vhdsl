@@ -50,6 +50,26 @@ or END for the last bit. One or other must be supplied."
 	  (mask width)))
 
 
+(defun write-bits (val var start &key width end)
+  "Set the specified bits in VAR to VAL, returning the new value.."
+  (ensure-one-of width end)
+
+  (unless end
+    (setq end (1+ (- start width))))
+  (unless width
+    (setq width (1+ (- start end))))
+
+  (let ((masked-val (logand val (mask width)))
+	(lower (if (= end 0)
+		   0
+		   (logand var (mask end))))
+	(upper (ash var (- (1+ start)))))
+
+    (+ (ash upper (1+ start))
+       (ash masked-val (1+ (- start width)))
+       lower)))
+
+
 (defun 1bit (expr b)
   "Extract bit B from EXPR."
   (if (= (logand expr
