@@ -37,6 +37,9 @@
   (:export
    ;; fixed-width types
    #:bitwidth
+   #:fixed-width-p
+   #:UNsigned-byte-p
+   #:signed-byte-p
 
    ;; environments
    #:empty-environment
