@@ -58,7 +58,7 @@ updated; #2r0001 updates only the least-significant byte; and so on."
 	(setf (aref (slot-value ram 'mem) word-addr) data)
 
 	;; write according to the mask, which is less efficient
-	(let ((updated  (aref (slot-value ram 'mem) word-addr)))
+	(let ((updated (aref (slot-value ram 'mem) word-addr)))
 	  (when (= (1bit write-mask 0) 1)
 	    (setq updated (write-bits (nbits data 7 :width 8)
 				      updated 7 :width 8)))
@@ -72,12 +72,15 @@ updated; #2r0001 updates only the least-significant byte; and so on."
 	    (setq updated (write-bits (nbits data 31 :width 8)
 				      updated 31 :width 8)))
 
-	  (setf  (aref (slot-value ram 'mem) word-addr) updated)))))
+	  (setf (aref (slot-value ram 'mem) word-addr) updated)))))
 
 
-(defun whitespace-char-p (x)
-  (or (char= #\space x)
-      (not (graphic-char-p x))))
+(defun whitespace-char-p (c)
+  "Test whether C is a whitespace character.
+
+This is the definition used by the standard."
+  (or (char= #\space c)
+      (not (graphic-char-p c))))
 
 
 (defun skip-whitespace (str)
@@ -224,7 +227,7 @@ ADD/SUB selects between add (0) and subtract (1), or logical (0) and arithmetic 
 							   :initial-element 0)))
 
 
-(defun reset (core)
+(defun reset-core (core)
   "Reset CORE."
   (with-slots (pc instr register-file)
       core
@@ -242,7 +245,7 @@ non-nil the core will enter the debugger after every instuction cycle."
   (declare (optimize debug))
 
   (when reset
-    (reset core))
+    (reset-core core))
 
   (with-slots (mem alu comparator pc instr register-file)
       core
