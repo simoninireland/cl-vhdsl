@@ -59,17 +59,17 @@ updated; #2r0001 updates only the least-significant byte; and so on."
 
 	;; write according to the mask, which is less efficient
 	(let ((updated (aref (slot-value ram 'mem) word-addr)))
-	  (when (= (1bit write-mask 0) 1)
-	    (setq updated (write-bits (nbits data 7 :width 8)
+	  (when (asserted-p (bits write-mask 0))
+	    (setq updated (write-bits (bits data 7 :width 8)
 				      updated 7 :width 8)))
-	  (when (= (1bit write-mask 1) 1)
-	    (setq updated (write-bits (nbits data 15 :width 8)
+	  (when (asserted-p (bits write-mask 1))
+	    (setq updated (write-bits (bits data 15 :width 8)
 				      updated 15 :width 8)))
-	  (when (= (1bit write-mask 2) 1)
-	    (setq updated (write-bits (nbits data 23 :width 8)
+	  (when (asserted-p (bits write-mask 2))
+	    (setq updated (write-bits (bits data 23 :width 8)
 				      updated 23 :width 8)))
-	  (when (= (1bit write-mask 3) 1)
-	    (setq updated (write-bits (nbits data 31 :width 8)
+	  (when (asserted-p (bits write-mask 3))
+	    (setq updated (write-bits (bits data 31 :width 8)
 				      updated 31 :width 8)))
 
 	  (setf (aref (slot-value ram 'mem) word-addr) updated)))))
@@ -310,27 +310,27 @@ adds one more cycle to CYCLES."
 
 		       (setf write-back (compute alu rs1 rs2
 						 funct3
-						 (logand (1bit funct7 5)
-							 (1bit instr 5))))))
+						 (logand (bits funct7 5)
+							 (bits instr 5))))))
 
 		    (#2r0010011
 		     ;; ALU register-with-immediate arithmetic
 		     (let ((rs1 (aref register-file rs1id))
-			   (Iimm (twos-complement (nbits instr 31 :end 20) 12)))
+			   (Iimm (twos-complement (bits instr 31 :end 20) 12)))
 
 		       (setf write-back (compute alu
 						 rs1 Iimm
 						 funct3
-						 (logand (1bit funct7 5)
-							 (1bit instr 5))))))
+						 (logand (bits funct7 5)
+							 (bits instr 5))))))
 
 		    (#2r1100011
 		     ;; branch
 		     (let ((Bimm (make-bitfields (signed-byte 32)
-						 ((copy-bit (1bit instr 31) 20) 20)
-						 ((1bit instr 7) 1)
-						 ((nbits instr 30 :end 25) 6)
-						 ((nbits instr 11 :end 8) 4)
+						 ((copy-bit (bits instr 31) 20) 20)
+						 ((bits instr 7) 1)
+						 ((bits instr 30 :end 25) 6)
+						 ((bits instr 11 :end 8) 4)
 						 (0 1))))
 
 		       (let ((rs1 (aref register-file rs1id))
@@ -344,7 +344,7 @@ adds one more cycle to CYCLES."
 		    (#2r1100111
 		     ;; jump and link relative to register
 		     (let ((rs1 (aref register-file rs1id))
-			   (Iimm (twos-complement (nbits instr 31 :end 20) 12)))
+			   (Iimm (twos-complement (bits instr 31 :end 20) 12)))
 
 		       (setf write-back (+ pc 4))
 		       (setf next-pc (+ rs1 Iimm) )))
@@ -352,10 +352,10 @@ adds one more cycle to CYCLES."
 		    (#2r1101111
 		     ;; jump and link relative to PC
 		     (let ((Jimm (make-bitfields (signed-byte 32)
-						 ((copy-bit (1bit instr 31) 12) 12)
-						 ((nbits instr 19 :end 12) 8)
-						 ((1bit instr 20) 1)
-						 ((nbits instr 30 :end 21) 10)
+						 ((copy-bit (bits instr 31) 12) 12)
+						 ((bits instr 19 :end 12) 8)
+						 ((bits instr 20) 1)
+						 ((bits instr 30 :end 21) 10)
 						 (0 1))))
 
 		       (setf write-back (+ pc 4))
@@ -364,8 +364,8 @@ adds one more cycle to CYCLES."
 		    (#2r0010111
 		     ;; add upper immediate
 		     (let ((Uimm (make-bitfields (signed-byte 32)
-						 ((1bit instr 31) 1)
-						 ((nbits instr 20 :end 12) 9)
+						 ((bits instr 31) 1)
+						 ((bits instr 20 :end 12) 9)
 						 ((copy-bit 0 12) 12))))
 
 		       (setf write-back (+ pc Uimm))))
@@ -373,8 +373,8 @@ adds one more cycle to CYCLES."
 		    (#2r0110111
 		     ;; load upper immediate
 		     (let ((Uimm (make-bitfields (signed-byte 32)
-						 ((1bit instr 31) 1)
-						 ((nbits instr 20 :end 12) 9)
+						 ((bits instr 31) 1)
+						 ((bits instr 20 :end 12) 9)
 						 ((copy-bit 0 12) 12))))
 
 		       (setf write-back Uimm)))
@@ -382,29 +382,29 @@ adds one more cycle to CYCLES."
 		    (#2r0000011
 		     ;; load
 		     (let* ((rs1 (aref register-file rs1id))
-			    (Iimm (twos-complement (nbits instr 31 :end 20) 12))
+			    (Iimm (twos-complement (bits instr 31 :end 20) 12))
 			    (addr (+ rs1 Iimm))
 			    (data (read-address mem addr))
-			    (read-type (nbits funct3 1 :width 2))
-			    (sign-extending (= (1bit funct3 2) 1)))
+			    (read-type (bits funct3 1 :width 2))
+			    (sign-extending (= (bits funct3 2) 1)))
 
 		       ;; extract loaded data from read data
 		       (cond ((= read-type #2r00)
 			      ;; load byte
-			      (if (asserted-p (1bit addr 0))
-				  (if (asserted-p (1bit addr 1))
+			      (if (asserted-p (bits addr 0))
+				  (if (asserted-p (bits addr 1))
 				      ;; upper byte of upper half-word
-				      (setf write-back (nbits (nbits data 31 :end 16) 15 :end 8))
+				      (setf write-back (bits (bits data 31 :end 16) 15 :end 8))
 
 				      ;; lower byte of upper half-word
-				      (setf write-back (nbits (nbits data 31 :end 16) 7 :end 0)))
+				      (setf write-back (bits (bits data 31 :end 16) 7 :end 0)))
 
-				  (if (asserted-p (1bit addr 1))
+				  (if (asserted-p (bits addr 1))
 				      ;; upper byte of lower half-word
-				      (setf write-back (nbits (nbits data 15 :end 0) 15 :end 8))
+				      (setf write-back (bits (bits data 15 :end 0) 15 :end 8))
 
 				      ;; lower byte of lower half-word
-				      (setf write-back (nbits (nbits data 15 :end 0) 7 :end 0))))
+				      (setf write-back (bits (bits data 15 :end 0) 7 :end 0))))
 
 			      ;; sign-extend if requested
 			      (if sign-extending
@@ -412,12 +412,12 @@ adds one more cycle to CYCLES."
 
 			     ((= read-type #2r01)
 			      ;; load half-word
-			      (if (asserted-p (1bit addr 1))
+			      (if (asserted-p (bits addr 1))
 				  ;; upper half-word
-				  (setf write-back (nbits data 31 :end 16))
+				  (setf write-back (bits data 31 :end 16))
 
 				  ;; lower half-word
-				  (setf write-back (nbits data 15 :end 0)))
+				  (setf write-back (bits data 15 :end 0)))
 
 			      ;; sign-extend if requested
 			      (if sign-extending
@@ -433,27 +433,27 @@ adds one more cycle to CYCLES."
 		     (let* ((rs1 (aref register-file rs1id))
 			    (rs2 (aref register-file rs2id))
 			    (Simm (make-bitfields (signed-byte 32)
-						  ((copy-bit (1bit instr 31) 21) 21)
-						  ((nbits instr 30 :end 25) 6)
-						  ((nbits instr 11 :end 7) 5)))
+						  ((copy-bit (bits instr 31) 21) 21)
+						  ((bits instr 30 :end 25) 6)
+						  ((bits instr 11 :end 7) 5)))
 			    (addr (+ rs1 Simm))
-			    (read-type (nbits funct3 1 :width 2))
+			    (read-type (bits funct3 1 :width 2))
 			    (write-mask (cond ((= read-type #2r00)
 					       ;; store byte
-					       (if (asserted-p (1bit addr 1))
+					       (if (asserted-p (bits addr 1))
 						   ;; writing to byte in upper half-word
-						   (if (asserted-p (1bit addr 0))
+						   (if (asserted-p (bits addr 0))
 						       #2r1000
 						       #2r0100)
 
 						   ;; writing to byte in lower half-word
-						   (if (asserted-p (1bit addr 0))
+						   (if (asserted-p (bits addr 0))
 						       #2r0010
 						       #2r0001)))
 
 					      ((= read-type #2r01)
 					       ;; store half-word
-					       (if (asserted-p (1bit addr 1))
+					       (if (asserted-p (bits addr 1))
 						   ;; writing to upper half-word
 						   #2r1100
 

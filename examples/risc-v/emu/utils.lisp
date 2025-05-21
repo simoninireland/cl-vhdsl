@@ -34,30 +34,39 @@
 	  (t t))))
 
 
-(defun nbits (expr start &key width end)
+(defun bits (expr start &key width end)
   "Extract bits from EXPR starting at bit START.
 
 The number of bits can be given by WIDTH for a number of bits
-or END for the last bit. One or other must be supplied."
-  (ensure-one-of width end)
+or END for the last bit. If neither is supplied then the single
+START bit is returned."
+  (cond ((and (null width)
+	      (null end))
+	 (setq width 1)
+	 (setq end start))
 
-  (unless end
-    (setq end (1+ (- start width))))
-  (unless width
-    (setq width (1+ (- start end))))
+	((null end)
+	 (setq end (1+ (- start width))))
+
+	((null width)
+	 (setq width (1+ (- start end)))))
 
   (logand (ash expr (- end))
 	  (mask width)))
 
 
 (defun write-bits (val var start &key width end)
-  "Set the specified bits in VAR to VAL, returning the new value.."
-  (ensure-one-of width end)
+  "Set the specified bits in VAR to VAL, returning the new value."
+  (cond ((and (null width)
+	      (null end))
+	 (setq width 1)
+	 (setq end start))
 
-  (unless end
-    (setq end (1+ (- start width))))
-  (unless width
-    (setq width (1+ (- start end))))
+	((null end)
+	 (setq end (1+ (- start width))))
+
+	((null width)
+	 (setq width (1+ (- start end)))))
 
   (let ((masked-val (logand val (mask width)))
 	(lower (if (= end 0)
@@ -70,15 +79,6 @@ or END for the last bit. One or other must be supplied."
        lower)))
 
 
-(defun 1bit (expr b)
-  "Extract bit B from EXPR."
-  (if (= (logand expr
-		 (ash 1 b))
-	 0)
-      0
-      1))
-
-
 (defun copy-bit (b w)
   "Return a number that is W copies of the bit B."
   (if (= 0 b)
@@ -88,7 +88,7 @@ or END for the last bit. One or other must be supplied."
 
 (defun mask (w)
   "Return a mask of W 1s."
-  (1- (ash 1 w)))
+  (copy-bit 1 w))
 
 
 (defun asserted-p (b)
@@ -110,7 +110,7 @@ The variables are then in scope (as generalised places) in BODY."
 		   (let ((field (car fields)))
 		     (destructuring-bind (var width)
 			 field
-		       (cons `(,var (nbits ,val ,start :width ,width))
+		       (cons `(,var (bits ,val ,start :width ,width))
 			     (field-variables (cdr fields) (- start width)))))))
 
 	     (fields-width (fields)
@@ -147,7 +147,7 @@ For example, (INTERLEAVE '(1 2 3) '(a b c)) will construct
   "If N is negative under two's complement, return the negative number.
 
 Otherwise return N unchanged. W is the width of N in bits."
-  (if (= (1bit n (1- w)) 1)
+  (if (asserted-p (1bit n (1- w)))
       ;; number is negative, invert all bits, add 1, and make negative
       (- (1+ (logxor (logand n (mask (1- w))) (mask (1- w)))))
 
