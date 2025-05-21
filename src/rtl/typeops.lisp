@@ -20,6 +20,19 @@
 (in-package :cl-vhdsl/rtl)
 
 
+;; ---------- Type checking ----------
+
+(defun ensure-subtype (ty1 ty2 env)
+  "Ensure TY1 is a sub-type of TY2 in ENV.
+
+Signals TYPE-MISMATCH is the types are not compatible. This
+can be ignored for systems not concerned with loss of precision."
+  (let ((ety1 (expand-type-parameters ty1 env))
+	(ety2 (expand-type-parameters ty2 env)))
+    (when (not (subtypep ety1 ety2))
+      (signal 'type-mismatch :expected ty2 :got ty1))))
+
+
 ;; ---------- Bit widths ----------
 
 (defgeneric bitwidth (v env)
