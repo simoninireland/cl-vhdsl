@@ -30,74 +30,39 @@ generally reflect the word size of the desired circuit, for
 example 8, 16, 32, or 64 bits.")
 
 
-;; ---------- Type checking ----------
+;; ---------- Environments ----------
 
-(defun ensure-subtype (ty1 ty2 env)
-  "Ensure TY1 is a sub-type of TY2 in ENV.
+(defclass frame ()
+  ((parent-frame
+    :documentation "The frame containing this one."
+    :initarg :parent
+    :initform nil
+    :reader parent-frame)
+   (decls
+    :documentation "An alist mapping names to plists of properties."
+    :initform nil
+    :accessor decls))
+  (:documentation "A frame in an environment.
 
-Signals TYPE-MISMATCH is the types are not compatible. This
-can be ignored for systems not concerned with loss of precision."
-  (let ((ety1 (expand-type-parameters ty1 env))
-	(ety2 (expand-type-parameters ty2 env)))
-    (when (not (subtypep ety1 ety2))
-      (signal 'type-mismatch :expected ty2 :got ty1))))
+An environment is composed of frames, which are in turn composed of declarations
+consisting of a name and a list of key-value property pairs. The names in a frame
+must be unique, but may be the same as names in parent frames, in which case
+the name and properties in the shallower frame shadow those in the deeper frame.
 
-
-;; ---------- Type environments and frames ----------
-
-(defun empty-frame ()
-  "Return a new empty frame."
-  (copy-list '(frame)))
+There are functions that operate on the shallowest frame, and corresponding
+one that operate on the complete environment."))
 
 
 (defun empty-environment ()
-  "Return a new empty environment consisting of an end-marker."
-  (copy-list '((end))))
+  "Return a new empty environment."
+  (make-instance 'frame))
 
 
 (defun add-frame (env)
   "Return a new environment consisting of ENV with a new empty frame.
 
 ENV is unchanged by this operation."
-  (cons (empty-frame) env))
-
-
-(defun has-frame-p (env)
-  "Test whether ENV has any frames into which to define variables."
-  (and (not (null env))
-       (eql (caar env) 'frame)))
-
-
-(defun ensure-has-frame (env)
-  "Ensure that ENV has at least one frame."
-  (unless (has-frame-p env)
-    (error "Empty environment")))
-
-
-(defun declare-variable (n props env)
-  "Declare a variable N with properties PROPS in the shallowest frame of ENV.
-
-Return the updated environment.
-
-Signals a DUPLICATE-VARIABLE error if the variable already exists in this frame."
-  (ensure-has-frame env)
-  (let ((frame (car env)))
-    (when (member n (cdr frame) :key #'car)
-      (error 'duplicate-variable :variable n))
-
-    ;; copy properties to avoid re-writing the original
-    (setf (cdr frame) (cons (cons n (copy-tree props)) (cdr frame)))
-
-    ;; return the updated environment
-    env))
-
-
-;; ---------- Frame operations ----------
-
-(defun get-frame-bindings (env)
-  "Return the list of bindings in the topmost frame of ENV."
-  (ensure-has-frame env)
-  (cdar env))
+  (make-instance 'frame :parent env))
 
 
 (defun get-frame-properties (n env)
@@ -106,10 +71,9 @@ N can be a symbol (usually) or a string. In the latter case the
 variable is checked by string equality aginst the symbol name.
 
 An UNKNOWN-VARIABLE error is signalled if N is undefined."
-  (ensure-has-frame env)
   (if-let ((kv (if (symbolp n)
-		   (assoc n (get-frame-bindings env))
-		   (assoc n (get-frame-bindings env)
+		   (assoc n (decls env))
+		   (assoc n (decls env)
 			  :key #'symbol-name
 			  :test #'string-equal))))
     (cdr kv)
@@ -120,16 +84,16 @@ An UNKNOWN-VARIABLE error is signalled if N is undefined."
 
 (defun get-frame-names (env)
   "Return the names of the variables in the topmost frame of ENV."
-  (if (has-frame-p env)
-      (mapcar #'car (cdr (car env)))
-      nil))
+  (mapcar #'car (decls env)))
 
 
 (defun variable-declared-in-frame-p (n env)
   "Test whether N is defined in the topmost frame of ENV."
-  (not (null (member n (get-frame-names env)
-		     :key #'symbol-name
-		     :test #'string-equal))))
+  (not (null (if (symbolp n)
+		 (assoc n (decls env))
+		 (assoc n (decls env)
+			 :key #'symbol-name
+			 :test #'string-equal)))))
 
 
 (defun get-frame-property (n prop env &key default)
@@ -162,21 +126,14 @@ An UNKNOWN-VARIABLE error is signalled if N is undefined."
 	(setf (cdr e) (list (list prop v)))))))
 
 
-;; ---------- Global environment operations ----------
-
 (defun get-frame-declaring (n env)
   "Return the shallowest frame in ENV that declares N.
 
 An UNKNOWN-VARIABLE error is signalled if N is undefined."
-  (cond ((not (has-frame-p env))
-	 (error 'unknown-variable :variable n
-				  :hint "Make sure the variable is in scope"))
+  (if (variable-declared-in-frame-p n env)
+      env
 
-	((variable-declared-in-frame-p n env)
-	 env)
-
-	(t
-	 (get-frame-declaring n (cdr env)))))
+      (get-frame-declaring n (parent-frame env))))
 
 
 (defun get-environment-properties (n env)
@@ -191,9 +148,8 @@ An UNKNOWN-VARIABLE error is signalled if N is undefined."
 
 (defun get-environment-names (env)
   "Return the names in ENV."
-  (foldr #'union (mapcar (lambda (frame)
-			   (get-frame-names (list frame)))
-			 env)
+  (foldr #'union (map-environment (lambda (n env) (list  n))
+				  env)
 	 '()))
 
 
@@ -221,6 +177,22 @@ This affects the shallowest declaration of N."
   (not (null (member n (get-environment-names env)))))
 
 
+(defun declare-variable (n props env)
+  "Declare a variable N with properties PROPS in the shallowest frame of ENV.
+
+Return the updated environment.
+
+Signals a DUPLICATE-VARIABLE error if the variable already exists in this frame."
+  (when (variable-declared-in-frame-p n env)
+    (error 'duplicate-variable :variable n))
+
+  ;; copy properties to avoid re-writing the original
+  (setf (decls env) (cons (cons n (copy-tree props)) (decls env)))
+
+  ;; return the updated environment
+  env)
+
+
 (defun filter-environment (pred env)
   "Return an environment containing all the entries of ENV matching PRED.
 
@@ -228,14 +200,17 @@ PRED should be a predicate taking a name and the environment with the
 frame containing that name on top (so that a call to GET-ENVIRONMENT-PROPERTY
 will return the correct value for that variable at that depth)."
   (labels ((descend-env (l)
-	     (if (not (has-frame-p l))
+	     (if (null l)
 		 nil
 
-		 (append (list (cons 'frame
-				     (remove-if-not (lambda (decl)
-						      (funcall pred (car decl) l))
-						    (get-frame-bindings l))))
-			 (descend-env (cdr l))))))
+		 (let ((retained (remove-if-not (lambda (n)
+						  (funcall pred n l))
+						(get-frame-names l)))
+		       (fenv (make-instance 'frame :parent (descend-env (parent-frame l)))))
+		   (mapc (lambda (n)
+			   (declare-variable n (get-frame-properties n l) fenv))
+			 retained)
+		   fenv))))
 
     (descend-env env)))
 
@@ -247,13 +222,13 @@ F should be a function taking a name and an environment. The
 result is a list of the values returned from F. The list will be
 flat, regardless of the frame structure of ENV."
   (labels ((descend-env (l)
-	     (if (not (has-frame-p l))
+	     (if (null l)
 		 nil
 
 		 (append (mapcar (lambda (n)
 				   (funcall f n l))
 				 (get-frame-names l))
-			 (descend-env (cdr l))))))
+			 (descend-env (parent-frame l))))))
 
     (descend-env env)))
 

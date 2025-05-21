@@ -28,7 +28,7 @@
 
 (test test-declare-variables
   "Test we can declare variables in a frame."
-  (let ((env (rtl::add-frame (rtl::empty-environment))))
+  (let ((env (rtl::empty-environment)))
     (is (rtl::variable-declared-p 'a (rtl::declare-variable 'a '((:a 1) (:b 2)) env)))
     (is (rtl::variable-declared-p 'b (rtl::declare-variable 'b '((:a 6) (:b 4)) env)))
 
@@ -37,15 +37,15 @@
       (rtl::declare-variable 'b '((:a 6) (:b 4)) env))
 
     ;; names
-    (is (equal (rtl::get-frame-names env)
-	       '(b a)))
+    (is (set-equal (rtl::get-frame-names env)
+		   '(b a)))
     (is (rtl::variable-declared-in-frame-p 'a env))
     (is (not (rtl::variable-declared-in-frame-p 'c env)))))
 
 
 (test test-get-properties
   "Test we can retrieve properties from a frame."
-  (let ((env (rtl::add-frame (rtl::empty-environment))))
+  (let ((env (rtl::empty-environment)))
     (rtl::declare-variable 'a '((:a 1) (:b 2)) env)
     (is (rtl::get-frame-properties 'a env)
 	'((:a 1) (:b 2)))
@@ -56,7 +56,7 @@
 
 (test test-get-property
   "Test we can retrieve a property."
-   (let ((env (rtl::add-frame (rtl::empty-environment))))
+   (let ((env (rtl::empty-environment)))
      (rtl::declare-variable 'a '((:a 1) (:b 2)) env)
      (is (equal (rtl::get-frame-property 'a :b env) 2))
 
@@ -69,7 +69,7 @@
 
 (test test-set-property
   "Test we can set frame properties."
-  (let ((env (rtl::add-frame (rtl::empty-environment))))
+  (let ((env (rtl::empty-environment)))
     (rtl::declare-variable 'a '((:a 1) (:b 2)) env)
     (rtl::declare-variable 'b '((:a 1) (:b 2)) env) ; maximise sharing danger
 
@@ -87,15 +87,6 @@
 
 
 ;; ---------- Environments ----------
-
-(test test-define-no-frame
-  "Test we can't define variables in an empty environment without a frame."
-  (let ((env (rtl::empty-environment)))
-    (is (not (rtl::has-frame-p env)))
-
-    (signals (error)
-      (rtl::define-variable 'a '((:a 12)) env))))
-
 
 (test test-names
   "Test we can extract names from an environment."
@@ -174,13 +165,28 @@
     (rtl::ensure-legal-identifier "_")))
 
 
+(test test-test-filter-frame
+  "Test we can filter a single frame."
+  (flet ((filter-by-f (n env)
+	   (if-let ((prop (rtl::get-environment-property n :f env)))
+	     (> prop 20))))
+    (let ((env1 emptyenv))
+      (is (null (rtl::get-frame-names env1)))
+
+      (let ((env2 (rtl::add-frame env1)))
+	(is (rtl::declare-variable 'a '((:f 10)) env2))
+	(is (rtl::declare-variable 'b '((:f 30)) env2))
+	(set-equal (rtl::get-frame-names (rtl::filter-environment #'filter-by-f env2))
+		   '(b))))))
+
+
 (test test-filter-env
   "Test we can filter environments."
   (flet ((filter-by-f (n env)
 	   (if-let ((prop (rtl::get-environment-property n :f env)))
 	     (> prop 20))))
 
-    (let ((env1 (rtl::add-frame (rtl::empty-environment))))
+    (let ((env1 (rtl::empty-environment)))
       (mapc (lambda (decl)
 	      (rtl::declare-variable (car decl) (cadr decl) env1))
 	    '((a ((:f 4)))
