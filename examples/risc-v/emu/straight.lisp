@@ -469,7 +469,8 @@ adds one more cycle to CYCLES."
 
 		    ;; system (SYSTEM)
 		    (#2r1110011
-		     ))
+		     ;; for now just stop execution here
+		     (setf next-pc pc)))
 
 		  ;; write-back register
 		  (when (and (/= rdid 0)
