@@ -21,8 +21,9 @@
 
 .section .text
 
-.global	start
+.global	_start
 
+_start:
 	add  x1, x0, x0
 .L0:
 	addi x1, x1, 1
