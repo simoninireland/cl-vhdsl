@@ -302,9 +302,10 @@ adds one more cycle to CYCLES."
 		  ;; increment target PC for next instruction cycle
 		  (setq next-pc (+ pc 4))
 
+		  ;; run the instruction
 		  (case opcode
+		    ;; ALU register-with-register arithmetic (ALUreg)
 		    (#2r0110011
-		     ;; ALU register-with-register arithmetic
 		     (let ((rs1 (aref register-file rs1id))
 			   (rs2 (aref register-file rs2id)))
 
@@ -313,8 +314,8 @@ adds one more cycle to CYCLES."
 						 (logand (bits funct7 5)
 							 (bits instr 5))))))
 
+		    ;; ALU register-with-immediate arithmetic (ALUimm)
 		    (#2r0010011
-		     ;; ALU register-with-immediate arithmetic
 		     (let ((rs1 (aref register-file rs1id))
 			   (Iimm (twos-complement (bits instr 31 :end 20) 12)))
 
@@ -324,8 +325,8 @@ adds one more cycle to CYCLES."
 						 (logand (bits funct7 5)
 							 (bits instr 5))))))
 
+		    ;; conditional branch (BR)
 		    (#2r1100011
-		     ;; branch
 		     (let ((Bimm (make-bitfields (signed-byte 32)
 						 ((copy-bit (bits instr 31) 20) 20)
 						 ((bits instr 7) 1)
@@ -341,16 +342,16 @@ adds one more cycle to CYCLES."
 				      funct3)
 			     (setf next-pc (+ pc Bimm))))))
 
+		    ;; jump and link relative to register (JALR)
 		    (#2r1100111
-		     ;; jump and link relative to register
 		     (let ((rs1 (aref register-file rs1id))
 			   (Iimm (twos-complement (bits instr 31 :end 20) 12)))
 
 		       (setf write-back (+ pc 4))
 		       (setf next-pc (+ rs1 Iimm) )))
 
+		    ;; jump and link relative to PC (JAL)
 		    (#2r1101111
-		     ;; jump and link relative to PC
 		     (let ((Jimm (make-bitfields (signed-byte 32)
 						 ((copy-bit (bits instr 31) 12) 12)
 						 ((bits instr 19 :end 12) 8)
@@ -361,8 +362,8 @@ adds one more cycle to CYCLES."
 		       (setf write-back (+ pc 4))
 		       (setf next-pc (+ pc Jimm))))
 
+		    ;; load upper immediate relative to PC (AUIPC)
 		    (#2r0010111
-		     ;; add upper immediate
 		     (let ((Uimm (make-bitfields (signed-byte 32)
 						 ((bits instr 31) 1)
 						 ((bits instr 20 :end 12) 9)
@@ -370,8 +371,8 @@ adds one more cycle to CYCLES."
 
 		       (setf write-back (+ pc Uimm))))
 
+		    ;; load upper immediate (LUI)
 		    (#2r0110111
-		     ;; load upper immediate
 		     (let ((Uimm (make-bitfields (signed-byte 32)
 						 ((bits instr 31) 1)
 						 ((bits instr 20 :end 12) 9)
@@ -379,8 +380,8 @@ adds one more cycle to CYCLES."
 
 		       (setf write-back Uimm)))
 
+		    ;; load relative to register (L)
 		    (#2r0000011
-		     ;; load
 		     (let* ((rs1 (aref register-file rs1id))
 			    (Iimm (twos-complement (bits instr 31 :end 20) 12))
 			    (addr (+ rs1 Iimm))
@@ -427,9 +428,8 @@ adds one more cycle to CYCLES."
 			      ;; load word
 			      (setf write-back data)))))
 
-
+		    ;; store relative to register (S)
 		    (#2r0100011
-		     ;; store
 		     (let* ((rs1 (aref register-file rs1id))
 			    (rs2 (aref register-file rs2id))
 			    (Simm (make-bitfields (signed-byte 32)
@@ -467,8 +467,8 @@ adds one more cycle to CYCLES."
 		       ;; store the value
 		       (write-address mem addr rs2 :write-mask write-mask)))
 
+		    ;; system (SYSTEM)
 		    (#2r1110011
-		     ;; system
 		     ))
 
 		  ;; write-back register
