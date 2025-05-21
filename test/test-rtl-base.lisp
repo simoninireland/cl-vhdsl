@@ -67,6 +67,23 @@
 		'ttt))))
 
 
+(test test-frame-declaring
+  "Test we can find the frame declaring a variable."
+  (let ((env1 (rtl::empty-environment)))
+    (rtl::declare-variable 'a '((:a 1) (:b 2)) env1)
+    (rtl::declare-variable 'b '((:a 1) (:b 2)) env1)
+
+    (let ((env2 (rtl::add-frame env1)))
+      (rtl::declare-variable 'b '((:a 1) (:b 2)) env2)
+
+      (equal (rtl::get-frame-declaring 'b env2) env2)
+      (equal (rtl::get-frame-declaring 'a env2) env1)
+      (equal (rtl::get-frame-declaring 'b env1) env1)
+
+      (signals (rtl:unknown-variable)
+	(rtl::get-frame-declaring 'c env2)))))
+
+
 (test test-set-property
   "Test we can set frame properties."
   (let ((env (rtl::empty-environment)))

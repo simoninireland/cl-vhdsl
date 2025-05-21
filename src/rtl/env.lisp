@@ -136,6 +136,7 @@ An UNKNOWN-VARIABLE error is signalled if N is undefined."
       (if-let ((penv (parent-frame env)))
 	(get-frame-declaring n penv)
 
+	;; we ran out of frames to search
 	(error 'unknown-variable :variable n))))
 
 
