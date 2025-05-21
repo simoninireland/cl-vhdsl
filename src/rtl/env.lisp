@@ -133,7 +133,10 @@ An UNKNOWN-VARIABLE error is signalled if N is undefined."
   (if (variable-declared-in-frame-p n env)
       env
 
-      (get-frame-declaring n (parent-frame env))))
+      (if-let ((penv (parent-frame env)))
+	(get-frame-declaring n penv)
+
+	(error 'unknown-variable :variable n))))
 
 
 (defun get-environment-properties (n env)
