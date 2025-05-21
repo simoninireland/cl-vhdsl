@@ -50,8 +50,8 @@
 	       (fixed-width-p vty))
 	  ;; can coerce fixed-width types
 	  (let ((tyw (bitwidth-type (car ty) (cdr ty) env))
-		(vtyw (bitwidth-type (car vty) (cdr vty) env))))
-	  ty
+		(vtyw (bitwidth-type (car vty) (cdr vty) env)))
+	    ty)
 
 	  ;; can't coerce anything else for now
 	  (error 'coercion-mismatch :expected ty :got vty
