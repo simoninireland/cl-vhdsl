@@ -94,11 +94,13 @@ This is the definition used by the standard."
   "Load a program from FILENAME into RAM."
   (let ((pc 0))
     (labels ((read-instruction (str)
+	       "Read a single instruction from STR and store it."
 	       (let ((instr (read-integer str t t nil :radix 16 :unsigned-number t)))
 		 (write-address ram pc instr)
 		 (incf pc 4)))
 
 	     (read-instructions (str)
+	       "Read all instructions from STR."
 	       (handler-case
 		   (progn
 		     (skip-whitespace str)
@@ -124,7 +126,7 @@ ADD/SUB selects between add (0) and subtract (1), or logical (0) and arithmetic 
   (case op
     (#2r000
      ;; add or subtract
-     (if (= add/sub 1)
+     (if (asserted-p add/sub)
 	 (- a b)
 	 (+ a b)))
 
@@ -148,7 +150,7 @@ ADD/SUB selects between add (0) and subtract (1), or logical (0) and arithmetic 
 
     (#2r101
      ;; right shift, logical or arithmetic
-     (if (= add/sub 1)
+     (if (asserted-p add/sub)
 	 (ash a b)		; FIXME: get the sign extension right
 	 (ash a (- b))))
 
@@ -210,6 +212,14 @@ ADD/SUB selects between add (0) and subtract (1), or logical (0) and arithmetic 
     :documentation "The comparator."
     :initarg :comparator)
 
+   ;; pin interface
+   (clk
+    :documentation "Clock."
+    :initform 0)
+   (rst
+    :documentation "Reset."
+    :initform 0)
+
    ;; core state
    (register-file
     :documentation "The register file.")
@@ -227,232 +237,251 @@ ADD/SUB selects between add (0) and subtract (1), or logical (0) and arithmetic 
 							   :initial-element 0)))
 
 
-(defun reset-core (core)
-  "Reset CORE."
-  (with-slots (pc instr register-file)
-      core
-    (setf pc 0)
-    (setf instr 0)
-    (dolist (i (iota 32))
-      (setf (aref register-file i) 0))))
+(defun run-cycle (core)
+  "Run a single clock cycle on CORE.
 
-
-(defun run-core (core cycles &key reset stop-at-each-cycle)
-  "A RISC-V 32-bit integer core emulator that runs CYCLES instructions on CORE.
-
-if RESET is non-nil the core is reset before running. If STOP-AT-EACH-CYCLE is
-non-nil the core will enter the debugger after every instuction cycle."
-  (declare (optimize debug))
-
-  (when reset
-    (reset-core core))
-
-  (with-slots (mem alu comparator pc instr register-file)
+This works by asserting and de-asserting the clock line."
+  (with-slots (clk)
       core
 
-    (let ((clk 0))
-
-      ;; run the core
-      (dotimes (c cycles)
-	(let (write-back
-	      next-pc)
-
-	  ;; instruction fetch
-	  (setf instr (read-address mem pc))
-
-	  ;; instruction decoding
-	  (with-bitfields ((funct7 7) (rs2id 5) (rs1id 5) (funct3 3) (rdid 5) (opcode 7))
-	      instr
-
-	    ;; increment target PC for next instruction cycle
-	    (setq next-pc (+ pc 4))
-
-	    (case opcode
-	      (#2r0110011
-	       ;; ALU register-with-register arithmetic
-	       (let ((rs1 (aref register-file rs1id))
-		     (rs2 (aref register-file rs2id)))
-
-		 (setf write-back (compute alu rs1 rs2
-					   funct3
-					   (logand (1bit funct7 5)
-						   (1bit instr 5))))))
-
-	      (#2r0010011
-	       ;; ALU register-with-immediate arithmetic
-	       (let ((rs1 (aref register-file rs1id))
-		     (Iimm (twos-complement (nbits instr 31 :end 20) 12)))
-
-		 (setf write-back (compute alu
-					   rs1 Iimm
-					   funct3
-					   (logand (1bit funct7 5)
-						   (1bit instr 5))))))
-
-	      (#2r1100011
-	       ;; branch
-	       (let ((Bimm (make-bitfields (signed-byte 32)
-					   ((copy-bit (1bit instr 31) 20) 20)
-					   ((1bit instr 7) 1)
-					   ((nbits instr 30 :end 25) 6)
-					   ((nbits instr 11 :end 8) 4)
-					   (0 1))))
-
-		 (let ((rs1 (aref register-file rs1id))
-		       (rs2 (aref register-file rs2id)))
-
-		   (if (compare comparator
-				rs1 rs2
-				funct3)
-		       (setf next-pc (+ pc Bimm))))))
-
-	      (#2r1100111
-	       ;; jump and link relative to register
-	       (let ((rs1 (aref register-file rs1id))
-		     (Iimm (twos-complement (nbits instr 31 :end 20) 12)))
-
-		 (setf write-back (+ pc 4))
-		 (setf next-pc (+ rs1 Iimm) )))
-
-	      (#2r1101111
-	       ;; jump and link relative to PC
-	       (let ((Jimm (make-bitfields (signed-byte 32)
-					   ((copy-bit (1bit instr 31) 12) 12)
-					   ((nbits instr 19 :end 12) 8)
-					   ((1bit instr 20) 1)
-					   ((nbits instr 30 :end 21) 10)
-					   (0 1))))
-
-		 (setf write-back (+ pc 4))
-		 (setf next-pc (+ pc Jimm))))
-
-	      (#2r0010111
-	       ;; add upper immediate
-	       (let ((Uimm (make-bitfields (signed-byte 32)
-					   ((1bit instr 31) 1)
-					   ((nbits instr 20 :end 12) 9)
-					   ((copy-bit 0 12 )))))
-
-		 (setf write-back (+ pc Uimm))))
-
-	      (#2r0110111
-	       ;; load upper immediate
-	       (let ((Uimm (make-bitfields (signed-byte 32)
-					   ((1bit instr 31) 1)
-					   ((nbits instr 20 :end 12) 9)
-					   ((copy-bit 0 12) 12))))
-
-		 (setf write-back Uimm)))
-
-	      (#2r0000011
-	       ;; load
-	       (let* ((rs1 (aref register-file rs1id))
-		      (Iimm (twos-complement (nbits instr 31 :end 20) 12))
-		      (addr (+ rs1 Iimm))
-		      (data (read-address mem addr))
-		      (read-type (nbits funct3 1 :width 2))
-		      (sign-extending (= (1bit funct3 2) 1)))
-
-		 ;; extract loaded data from read data
-		 (cond ((= read-type #2r00)
-			;; load byte
-			(if (= (1bit addr 0) 1)
-			    (if (= (1bit addr 1) 1)
-				;; upper byte of upper half-word
-				(setf write-back (nbits (nbits data 31 :end 16) 15 :end 8))
-
-				;; lower byte of upper half-word
-				(setf write-back (nbits (nbits data 31 :end 16) 7 :end 0)))
-
-			    (if (= (1bit addr 1) 1)
-				;; upper byte of lower half-word
-				(setf write-back (nbits (nbits data 15 :end 0) 15 :end 8))
-
-				;; lower byte of lower half-word
-				(setf write-back (nbits (nbits data 15 :end 0) 7 :end 0))))
-
-			;; sign-extend if requested
-			(if sign-extending
-			    (setf write-back (twos-complement write-back 8))))
-
-		       ((= read-type #2r01)
-			;; load half-word
-			(if (= (1bit addr 1) 1)
-			    ;; upper half-word
-			    (setf write-back (nbits data 31 :end 16))
-
-			    ;; lower half-word
-			    (setf write-back (nbits data 15 :end 0)))
-
-			;; sign-extend if requested
-			(if sign-extending
-			    (setf write-back (twos-complement write-back 16))))
-
-		       (t
-			;; load word
-			(setf write-back data)))))
+    (setf clk 1)
+    (cycle core)
+    (setf clk 0)
+    (cycle core)))
 
 
-	      (#2r0100011
-	       ;; store
-	       (let* ((rs1 (aref register-file rs1id))
-		      (rs2 (aref register-file rs2id))
-		      (Simm (make-bitfields (signed-byte 32)
-					    ((copy-bit (1bit instr 31) 21) 21)
-					    ((nbits instr 30 :end 25) 6)
-					    ((nbits instr 11 :end 7) 5)))
-		      (addr (+ rs1 Simm))
-		      (read-type (nbits funct3 1 :width 2))
-		      (write-mask (cond ((= read-type #2r00)
-					 ;; store byte
-					 (if (= (1bit addr 1) 1)
-					     ;; writing to byte in upper half-word
-					     (if (= (1bit addr 0) 1)
-						 #2r1000
-						 #2r0100)
+(defun run-core (core cycles &key reset)
+  "Run CORE for CYCLES clock cycles.
 
-					     ;; writing to byte in lower half-word
-					     (if (= (1bit addr 0) 1)
-						 #2r0010
-						 #2r0001)))
+If RESET is non-nil the core is reset before running. This also
+adds one more cycle to CYCLES."
+  (with-slots (clk rst register-file)
+      core
 
-					((= read-type #2r01)
-					 ;; store half-word
-					 (if (= (1bit addr 1) 1)
-					     ;; writing to upper half-word
-					     #2r1100
+    ;; reset the core initially if requested
+    (when reset
+      (setf rst 1)
+      (run-cycle core)
+      (setf rst 0))
 
-					     ;; writing to lower half-word
-					     #2r0011))
-
-					(t
-					 ;; store word
-					 #2r1111))))
-
-		 ;; store the value
-		 (write-address mem addr rs2 :write-mask write-mask)))
-
-	      (#2r1110011
-	       ;; system
-	       ))
-
-	    ;; write-back register
-	    (when (and (/= rdid 0)
-		       (or (= opcode #2r0110011) ; ALUreg
-			   (= opcode #2r0010011) ; ALUimm
-			   (= opcode #2r1100111) ; JALR
-			   (= opcode #2r1101111) ; JAL
-			   (= opcode #2r0010111) ; AUIPC
-			   (= opcode #2r0110111) ; LUI
-			   (= opcode #2r0000011) ; L
-			   ))
-	      (setf (aref register-file rdid) write-back))
-
-	    ;; update PC
-	    (setf pc next-pc))
-
-	  (when stop-at-each-cycle
-	    (break)))))
+    ;; run the core
+    (dotimes (i cycles)
+      (run-cycle core))
 
     ;; return the register file
     register-file))
+
+
+(defun cycle (core)
+  "Behaviour of a RISC-V 32-bit integer CORE."
+  (declare (optimize debug))
+
+  (with-slots (clk rst mem alu comparator pc instr register-file)
+      core
+
+    (let (write-back next-pc)
+
+      (if (asserted-p clk)
+	  (if (asserted-p rst)
+	      ;; reset line asserted, perform a reset
+	      (progn
+		(setf pc 0)
+		(setf instr 0)
+		(dolist (i (iota 32))
+		  (setf (aref register-file i) 0)))
+
+	      ;; run main behaviour
+	      (progn
+		;; instruction fetch
+		(setf instr (read-address mem pc))
+
+		;; instruction decoding
+		(with-bitfields ((funct7 7) (rs2id 5) (rs1id 5) (funct3 3) (rdid 5) (opcode 7))
+		    instr
+
+		  ;; increment target PC for next instruction cycle
+		  (setq next-pc (+ pc 4))
+
+		  (case opcode
+		    (#2r0110011
+		     ;; ALU register-with-register arithmetic
+		     (let ((rs1 (aref register-file rs1id))
+			   (rs2 (aref register-file rs2id)))
+
+		       (setf write-back (compute alu rs1 rs2
+						 funct3
+						 (logand (1bit funct7 5)
+							 (1bit instr 5))))))
+
+		    (#2r0010011
+		     ;; ALU register-with-immediate arithmetic
+		     (let ((rs1 (aref register-file rs1id))
+			   (Iimm (twos-complement (nbits instr 31 :end 20) 12)))
+
+		       (setf write-back (compute alu
+						 rs1 Iimm
+						 funct3
+						 (logand (1bit funct7 5)
+							 (1bit instr 5))))))
+
+		    (#2r1100011
+		     ;; branch
+		     (let ((Bimm (make-bitfields (signed-byte 32)
+						 ((copy-bit (1bit instr 31) 20) 20)
+						 ((1bit instr 7) 1)
+						 ((nbits instr 30 :end 25) 6)
+						 ((nbits instr 11 :end 8) 4)
+						 (0 1))))
+
+		       (let ((rs1 (aref register-file rs1id))
+			     (rs2 (aref register-file rs2id)))
+
+			 (if (compare comparator
+				      rs1 rs2
+				      funct3)
+			     (setf next-pc (+ pc Bimm))))))
+
+		    (#2r1100111
+		     ;; jump and link relative to register
+		     (let ((rs1 (aref register-file rs1id))
+			   (Iimm (twos-complement (nbits instr 31 :end 20) 12)))
+
+		       (setf write-back (+ pc 4))
+		       (setf next-pc (+ rs1 Iimm) )))
+
+		    (#2r1101111
+		     ;; jump and link relative to PC
+		     (let ((Jimm (make-bitfields (signed-byte 32)
+						 ((copy-bit (1bit instr 31) 12) 12)
+						 ((nbits instr 19 :end 12) 8)
+						 ((1bit instr 20) 1)
+						 ((nbits instr 30 :end 21) 10)
+						 (0 1))))
+
+		       (setf write-back (+ pc 4))
+		       (setf next-pc (+ pc Jimm))))
+
+		    (#2r0010111
+		     ;; add upper immediate
+		     (let ((Uimm (make-bitfields (signed-byte 32)
+						 ((1bit instr 31) 1)
+						 ((nbits instr 20 :end 12) 9)
+						 ((copy-bit 0 12) 12))))
+
+		       (setf write-back (+ pc Uimm))))
+
+		    (#2r0110111
+		     ;; load upper immediate
+		     (let ((Uimm (make-bitfields (signed-byte 32)
+						 ((1bit instr 31) 1)
+						 ((nbits instr 20 :end 12) 9)
+						 ((copy-bit 0 12) 12))))
+
+		       (setf write-back Uimm)))
+
+		    (#2r0000011
+		     ;; load
+		     (let* ((rs1 (aref register-file rs1id))
+			    (Iimm (twos-complement (nbits instr 31 :end 20) 12))
+			    (addr (+ rs1 Iimm))
+			    (data (read-address mem addr))
+			    (read-type (nbits funct3 1 :width 2))
+			    (sign-extending (= (1bit funct3 2) 1)))
+
+		       ;; extract loaded data from read data
+		       (cond ((= read-type #2r00)
+			      ;; load byte
+			      (if (asserted-p (1bit addr 0))
+				  (if (asserted-p (1bit addr 1))
+				      ;; upper byte of upper half-word
+				      (setf write-back (nbits (nbits data 31 :end 16) 15 :end 8))
+
+				      ;; lower byte of upper half-word
+				      (setf write-back (nbits (nbits data 31 :end 16) 7 :end 0)))
+
+				  (if (asserted-p (1bit addr 1))
+				      ;; upper byte of lower half-word
+				      (setf write-back (nbits (nbits data 15 :end 0) 15 :end 8))
+
+				      ;; lower byte of lower half-word
+				      (setf write-back (nbits (nbits data 15 :end 0) 7 :end 0))))
+
+			      ;; sign-extend if requested
+			      (if sign-extending
+				  (setf write-back (twos-complement write-back 8))))
+
+			     ((= read-type #2r01)
+			      ;; load half-word
+			      (if (asserted-p (1bit addr 1))
+				  ;; upper half-word
+				  (setf write-back (nbits data 31 :end 16))
+
+				  ;; lower half-word
+				  (setf write-back (nbits data 15 :end 0)))
+
+			      ;; sign-extend if requested
+			      (if sign-extending
+				  (setf write-back (twos-complement write-back 16))))
+
+			     (t
+			      ;; load word
+			      (setf write-back data)))))
+
+
+		    (#2r0100011
+		     ;; store
+		     (let* ((rs1 (aref register-file rs1id))
+			    (rs2 (aref register-file rs2id))
+			    (Simm (make-bitfields (signed-byte 32)
+						  ((copy-bit (1bit instr 31) 21) 21)
+						  ((nbits instr 30 :end 25) 6)
+						  ((nbits instr 11 :end 7) 5)))
+			    (addr (+ rs1 Simm))
+			    (read-type (nbits funct3 1 :width 2))
+			    (write-mask (cond ((= read-type #2r00)
+					       ;; store byte
+					       (if (asserted-p (1bit addr 1))
+						   ;; writing to byte in upper half-word
+						   (if (asserted-p (1bit addr 0))
+						       #2r1000
+						       #2r0100)
+
+						   ;; writing to byte in lower half-word
+						   (if (asserted-p (1bit addr 0))
+						       #2r0010
+						       #2r0001)))
+
+					      ((= read-type #2r01)
+					       ;; store half-word
+					       (if (asserted-p (1bit addr 1))
+						   ;; writing to upper half-word
+						   #2r1100
+
+						   ;; writing to lower half-word
+						   #2r0011))
+
+					      (t
+					       ;; store word
+					       #2r1111))))
+
+		       ;; store the value
+		       (write-address mem addr rs2 :write-mask write-mask)))
+
+		    (#2r1110011
+		     ;; system
+		     ))
+
+		  ;; write-back register
+		  (when (and (/= rdid 0)
+			     (or (= opcode #2r0110011) ; ALUreg
+				 (= opcode #2r0010011) ; ALUimm
+				 (= opcode #2r1100111) ; JALR
+				 (= opcode #2r1101111) ; JAL
+				 (= opcode #2r0010111) ; AUIPC
+				 (= opcode #2r0110111) ; LUI
+				 (= opcode #2r0000011) ; L
+				 ))
+		    (setf (aref register-file rdid) write-back))
+
+		  ;; update PC
+		  (setf pc next-pc))))))))

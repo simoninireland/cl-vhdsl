@@ -91,6 +91,11 @@ or END for the last bit. One or other must be supplied."
   (1- (ash 1 w)))
 
 
+(defun asserted-p (b)
+  "Test whether bit B is 1."
+  (= b 1))
+
+
 (defmacro with-bitfields (fields expr &body body)
   "Bind FIELDS of EXPR in BODY.
 
