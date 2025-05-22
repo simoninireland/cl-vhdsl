@@ -42,6 +42,7 @@
    #:signed-byte-p
 
    ;; environments
+   #:*global-environment*
    #:empty-environment
    #:add-frame
    #:with-new-frame
