@@ -1,0 +1,110 @@
+;; The compiler context
+;;
+;; Copyright (C) 2024--2025 Simon Dobson
+;;
+;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
+;;
+;; cl-vhdsl is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+;;
+;; cl-vhdsl is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
+
+(in-package :cl-vhdsl/rtl)
+
+
+;; ---------- Environment ----------
+
+(defparameter *global-environment* (empty-environment)
+  "The global environment for the compiler.")
+
+
+(defun reset-global-environment ()
+  "Reset the global environment.
+
+This should, in principle, never be needed because the environment
+should be handled correctly using WITH-NEW-FRAME. However...."
+  (setf *global-environment* (empty-environment)))
+
+
+(defmacro with-new-frame (&body body)
+  "Run BODY in an environment extended from the current environment."
+  `(let ((*global-environment* (add-environment-frame *global-environment*)))
+     ,@body))
+
+
+(defun declare-variable (n props)
+  "Declare a new variable N with properties PROPS in the global environment."
+  (declare-environment-variable n props *global-environment*))
+
+
+(defun variable-declared-p (n)
+  "Test whether variable N is declared in the global environment."
+  (variable-declared-in-environment-p n *global-environment*))
+
+
+(defun variables-declared ()
+  "Return the variables declared in the current global environment."
+  (get-environment-names *global-environment*))
+
+
+(defun variable-properties (n)
+  "Return the property list of variable N in the global environment."
+  (get-environment-properties n *global-environment*))
+
+
+(defun variable-property (n p &key default)
+  "Return the value of property P of variable N in the global environment."
+  (get-environment-property n p *global-environment* :default default))
+
+
+(defun set-variable-property (n p v)
+  "Set the value of property P of variable N in the global environment to V."
+  (set-environment-property n p v *global-environment*))
+
+
+;;---------- Common properties ----------
+
+(defun get-type (n)
+  "Return the type of N.
+
+The type is the most definite of an inferred type (:INFERRED-TYPE),
+any explicitly-provided type (:TYPE), and the default type (a
+standard-width unsigned integer).
+
+(The logic of this orderig is o allow the same function
+to be used during and after type inferenece.)"
+  (or (variable-property n :inferred-type :default nil)
+      (variable-property n :type :default nil)
+      `(unsigned-byte ,*default-register-width*)))
+
+
+(defun get-representation (n)
+  "Return the representation of N."
+  (variable-property n :as))
+
+
+(defun get-initial-value (n)
+  "Return the initial value of N."
+  (variable-property n :initial-value :default 0))
+
+
+(defun get-constant (n)
+  "Return whether N is constant."
+  (if-let ((rep (get-representation n)))
+    (eql rep :constant)))
+
+
+(defun get-direction (n)
+  "Return the direction of N."
+  (variable-property n :direction))
+
+
+;; ---------- Context ----------

@@ -23,20 +23,20 @@
 
 ;; ---------- Array initialisation data ----------
 
-(defun valid-array-shape-p (shape env)
-  "Test that SHAPE is a valid array shape in ENV.
+(defun valid-array-shape-p (shape)
+  "Test that SHAPE is a valid array shape.
 
 At the moment this means a one-dimensional list of integers
 whose values are statically determinable."
   (handler-bind ((error nil))
     (and (listp shape)
 	 (= (length shape) 1)
-	 (every (rcurry #'eval-in-static-environment env) shape))))
+	 (every #'eval-in-static-environment shape))))
 
 
-(defun ensure-valid-array-shape (shape env)
-  "Ensure SHAPE is a valid array shape in ENV."
-  (unless (valid-array-shape-p shape env)
+(defun ensure-valid-array-shape (shape)
+  "Ensure SHAPE is a valid array shape."
+  (unless (valid-array-shape-p shape)
     (error 'type-mismatch :expected "constant" :got "something else"
 			  :hint "Make sure shape is valid for an array")))
 
@@ -68,15 +68,15 @@ RTLisp, but don't /require/ it."
        (setq ,place (cadr ,place))))
 
 
-(defmethod expand-type-parameters-type ((ty (eql 'array)) args env)
+(defmethod expand-type-parameters-type ((ty (eql 'array)) args)
   (if (null args)
       ty
       (destructuring-bind (element-type shape)
 	  args
 
 	;; expand the embedded type parts
-	(setq element-type (expand-type-parameters element-type env))
-	(setq shape (mapcar (rcurry #'eval-in-static-environment env) shape))
+	(setq element-type (expand-type-parameters element-type))
+	(setq shape (mapcar #'eval-in-static-environment shape))
 
 	`(array ,element-type ,shape))))
 
@@ -93,7 +93,7 @@ RTLisp, but don't /require/ it."
 
 ;; shape needs to be statically determinable
 
-(defmethod typecheck-sexp ((fun (eql 'make-array)) args env)
+(defmethod typecheck-sexp ((fun (eql 'make-array)) args)
   (destructuring-bind (shape &key
 			       (initial-element 0)
 			       initial-contents
@@ -105,11 +105,11 @@ RTLisp, but don't /require/ it."
     (unquote initial-contents)
 
     ;; check shape
-    (ensure-valid-array-shape shape env)
+    (ensure-valid-array-shape shape)
 
     ;; check or derive element type
     (if element-type
-	(ensure-subtype (typecheck initial-element env) element-type env)
+	(ensure-subtype (typecheck initial-element) element-type)
 
 	;; default is a fixed-width unsigned
 	(setq element-type `(unsigned-byte ,*default-register-width*)))
@@ -126,7 +126,7 @@ RTLisp, but don't /require/ it."
 		   ;; check all elements of literal data
 		   (ensure-data-has-shape initial-contents shape)
 		   (dolist (c initial-contents)
-		     (ensure-subtype (typecheck c env) element-type env))))))
+		     (ensure-subtype (typecheck c) element-type))))))
 
     `(array ,element-type ,shape)))
 
@@ -134,28 +134,28 @@ RTLisp, but don't /require/ it."
 ;; Only works for one-dimensional arrays at the moment
 ;; Should expand constants
 
-(defun synthesise-array-init-from-data (data shape env)
-  "Return the initialisation of DATA with the given SHAPE in ENV."
-  (as-list data env :inexpression
+(defun synthesise-array-init-from-data (data shape)
+  "Return the initialisation of DATA with the given SHAPE."
+  (as-list data :inexpression
 	   :before "{ " :after " }"
 	   :per-row 16))
 
 
-(defun synthesise-array-init-from-file (n fn env)
-  "Synthesise the code to load array data for N from a file FN in ENV.
+(defun synthesise-array-init-from-file (n fn)
+  "Synthesise the code to load array data for N from a file FN.
 
 Thi is implemented using a late initialisation function."
   (flet ((initialise-array-from-file ()
 	   (as-literal "$readmemh(\"")
 	   (as-literal fn)
 	   (as-literal "\", ")
-	   (synthesise n env :inexpression)
+	   (synthesise n :inexpression)
 	   (as-literal ");" :newline t)))
     (add-module-late-initialisation #'initialise-array-from-file)))
 
 
-(defun synthesise-array-init (n v env)
-  "Parse the initial contents of N as described by V in ENV.
+(defun synthesise-array-init (n v)
+  "Parse the initial contents of N as described by V.
 
 If the initial value is a list of the form (:FILE FN) the data is read from file FN.
 Otheriwse it is read as a literal list."
@@ -169,7 +169,7 @@ Otheriwse it is read as a literal list."
 
     ;; 1d arrays only for now
     (as-literal "[ 0 : ")
-    (synthesise (car shape) env :inexpression)
+    (synthesise (car shape) :inexpression)
     (as-literal " - 1 ]")
 
     ;; intialisation data, if any
@@ -178,19 +178,19 @@ Otheriwse it is read as a literal list."
 	  (cond ((eql (car initial-contents) :file)
 		 ;; initialising from file
 		 (let ((fn (cadr initial-contents)))
-		   (synthesise-array-init-from-file n fn env)))
+		   (synthesise-array-init-from-file n fn)))
 
 		(t
 		 ;; inline initial data
 		 (as-literal " = " :newline t)
 		 (with-indentation
-		   (synthesise-array-init-from-data initial-contents shape env))))))))
+		   (synthesise-array-init-from-data initial-contents shape))))))))
 
 
 ;; ---------- Array access ----------
 
-(defun valid-array-index-p (ty indices env)
-  "Ensure INDICES are a potentially valid index into TY in ENV.
+(defun valid-array-index-p (ty indices)
+  "Ensure INDICES are a potentially valid index into TY.
 
 TY must be an array type, and INDICES must have the correct
 dimensions, and must be unsigned integers.
@@ -202,14 +202,14 @@ probably should, for those that are statically determined."
 	   (= (length (cddr ty))
 	      (length indices)))
        (every (lambda (i)
-		(subtypep (typecheck i env)
+		(subtypep (typecheck i)
 			  'unsigned-byte))
 	      indices)))
 
 
-(defun ensure-valid-array-index (ty indices env)
-  "Ensure INDICES are valid for accessing TY in ENV."
-  (unless (valid-array-index-p ty indices env)
+(defun ensure-valid-array-index (ty indices)
+  "Ensure INDICES are valid for accessing TY."
+  (unless (valid-array-index-p ty indices)
     (error 'type-mismatch :expected ty :got indices
 			  :hint "Indices must match array dimension")))
 
@@ -219,34 +219,34 @@ probably should, for those that are statically determined."
   (cadr ty))
 
 
-(defmethod typecheck-sexp ((fun (eql 'aref)) args env)
+(defmethod typecheck-sexp ((fun (eql 'aref)) args)
   (destructuring-bind (var &rest indices)
       args
-    (let ((ty (typecheck var env)))
-      (ensure-subtype ty 'array env)
-      (ensure-valid-array-index ty indices env)
+    (let ((ty (typecheck var)))
+      (ensure-subtype ty 'array)
+      (ensure-valid-array-index ty indices)
 
       ;; the type is the type of the elements
       (element-type-of-array ty))))
 
 
-(defmethod generalised-place-sexp-p ((fun (eql 'aref)) args env)
+(defmethod generalised-place-sexp-p ((fun (eql 'aref)) args)
   t)
 
 
-(defmethod synthesise-sexp ((fun (eql 'aref)) args env (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'aref)) args (context (eql :inexpression)))
   (destructuring-bind (var &rest indices)
       args
-    (synthesise var env :inexpression)
+    (synthesise var :inexpression)
     (as-literal "[ ")
-    (as-list indices env :inexpression)
+    (as-list indices :inexpression)
     (as-literal " ]")))
 
-(defmethod synthesise-sexp ((fun (eql 'aref)) args env (context (eql :inassignment)))
-  (synthesise-sexp fun args env :inexpression))
+(defmethod synthesise-sexp ((fun (eql 'aref)) args (context (eql :inassignment)))
+  (synthesise-sexp fun args :inexpression))
 
 
-(defmethod lispify-sexp ((fun (eql 'aref)) args env)
+(defmethod lispify-sexp ((fun (eql 'aref)) args)
   (destructuring-bind (var &rest indices)
       args
     `(aref ,var ,@indices)))

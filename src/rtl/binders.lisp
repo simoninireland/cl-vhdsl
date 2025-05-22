@@ -75,7 +75,7 @@ The name is the first element, whether or not DECL is a list."
   (safe-car decl))
 
 
-(defun typecheck-decl (decl env)
+(defun typecheck-decl (decl)
   "Extend ENV with the variable declared in DECL."
   (declare (optimize debug))
 
@@ -89,25 +89,25 @@ The name is the first element, whether or not DECL is a list."
 
 	;; if we have a width, it's a shortcut for unsigned-byte
 	(if width
-	    (let* ((w (eval-in-static-environment width env))
+	    (let* ((w (eval-in-static-environment width))
 		   (ty `(unsigned-byte ,w)))
 	      (if type
 		  ;; if we have a type, it must match
-		  (ensure-subtype ty type env)
+		  (ensure-subtype ty type)
 
 		  ;; if not, re-assign is to the shortcut
 		  (setq type ty))))
 
 	;; initial inferred type
 	(let ((ity (if type
-		       (expand-type-parameters type env)
+		       (expand-type-parameters type)
 		       '(unsigned-byte 1))))
 
 	  ;; typecheck initial value
-	  (let ((vty (typecheck v env)))
+	  (let ((vty (typecheck v)))
 	    (if type
 		;; type provided, ensure it works
-		(ensure-subtype vty type env)
+		(ensure-subtype vty type)
 
 		;; no type provided, infer from the value
 		(setq ity vty)))
@@ -116,8 +116,7 @@ The name is the first element, whether or not DECL is a list."
 				(:inferred-type ,ity)
 				(:as ,as)
 				(:initial-value ,v)
-				(:type-constraints (,ity)))
-			    env)))
+				(:type-constraints (,ity))))))
 
       ;; "naked" declaration
       ;; TODO: What is the correct default width? -- 1 means it'll get widened
@@ -125,38 +124,37 @@ The name is the first element, whether or not DECL is a list."
       (declare-variable decl `((:inferred-type (unsigned-byte 1))
 			       (:type-constraints ((unsigned-byte 1)))
 			       (:as :register)
-			       (:initial-value 0))
-			env)))
+			       (:initial-value 0)))))
 
 
-(defun typecheck-env (decls env)
-  "Type-check the declarations DECLS to extend ENV."
-  (mapc (rcurry #'typecheck-decl env) decls))
+(defun typecheck-env (decls)
+  "Type-check the declarations DECLS to extend the current environment."
+  (mapc #'typecheck-decl decls))
 
 
-(defun typecheck-constraints (constraints env)
-  "Return the type satifying CONSTRAINTS in ENV.
+(defun typecheck-constraints (constraints)
+  "Return the type satifying CONSTRAINTS.
 
 Each constraint is a type needed by some operation in the scope of a
 variable. The inferred type is the widest type (least uppoer-bound)
 that can accommodate all these constraints, assuming that there is
 one."
-  (foldr (rcurry #'lub env) constraints nil))
+  (foldr #'lub constraints nil))
 
 
-(defun typecheck-infer-decl (n env)
-  "Return a full declaration for N in ENV."
+(defun typecheck-infer-decl (n)
+  "Return a full declaration for N."
   (declare (optimize debug))
 
   ;; resolve type constraints
-  (let* ((constraints (get-environment-property n :type-constraints env))
-	 (inferred-type (typecheck-constraints constraints env)))
+  (let* ((constraints (variable-property n :type-constraints))
+	 (inferred-type (typecheck-constraints constraints)))
 
     ;; check inferred type against any explicit type
     ;; this will signal a problem but not fail the type-checking
     ;; pass, to allow for systems that don't care about precision
     ;; TODO: Should we allow this, or be tighter?
-    (if-let ((ty (get-environment-property n :type env :default nil)))
+    (if-let ((ty (variable-property n :type :default nil)))
       ;; the type we use is the one supplied
       (setq inferred-type ty)
 
@@ -164,43 +162,31 @@ one."
       (signal 'type-inferred :variable n
 			     :inferred inferred-type))
 
-    `(,n ,(get-initial-value n env)
+    `(,n ,(get-initial-value n)
 	 :type ,inferred-type
-	 :as ,(get-representation n env))))
+	 :as ,(get-representation n))))
 
 
-(defun typecheck-infer-decls (decls env)
-  "Re-write declarations in DECLS to match ENV."
-  (mapcar (rcurry #'typecheck-infer-decl env) (mapcar #'name-in-decl decls)))
+(defun typecheck-infer-decls (decls)
+  "Re-write declarations in DECLS to match the current frame."
+  (mapcar #'typecheck-infer-decl (mapcar #'name-in-decl decls)))
 
 
-(defmethod typecheck-sexp ((fun (eql 'let)) args env)
+(defmethod typecheck-sexp ((fun (eql 'let)) args)
   (declare (optimize debug))
   (let ((decls (car args))
 	(body (cdr args)))
-    (let ((ext (add-frame env)))
-      (typecheck-env decls ext)
+    (with-new-frame
+      (typecheck-env decls)
 
       ;; capture type of the last form
-      (let ((ty (mapn (rcurry #'typecheck ext) body)))
+      (let ((ty (mapn #'typecheck body)))
 	;; update declarations with any inferred types and other properties
-	(let ((newdecls (typecheck-infer-decls decls ext)))
+	(let ((newdecls (typecheck-infer-decls decls)))
 	  (setf (car args) newdecls))
 
 	;; return the type
 	ty))))
-
-
-(defun make-binder-environment (decls body env)
-  "Return an extended version of ENV including the DECLS of a binder.
-
-This may look into BODY to find more information. The DECLS are assumed
-to be fully elaborated (i.e., as having passed type inference).
-
-This function is used for type-aware synthesis."
-  (let ((ext (add-frame env)))
-    (typecheck-env decls ext)
-    ext))
 
 
 ;; ---------- Variable re-writing ----------
@@ -316,19 +302,19 @@ by LET and MODULE forms."
 
 ;; ---------- Shadowing ----------
 
-(defmethod detect-shadowing-sexp ((fun (eql 'let)) args env)
+(defmethod detect-shadowing-sexp ((fun (eql 'let)) args)
   (destructuring-bind (decls &rest body)
       args
     (let ((vars (mapcar #'car decls)))
       (dolist (n vars)
-	(if (variable-declared-p n env)
+	(if (variable-declared-p n)
 	    (error 'duplicate-variable :variable n
 				       :hint "Variable shadows a previous definition"))))
 
-    (let ((ext (add-frame env)))
-      (typecheck-env decls ext)
+    (with-new-frame
+      (typecheck-env decls)
 
-      (mapc (rcurry #'detect-shadowing ext) body)
+      (mapc #'detect-shadowing body)
       t)))
 
 
@@ -373,7 +359,7 @@ SPECIAL-VALUE-P. Specifically, normal values have a bit-width."
   (not (special-value-p form)))
 
 
-(defun synthesise-register (decl env context)
+(defun synthesise-register (decl context)
   "Synthesise a register declaration within a LET block.
 
 The register has name N and initial value V, with the optional
@@ -384,29 +370,29 @@ WIDTH defaulting to the system's global width."
     (as-literal "reg ")
     (let ((width (if (array-type-p type)
 		     ;; width is the width of the element type
-		     (bitwidth (cadr type) '())
+		     (bitwidth (cadr type))
 
 		     ;; width is of the type itself
-		     (bitwidth type '()))))
+		     (bitwidth type))))
       (when (or (not (numberp width))
 		(> width 1))
 	;; we have a width (or a width expression)
 	(as-literal"[ ")
-	(synthesise width env :inexpression)
+	(synthesise width :inexpression)
 	(as-literal " - 1 : 0 ] "))
-      (synthesise n env :indeclaration)
+      (synthesise n :indeclaration)
       (if (array-value-p v)
 	  ;; synthesise the array bounds and initialisation
-	  (synthesise-array-init n v env)
+	  (synthesise-array-init n v)
 
 	  ;; synthesise the assignment to the initial value
 	  (progn
 	    (as-literal " = ")
-	    (synthesise v env :inexpression)))
+	    (synthesise v :inexpression)))
       (as-literal ";"))))
 
 
-(defun synthesise-wire (decl env context)
+(defun synthesise-wire (decl context)
   "Synthesise a wire declaration within a LET block.
 
 The wire has name N and initial value V, with the optional WIDTH
@@ -417,93 +403,95 @@ the wire is left un-driven."
 
     (let ((width (if (array-type-p type)
 		     ;; width is the width of the element type
-		     (bitwidth (cadr type) '())
+		     (bitwidth (cadr type))
 
 		     ;; width is of the type itself
-		     (bitwidth type '()))))
+		     (bitwidth type))))
       (as-literal "wire ")
       (when (or (not (numberp width))
 		(> width 1))
 	;; we have a width (or a width expression)
 	(as-literal"[ ")
-	(synthesise width env :inexpression)
+	(synthesise width :inexpression)
 	(as-literal " - 1 : 0 ] "))
-      (synthesise n env :indeclaration)
+      (synthesise n :indeclaration)
       (if (array-value-p v)
 	  ;; synthesise the array constructor
-	  (synthesise-array-init n v env)
+	  (synthesise-array-init n v)
 
 	  ;; synthesise the assignment to the initial value
-	  (if (static-constant-p v nil)
-	      (let ((iv (ensure-static v nil)))
+	  (if (static-constant-p v)
+	      (let ((iv (ensure-static v)))
 		(unless (= iv 0)
 		  ;; initial value isn't statially zero, synthesise
 		  (as-literal " = ")
-		  (synthesise v env :inexpression))
+		  (synthesise v :inexpression))
 		(as-literal";"))
 
 	      ;; initial value is an expression, synthesise
 	      (progn
 		(as-literal " = ")
-		(synthesise v env :inexpression)
+		(synthesise v :inexpression)
 		(as-literal";")))))))
 
 
-(defun synthesise-constant (decl env context)
+(defun synthesise-constant (decl context)
   "Synthesise a constant declaration DECL within a LET block.
 
 Constants turn into local parameters."
   (destructuring-bind (n v &key &allow-other-keys)
       decl
     (as-literal "localparam ")
-    (synthesise n env :inexpression)
+    (synthesise n :inexpression)
     (as-literal " = ")
-    (synthesise v env :inexpression)
+    (synthesise v :inexpression)
     (as-literal ";")))
 
 
-(defun synthesise-module-instanciation (decl env)
+(defun synthesise-module-instanciation (decl)
   "Synthesise DECL as a module instanciation."
   (destructuring-bind (n v &key &allow-other-keys)
       decl
     (destructuring-bind (modname &rest initargs)
 	(cdr v)
-      (synthesise-module-instance n modname initargs env))))
+      (synthesise-module-instance n modname initargs))))
 
 
-(defun synthesise-decl (decl env context)
-  "Synthesise DECL in ENV in CONTEXT."
+(defun synthesise-decl (decl context)
+  "Synthesise DECL."
   (destructuring-bind (n v &key type as)
       decl
     (if (module-value-p v)
 	;; instanciating a module
-	(synthesise-module-instanciation decl env)
+	(synthesise-module-instanciation decl)
 
 	;; otherwise, creating a variable
 	(case as
 	  (:constant
-	   (synthesise-constant decl env context))
+	   (synthesise-constant decl context))
 	  (:register
-	   (synthesise-register decl env context))
+	   (synthesise-register decl context))
 	  (:wire
-	   (synthesise-wire decl env context))
+	   (synthesise-wire decl context))
 	  (t
-	   (synthesise-register decl env context))))))
+	   (synthesise-register decl context))))))
 
 
-(defmethod synthesise-sexp ((fun (eql 'let)) args env (context (eql :inmodule)))
+(defmethod synthesise-sexp ((fun (eql 'let)) args (context (eql :inmodule)))
   (let ((decls (car args))
 	(body (cdr args)))
 
-    ;; synthesise the constants and registers
-    (as-block-forms decls env context :process #'synthesise-decl)
-    (if (> (length decls) 0)
-	(as-blank-line))
+    (with-new-frame
+      (typecheck-env decls)
 
-    ;; synthesise the body
-    (let ((ext (make-binder-environment decls body env)))
-      (as-block-forms body ext :inmodule))))
+      ;; synthesise the constants and registers
+      (as-block-forms decls context :process #'synthesise-decl)
+      (if (> (length decls) 0)
+	  (as-blank-line))
+
+      ;; synthesise the body
+      (as-block-forms body :inmodule))))
 
 
-(defmethod synthesise-sexp ((fun (eql 'let)) args env (context (eql :inblock)))
-  (synthesise-sexp fun args env :inmodule))
+(defmethod synthesise-sexp ((fun (eql 'let)) args (context (eql :inblock)))
+  (synthesise-sexp fun args :inmodule))

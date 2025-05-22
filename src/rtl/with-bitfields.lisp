@@ -118,10 +118,10 @@ Fixed bits are constant 0s or 1s."
       run
     (if (= start end)
 	;; single bit
-	`(,s (bit ,arg ,start) :width 1)
+	`(,s (bref ,arg ,start) :width 1)
 
 	;; several bits
-	`(,s (bits ,arg ,start :end ,end) :width ,(1+ (- start end))))))
+	`(,s (bref ,arg ,start :end ,end) :width ,(1+ (- start end))))))
 
 
 (defmacro with-bitfields (pattern arg &body body)

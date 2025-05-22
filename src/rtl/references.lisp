@@ -20,13 +20,13 @@
 (in-package :cl-vhdsl/rtl)
 
 
-(defmethod bitwidth ((val symbol) env)
-  (let ((tys (safe-car-cdr (get-type val env))))
-    (bitwidth-type (car tys) (cadr tys) env)))
+(defmethod bitwidth ((val symbol))
+  (let ((tys (safe-car-cdr (get-type val))))
+    (bitwidth-type (car tys) (cadr tys))))
 
 
-(defmethod typecheck ((form symbol) env)
-  (get-type form env))
+(defmethod typecheck ((form symbol))
+  (get-type form))
 
 
 (defmethod float-let-blocks ((form symbol))
@@ -37,15 +37,15 @@
   form)
 
 
-(defmethod synthesise ((form symbol) env (context (eql :inexpression)))
+(defmethod synthesise ((form symbol) (context (eql :inexpression)))
   (as-literal (format nil "~(~a~)" (ensure-legal-identifier (symbol-name form)))))
 
-(defmethod synthesise ((form symbol) env (context (eql :inassignment)))
-  (synthesise form env :inexpression))
+(defmethod synthesise ((form symbol) (context (eql :inassignment)))
+  (synthesise form :inexpression))
 
-(defmethod synthesise ((form symbol) env (context (eql :indeclaration)))
-  (synthesise form env :inexpression))
+(defmethod synthesise ((form symbol) (context (eql :indeclaration)))
+  (synthesise form :inexpression))
 
 
-(defmethod lispify ((form symbol) env)
+(defmethod lispify ((form symbol))
   form)

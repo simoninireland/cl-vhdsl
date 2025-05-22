@@ -38,12 +38,13 @@
    ;; fixed-width types
    #:bitwidth
    #:fixed-width-p
-   #:UNsigned-byte-p
+   #:unsigned-byte-p
    #:signed-byte-p
 
    ;; environments
    #:empty-environment
    #:add-frame
+   #:with-new-frame
    #:declare-variable
    #:variable-declared-p
    #:get-frame-names
@@ -69,7 +70,7 @@
    #:@
    #:posedge
    #:negedge
-   #:bits
+   #:bref
    #:with-bitfields
    #:make-bitfields
    #:extend-bits

@@ -19,71 +19,71 @@
 
 (in-package :cl-vhdsl/rtl)
 
-(defun ensure-boolean (ty env)
-  "Ensure TY is a boolean (bit) in ENV.
+(defun ensure-boolean (ty)
+  "Ensure TY is a boolean (bit).
 
 Signals TYPE-MISMATCH if TY isn't boolean, which may be ignored
 in many applications."
-  (ensure-subtype ty 'bit env))
+  (ensure-subtype ty 'bit))
 
 
 
 ;; ---------- Equality ----------
 
-(defmethod typecheck-sexp ((fun (eql '=)) args env)
+(defmethod typecheck-sexp ((fun (eql '=)) args)
   (destructuring-bind (l r)
       args
-    (ensure-boolean (typecheck l env) env)
-    (ensure-boolean (typecheck r env) env)
+    (ensure-boolean (typecheck l))
+    (ensure-boolean (typecheck r))
 
     '(unsigned-byte 1)))
 
 
-(defmethod synthesise-sexp ((fun (eql '=)) args env (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql '=)) args (context (eql :inexpression)))
   (destructuring-bind (l r)
       args
     (as-literal "(")
-    (synthesise l env :inexpression)
+    (synthesise l :inexpression)
     (as-literal " == ")
-    (synthesise r env :inexpression)
+    (synthesise r :inexpression)
     (as-literal ")")))
 
 
-(defmethod typecheck-sexp ((fun (eql '/=)) args env)
+(defmethod typecheck-sexp ((fun (eql '/=)) args)
   (destructuring-bind (l r)
       args
-    (ensure-boolean (typecheck l env) env)
-    (ensure-boolean (typecheck r env) env)
+    (ensure-boolean (typecheck l env))
+    (ensure-boolean (typecheck r env))
 
     '(unsigned-byte 1)))
 
 
-(defmethod synthesise-sexp ((fun (eql '/=)) args env (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql '/=)) args (context (eql :inexpression)))
   (destructuring-bind (l r)
       args
     (as-literal "(")
-    (synthesise l env :inexpression)
+    (synthesise l :inexpression)
     (as-literal " != ")
-    (synthesise r env :inexpression)
+    (synthesise r :inexpression)
     (as-literal ")")))
 
 
 ;; ---------- Maths ----------
 
-(defmethod typecheck-sexp ((fun (eql '<)) args env)
+(defmethod typecheck-sexp ((fun (eql '<)) args)
   (destructuring-bind (l r)
       args
-    (ensure-fixed-width (typecheck l env))
-    (ensure-fixed-width (typecheck r env))
+    (ensure-fixed-width (typecheck l))
+    (ensure-fixed-width (typecheck r))
 
     '(unsigned-byte 1)))
 
 
-(defmethod synthesise-sexp ((fun (eql '<)) args env (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql '<)) args (context (eql :inexpression)))
   (destructuring-bind (l r)
       args
     (as-literal "(")
-    (synthesise l env :inexpression)
+    (synthesise l :inexpression)
     (as-literal " < ")
-    (synthesise r env :inexpression)
+    (synthesise r :inexpression)
     (as-literal ")")))

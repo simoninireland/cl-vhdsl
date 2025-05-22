@@ -21,38 +21,6 @@
 (declaim (optimize debug))
 
 
-;; ---------- Single-bit access ----------
-
-(defmethod typecheck-sexp ((fun (eql 'bit)) args env)
-  (destructuring-bind (var bit)
-      args
-    (ensure-subtype (typecheck var env) 'unsigned-byte env)
-    (ensure-subtype (typecheck bit env) '(unsigned-byte 1) env)
-    '(unsigned-byte 1)))
-
-
-(defmethod generalised-place-sexp-p ((fun (eql 'bit)) args env)
-  t)
-
-
-(defmethod synthesise-sexp ((fun (eql 'bit)) args env context)
-  (destructuring-bind (var bit)
-      args
-    (synthesise var env :indeclaration)
-    (as-literal "[ ")
-    (synthesise bit env :inexpression)
-    (as-literal " ]")))
-
-
-(defmethod lispify-sexp ((fun (eql 'bit)) args env)
-  (destructuring-bind (var bit)
-      args
-    `(logand (ash ,(lispify var) (- ,bit))
-	     1)))
-
-
-;; ---------- Multi-bit access ----------
-
 (defun compute-end-bit (start end width)
   "Compute the end bit given START, END, and WIDTH."
   (if (null end)
@@ -81,19 +49,45 @@
 	  end)))
 
 
-(defmethod generalised-place-sexp-p ((fun (eql 'bits)) args env)
+(defmethod generalised-place-sexp-p ((fun (eql 'bref)) args)
   t)
 
 
-(defmethod typecheck-sexp ((fun (eql 'bits)) args env)
+(defmethod typecheck-sexp ((fun (eql 'bref)) args)
   (destructuring-bind (var start &key end width)
       args
-    (let ((tyvar (typecheck var env)))
+    ;; we use the actual values in the type
+    (setq start (eval-in-static-environment start))
+    (when width
+      (setq width (eval-in-static-environment width)))
+    (when end
+      (setq end (eval-in-static-environment end)))
+
+    ;; check everything is positive
+    (unless (>= start 0)
+      (error 'value-mismatch :expected "the non-negative integers" :got start
+			     :hint "Start bit must be negative"))
+    (unless (or (null end)
+		(>= end 0))
+      (error 'value-mismatch :expected "the non-negative integers" :got end
+			     :hint "End bit must be non-negative"))
+    (unless (or (null width)
+		(> width 0))
+      (error 'value-mismatch :expected "the positive integers" :got width
+			     :hint "Width must be positive"))
+
+    ;; default to accessing the single START bit
+    (if (null width)
+	(if (null end)
+	    (setq width 1)
+	    (setq width (1+ (- start end)))))
+
+    (let ((tyvar (typecheck var)))
       (setq end (compute-end-bit start end width))
 
       ;; check whether variable should be widened
       (let ((l (1+ (- start end)))
-	    (vw (bitwidth tyvar env)))
+	    (vw (bitwidth tyvar)))
 	(when (> l vw)
 	  ;; signal to allow this to be picked up
 	  (signal 'type-mismatch :expected vw
@@ -101,27 +95,39 @@
 				 :hint "Width greater than base variable")
 
 	  ;; add a constraint
-	  (add-type-constraint var `(unsigned-byte ,l) env))
+	  (add-type-constraint var `(unsigned-byte ,l)))
 
 	;; width is the nunmber of bits extracted
 	`(unsigned-byte ,l)))))
 
 
-(defmethod synthesise-sexp ((fun (eql 'bits)) args env (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'bref)) args (context (eql :inexpression)))
   (destructuring-bind (var start &key end width)
       args
+    (setq start (eval-in-static-environment start))
+    (when width
+      (setq width (eval-in-static-environment width)))
+    (when end
+      (setq end (eval-in-static-environment end)))
+
+    ;; default to accessing the single START bit
+    (if (null width)
+	(if (null end)
+	    (setq width 1)
+	    (setq width (1+ (- start end)))))
     (setq end (compute-end-bit start end width))
 
-    (synthesise var env :inexpression)
+    (synthesise var :inexpression)
     (as-literal "[ ")
-    (synthesise start env :inexpression)
-    (as-literal " : ")
-    (synthesise end env :inexpression)
+    (synthesise start :inexpression)
+    (when (> width 1)
+      (as-literal " : ")
+      (synthesise end :inexpression))
     (as-literal " ]")))
 
 
-(defmethod lispify-sexp ((fun (eql 'bits)) args env)
+(defmethod lispify-sexp ((fun (eql 'bref)) args)
   (destructuring-bind (var start &key end width)
       args
-    (let ((l (eval-in-static-environment `(+ 1 (- ,start ,end)) env)))
+    (let ((l (eval-in-static-environment `(+ 1 (- ,start ,end)))))
       `(logand (ash ,(lispify var) (- ,end)) (1- (ash 1 ,l))))))

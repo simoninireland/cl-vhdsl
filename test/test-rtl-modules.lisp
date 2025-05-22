@@ -28,14 +28,13 @@
   (is (subtypep (rtl:typecheck '(rtl:module test ((clk :type (unsigned-byte 1) :direction :in)
 					       &key (p 1))
 				 (let ((a 1))
-				   (setq a 0)))
-			       emptyenv)
+				   (setq a 0))))
 	     'rtl::module-interface)))
 
 
 (test test-test-typecheck-module-interface-correctness
   "Test we can identify non-module interface types."
-  (is (not (subtypep (rtl:typecheck '(+ 1 2) emptyenv)
+  (is (not (subtypep (rtl:typecheck '(+ 1 2))
 		     'module-interface))))
 
 
@@ -44,8 +43,7 @@
   (signals (rtl:not-synthesisable)
     (rtl:typecheck '(rtl:module test (&key (p 1))
 		     (let ((a 0))
-		       (setq a 1)))
-		   emptyenv)))
+		       (setq a 1))))))
 
 
 (test test-synthesise-moduletest
@@ -59,7 +57,7 @@
 			      (z 44 :as :constant))
 			  (rtl::@ (rtl::posedge clk)
 				  (setf x (+ x b) :sync t))))
-		      emptyenv :toplevel)))
+		      :toplevel)))
 
 
 (test test-synthesise-module-late-init
@@ -74,8 +72,8 @@
 		   (a (make-array '(8) :initial-contents (:file "test.hex"))))
 	       (rtl::@ (rtl::posedge clk)
 		       (setf x (aref a 4)))))))
-    (rtl:typecheck p emptyenv)
-    (is (rtl:synthesise p emptyenv :toplevel)))
+    (rtl:typecheck p)
+    (is (rtl:synthesise p :toplevel)))
 
   ;; make sure synthesis cleared the late intiialisation queue
   (is (not (rtl::module-late-initialisation-p))))
@@ -98,15 +96,14 @@
 				 (let ((clock (make-instance 'clock :clk-in clk-in
 								    :clk-out clk)))
 				   clock)))))
-    (subtypep (rtl:typecheck p emptyenv)
+    (subtypep (rtl:typecheck p)
 	      'rtl::module-interface))
 
   ;; check we need to wire all arguments
   (signals (rtl:not-importable)
     (rtl:typecheck '(let ((clk 0 :type (unsigned-byte 1) :as :wire))
 		     (let ((clock (make-instance 'clock :clk-out clk)))
-		       clock))
-		   emptyenv))
+		       clock))))
 
   ;; check wires can be deliberately left unconnected
   ;; TBD
@@ -120,8 +117,8 @@
 							     :clk-out clk)))
 			    (setq clk 1)))))))
     (setq p (rtl:simplify-progn (car (rtl:float-let-blocks p))))
-    (rtl:typecheck p emptyenv)
-    (is (rtl:synthesise p emptyenv :toplevel))))
+    (rtl:typecheck p)
+    (is (rtl:synthesise p :toplevel))))
 
 
 (test test-module-instanciate-with-bitfields
@@ -141,8 +138,7 @@
 						 ctrl
 					       (let ((clock (make-instance 'clock :clk_in clk_in
 										  :clk_out clk)))
-						 clock)))))
-					emptyenv))
+						 clock)))))))
 		'rtl::module-interface))
 
   (is (rtl:synthesise (rtl:simplify-progn (car (rtl:float-let-blocks
@@ -155,7 +151,7 @@
 						       (let ((clock (make-instance 'clock :clk_in clk_in
 											  :clk_out clk)))
 							 (setf ctrl 1)))))))))
-		      emptyenv :toplevel)))
+		      :toplevel)))
 
 
 (test test-synthesise-module-instanciation
@@ -170,11 +166,11 @@
   (is (rtl:synthesise '(let ((c 0 :as :wire :type (unsigned-byte 1))
 			     (d 0 :as :wire :type (unsigned-byte 1)))
 			(let ((a (make-instance 'clock :clk_in c :clk_out d)))))
-		      emptyenv :inmodule))
+		      :inmodule))
   (is (rtl:synthesise '(let ((c 0 :as :wire :type (unsigned-byte 1))
 			     (d 0 :as :wire :type (unsigned-byte 1)))
 			(let ((a (make-instance 'clock :clk_in c :clk_out d :p 23)))))
-		      emptyenv :inmodule)))
+		      :inmodule)))
 
 
 ;; ---------- Larger and more complicated/contrived examples ----------
@@ -191,13 +187,13 @@
 			(let ((slow-clk 0 :type (unsigned-byte (1+ slow))))
 			  (rtl:@ (rtl:posedge clk-in)
 				 (incf slow-clk))
-			  (setf clk (bit slow-clk slow)))
+			  (setf clk (rtl:bref slow-clk slow)))
 
 			(setq reset reset-in)))))
 
     (setq p (rtl:expand-macros p))
-    (rtl:typecheck p emptyenv)
-    (is (rtl:synthesise p emptyenv :toplevel))))
+    (rtl:typecheck p)
+    (is (rtl:synthesise p :toplevel))))
 
 
 (test test-module-array-size-param
@@ -211,22 +207,22 @@
 			  (rtl:@ (rtl:posedge clk)
 			     (setq data-out (aref mem addr-in))))))))
 
-    (is (subtypep (rtl:typecheck p emptyenv)
+    (is (subtypep (rtl:typecheck p)
 		  'rtl::module-interface))))
 
 
 (test test-module-array-type-correct
   "Test we can create an array with size given by a parameter."
-  (let ((env (rtl::make-module-environment '((clk      :width 1  :direction :in)
-					     (addr-in  :width 32 :direction :in)
-					     (data-out :width 32 :direction :out)
-					     &key (size 256))
-					   emptyenv))
-	(p (copy-tree '(let ((mem (make-array '((rtl:>> size 2))
-				   :element-type (unsigned-byte 8)))
-			     b)
-			(setq b (aref mem addr-in))))))
+  (rtl:with-new-frame
+    (rtl::make-module-environment '((clk      :width 1  :direction :in)
+				    (addr-in  :width 32 :direction :in)
+				    (data-out :width 32 :direction :out)
+				    &key (size 256)))
+    (let ((p (copy-tree '(let ((mem (make-array '((rtl:>> size 2))
+				     :element-type (unsigned-byte 8)))
+			       b)
+			  (setq b (aref mem addr-in))))))
 
-    (subtypep (rtl:typecheck p env)
-	      '(unsigned-byte 8))
-    (rtl:synthesise p env :inmodule)))
+      (is (subtypep (rtl:typecheck p)
+		    '(unsigned-byte 8)))
+      (is (rtl:synthesise p :inmodule)))))

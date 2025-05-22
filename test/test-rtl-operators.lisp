@@ -25,27 +25,21 @@
 
 (test test-add-widths
   "Test we can determine the widths of additions."
-  (is (subtypep (rtl:typecheck '(+ 1 1)
-			       emptyenv)
+  (is (subtypep (rtl:typecheck '(+ 1 1))
 		'(unsigned-byte 2)))
-  (is (subtypep (rtl:typecheck '(+ 15 2)
-			       emptyenv)
+  (is (subtypep (rtl:typecheck '(+ 15 2))
 		`(unsigned-byte 5)))
-  (is (not (subtypep (rtl:typecheck '(+ 15 -2)
-				    emptyenv)
+  (is (not (subtypep (rtl:typecheck '(+ 15 -2))
 		     `(unsigned-byte 5))))
-  (is (subtypep (rtl:typecheck '(+ 15 -2)
-			       emptyenv)
+  (is (subtypep (rtl:typecheck '(+ 15 -2))
 		`(signed-byte 5))))
 
 
 (test test-width-subtractions
   "Test we can extract the widths of subtractions."
-  (is (subtypep (rtl:typecheck '(- 1)
-			       emptyenv)
+  (is (subtypep (rtl:typecheck '(- 1))
 		'(signed-byte 2)))
-  (is (subtypep (rtl:typecheck '(- 2 1)
-			       emptyenv)
+  (is (subtypep (rtl:typecheck '(- 2 1))
 		'(signed-byte 3))))
 
 
@@ -55,38 +49,35 @@
   (dolist (op '(+ - *))
     ;; conventional two-operand
     (is (rtl:synthesise `(,op 1 2)
-			emptyenv :inexpression))
+			:inexpression))
 
     ;; Lisp-y multi-operand
     (is (rtl:synthesise `(,op 1 2 3)
-			emptyenv :inexpression)))
+			:inexpression)))
 
   ;; unary minus
   (is (rtl:synthesise `(- 1)
-		      emptyenv :inexpression)))
+		      :inexpression)))
 
 
 ;; ---------- Shifts ----------
 
 (test test-width-shifts
   "Test we can extract the widths of shifts."
-  (is (subtypep (rtl:typecheck '(rtl::<< 1 2)
-			       emptyenv)
+  (is (subtypep (rtl:typecheck '(rtl::<< 1 2))
 		'(unsigned-byte 4)))
-  (is (subtypep (rtl:typecheck '(rtl::<< 15 15)
-			       emptyenv)
+  (is (subtypep (rtl:typecheck '(rtl::<< 15 15))
 		'(unsigned-byte 19)))
 
-  (is (subtypep (rtl:typecheck '(rtl::>> 16 4)
-			       emptyenv)
+  (is (subtypep (rtl:typecheck '(rtl::>> 16 4))
 		'(unsigned-byte 5)))
 
   ;; wrong number of arguments
   (dolist (op '(rtl::<< rtl::>>))
     (signals (rtl:not-synthesisable)
-      (rtl:typecheck `(,op 1 2 3) emptyenv))
+      (rtl:typecheck `(,op 1 2 3)))
     (signals (rtl:not-synthesisable)
-      (rtl:typecheck `(,op 3) emptyenv))))
+      (rtl:typecheck `(,op 3)))))
 
 
 (test test-synthesise-shift-operators
@@ -94,17 +85,15 @@
   (dolist (op '(rtl::<< rtl::>>))
     ;; conventional two-operand
     (is (rtl:synthesise `(,op 1 2)
-			emptyenv :inexpression))))
+			:inexpression))))
 
 
 ;; ---------- Bitwise operators ----------
 
 (test test-typecheck-logop
   "Test we can typecheck the logical operators."
-  (is (subtypep (rtl:typecheck '(logand #2r10110 #2r11110)
-			       emptyenv)
+  (is (subtypep (rtl:typecheck '(logand #2r10110 #2r11110))
 		'(unsigned-byte 5)))
 
-  (is (subtypep (rtl:typecheck '(logand #2r10110 #2r1111110)
-			       emptyenv)
+  (is (subtypep (rtl:typecheck '(logand #2r10110 #2r1111110))
 		'(unsigned-byte 7))))

@@ -24,8 +24,7 @@
 (test test-variable-scope
   "Test we can see variables in scope."
   (is (subtypep (rtl:typecheck '(let ((a 12))
-				 a)
-			       emptyenv)
+				 a))
 		'(unsigned-byte 8))))
 
 
@@ -33,5 +32,4 @@
   "Test we can see variables not in scope."
   (signals (rtl:unknown-variable)
     (rtl:typecheck '(let ((a 12))
-		     b)
-		   emptyenv)))
+		     b))))

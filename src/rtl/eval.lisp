@@ -21,83 +21,122 @@
 (declaim (optimize debug))
 
 
-;; ---------- Lisp evaluation in RTLisp-derived environments ----------
+;; ---------- Static tests ----------
+
+(defun constant-p (form)
+  "Test whether FORM is a constant.
+
+Constants include literals and constant symbols, but do
+not include module parameters: for that use STATIC-CONSTANT-P)."
+  (or (integerp form)
+      (and (symbolp form)
+	   (variable-declared-p form)
+	   (eql (get-representation form) :constant))))
+
+
+(defun static-constant-p (form)
+  "Test whether FORM is a static constant.
+
+Static constants include constants as identified by
+CONSTANT-P and module parameters."
+  (or (integerp form)
+      (and (symbolp form)
+	   (variable-declared-p form)
+	   (member (get-representation form) '(:parameter
+					       :constant)))))
+
+
+(defun static-p (form)
+  "Test whether FORM is statically known.
+
+This just evaluates FORM and throws away the result."
+  (handler-case
+      (progn
+	(eval-in-static-environment form)
+	t)
+    (error () nil)))
+
+
+;; ---------- Environment closure ----------
+
+;; These functions work on explicitly-provided environments, *not*
+;; the current global environment -- although the given environment
+;; will typically be derived from there.
 
 (defun make-environment-alist (env)
   "Return a list of name/value pairs of the elements of ENV.
 
-The pairs can be used in LET blocks, or as an alist."
-  (flet ((make-decl (n env)
-	   `(,n ,(get-environment-property n :initial-value env))))
+Each variable appears only once, with shallower declarations
+shadowing deeper ones.
 
-    (map-environment #'make-decl env)))
+The pairs can be used in LET blocks, or as an alist."
+  (let ((seen '()))
+    (flet ((make-decl (n env)
+	     (if (member n seen)
+		 '()
+		 (progn
+		   (appendf seen (list n))
+		   `(,n ,(get-frame-property n :initial-value env))))))
+
+      (remove-nulls (map-environment #'make-decl env)))))
 
 
 (defun close-form-in-environment (form env)
-  "Close FORM as a Lisp term in the environment ENV.
+  "Close FORM as a Lisp term in ENV.
 
-Each declaration in ENV is converted into a LET declaration with the
+Each declaration in scope is converted into a LET declaration with the
 same name and initial value. FORM is then placed as the body of this
 LET form.
 
 Note that FORM should be Lisp, not RTLisp: to evaluate RTLisp forms
 first use LISPIFY to generate proper Lisp for evaluation."
-  (if (null env)
+  (if (empty-environment-p env)
       form
 
       ;; expand the static enviroment and close over it
       (let* ((ext (make-environment-alist env))
 	     (ns (alist-keys ext)))
 	`(let ,ext
-	   (declare (ignorable ,@ns))  ;; don't warn about un-used variables
+	   (declare (ignorable ,@ns)) ;; don't warn about un-used variables
 	   ,form))))
 
 
-(defun constant-p (form env)
-  "Test whether FORM is a constant.
+;; ---------- Closure against specific sub-environments ----------
 
-Constants include literals and constant symbols, but do
-not includer module parameters: for that use STATIC-CONSTANT-P)."
-  (or (integerp form)
-      (and (symbolp form)
-	   (variable-declared-p form env)
-	   (eql (get-representation form env) :constant))))
+;; These functions close a form against a specific sub-environment of
+;; the current global environment.
 
 
-(defun static-constant-p (form env)
-  "Test whether FORM is a static constant in ENV.
+(defun close-form-in-constant-environment (form)
+  "Close FORM as Lisp in the constant part of the current environment.
 
-Static constants include constants as identified by
-CONSTANT-P and module parameters."
-  (or (integerp form)
-      (and (symbolp form)
-	   (variable-declared-p form env)
-	   (member (get-representation form env) '(:parameter
-						   :constant)))))
-
-
-(defun close-form-in-constant-environment (form env)
-  "Close FORM as Lisp in the constant part of environment ENV.
-
-ENV is filtered to include only the constant elements of the
-environment, as identified by CONSTANT-P. In other words, the
+The environment is filtered to include only the constant elements
+of the environment, as identified by CONSTANT-P. In other words, the
 form is placed in an environment with no non-constant information."
-  (let ((constantnv (filter-environment #'constant-p env)))
+  (let ((constantenv (filter-environment (lambda (n env)
+					   (constant-p n))
+					 *global-environment*)))
     (close-form-in-environment form constantenv)))
 
 
-(defun close-form-in-static-environment (form env)
-  "Close FORM as Lisp in the static part of environment ENV.
+(defun close-form-in-static-environment (form)
+  "Close FORM as Lisp in the static part of the current environment.
 
-ENV is filtered to include only the static elements of the
-environment, as identified by STATIC-CONSTANT-P. In other words, the
-form is placed into an environment that is known at compile time."
-  (let ((staticenv (filter-environment #'static-constant-p env)))
+The environment is filtered to include only the static elements of
+the environment, as identified by STATIC-CONSTANT-P. In other words,
+the form is placed into an environment that is known at compile time."
+  (let ((staticenv (filter-environment (lambda (n env)
+					 (static-constant-p n))
+				       *global-environment*)))
     (close-form-in-environment form staticenv)))
 
 
-(defun eval-lisp-in-static-environment (form env)
-  "Evaluate Lisp FORM in the static part of environment ENV.
+;; ---------- Lisp evaluation ----------
+
+;; These functions evaluate Lisp expressions.
+
+(defun eval-lisp-in-static-environment (form)
+  "Evaluate Lisp FORM in the static part of the current environment.
 
 ENV is filtered to include only the static elements of the
 environment, consisting of package parameters. In other words,
@@ -106,7 +145,7 @@ compile time.
 
 FORM should be in Lisp: to evaluate RTLisp forms use
 EVAL-IN-STATIC-ENVIRONMENT."
-  (eval (close-form-in-static-environment form env)))
+  (eval (close-form-in-static-environment form)))
 
 
 ;; ---------- RTLisp evaluation ----------
@@ -114,8 +153,8 @@ EVAL-IN-STATIC-ENVIRONMENT."
 ;; The forms passed to these functions should be RTLisp, which is
 ;; Lispified before closure and evaluation
 
-(defun eval-in-static-environment (form env)
-  "Evaluate RTLisp FORM as Lisp in the static part of environment ENV.
+(defun eval-in-static-environment (form)
+  "Evaluate RTLisp FORM as Lisp in the static part of the current environment.
 
 ENV is filtered to include only the static elements of the
 environment, consisting of package parameters. In other words,
@@ -125,11 +164,11 @@ compile time.
 The resulting form is evaluated as Lisp, and so will signal
 standard Lisp conditions. To run Lisp (rather than RTLisp) use
 EVAL-LISP-IN-STATIC-ENVIRONMENT."
-  (eval-lisp-in-static-environment (lispify form env) env))
+  (eval-lisp-in-static-environment (lispify form)))
 
 
-(defun ensure-static (form env)
-  "Evaluate RTLisp FORM in the static environment of ENV, returning its value.
+(defun ensure-static (form)
+  "Evaluate RTLisp FORM in the static environment, returning its value.
 
 A NOT-STATIC error condition is signalled if FORM does not
 evaluate to a constant."
@@ -138,34 +177,23 @@ evaluate to a constant."
 	((error (lambda (c)
 		  (error 'not-static :underlying-condition c
 				     :hint "Make sure expression is a constant known at compile-time"))))
-      (eval-in-static-environment form env))))
+      (eval-in-static-environment form))))
 
 
-(defun eval-if-static (form env)
-  "Evauate RTLisp FORM in the static environment of ENV, returning its value.
+(defun eval-if-static (form)
+  "Evauate RTLisp FORM in the static environment, returning its value.
 
 If the form isn't statically constant, return NIL."
   (handler-case
-      (eval-in-static-environment form env)
+      (eval-in-static-environment form)
     (error () nil)))
 
 
-(defun eval-if-constant-or-return (form env)
-  "Evaluate RTLisp FORM in the constant environment of ENV, returning its value.
+(defun eval-if-constant-or-return (form)
+  "Evaluate RTLisp FORM in the constant environment, returning its value.
 
 If FORM is not a constant, return FORM unchanged. This is essentially a function
 to simplify constant expressions."
    (handler-case
-      (eval-in-constant-environment form env)
+      (eval-in-constant-environment form)
     (error () form)))
-
-
-(defun static-p (form env)
-  "Test whether FORM is statically known in ENV.
-
-This just evaluates FORM and throws away the result."
-  (handler-case
-      (progn
-	(eval-in-static-environment form env)
-	t)
-    (error () nil)))

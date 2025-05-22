@@ -28,16 +28,14 @@
 			     (setq a (+ a 1))
 			     (let ((b 1)
 				   (a 34))
-			       (setq a (+ b a))))
-			   emptyenv))
+			       (setq a (+ b a))))))
 
   ;; no shadowing
   (is (rtl::detect-shadowing '(let ((a 12))
 			       (setq a (+ a 1))
 			       (let ((b 1)
 				     (c 34))
-				 (setq c (+ b a))))
-			     emptyenv)))
+				 (setq c (+ b a)))))))
 
 
 (test test-detect-shadowed-module
@@ -48,5 +46,4 @@
 			       (setq a (+ a 1))
 			       (let ((b 1)
 				     (a 34))
-				 (setq a (+ b a)))))
-			   emptyenv)))
+				 (setq a (+ b a))))))))

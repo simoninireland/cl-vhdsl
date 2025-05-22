@@ -50,16 +50,16 @@
 
 (test test-bitwidths-integer-types
   "Test we can extract the widths of integer types."
-  (is (= (rtl::bitwidth '(unsigned-byte 8) ()) 8))
-  (is (= (rtl::bitwidth '(signed-byte 8) ()) 8)))
+  (is (= (rtl::bitwidth '(unsigned-byte 8)) 8))
+  (is (= (rtl::bitwidth '(signed-byte 8)) 8)))
 
 
 (test test-bitwidths-integer-constants
   "Test we can extract bit widths of integer constants."
-  (is (= (rtl::bitwidth 0 ()) 1))
-  (is (= (rtl::bitwidth 1 ()) 1))
-  (is (= (rtl::bitwidth 2 ()) 2))
-  (is (= (rtl::bitwidth 127 ()) 7))
+  (is (= (rtl::bitwidth 0) 1))
+  (is (= (rtl::bitwidth 1) 1))
+  (is (= (rtl::bitwidth 2) 2))
+  (is (= (rtl::bitwidth 127) 7))
 
-  (is (= (rtl::bitwidth -127 ()) 8))
-  (is (= (rtl::bitwidth -1 ()) 2)))
+  (is (= (rtl::bitwidth -127) 8))
+  (is (= (rtl::bitwidth -1) 2)))

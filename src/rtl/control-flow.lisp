@@ -23,8 +23,8 @@
 
 ;; ---------- PROGN ----------
 
-(defmethod typecheck-sexp ((fun (eql 'progn)) args env)
-  (mapn (rcurry #'typecheck env) args))
+(defmethod typecheck-sexp ((fun (eql 'progn)) args)
+  (mapn #'typecheck args))
 
 
 (defun simplify-progn-body (body)
@@ -45,11 +45,11 @@
       `(progn ,@(simplify-progn-body newbody)))))
 
 
-(defmethod synthesise-sexp ((fun (eql 'progn)) args env (context (eql :inblock)))
-  (as-block args env :inblock :indent nil))
+(defmethod synthesise-sexp ((fun (eql 'progn)) args (context (eql :inblock)))
+  (as-block args :inblock :indent nil))
 
-(defmethod synthesise-sexp ((fun (eql 'progn)) args env (context (eql :inmodule)))
-  (synthesise-sexp fun args env :inblock))
+(defmethod synthesise-sexp ((fun (eql 'progn)) args (context (eql :inmodule)))
+  (synthesise-sexp fun args :inblock))
 
 
 ;; ---------- Triggered blocks ----------
@@ -64,7 +64,7 @@ block, and are represented by the symbol *."
        (eql (car form) '*)))
 
 
-(defmethod typecheck-sexp ((fun (eql '@)) args env)
+(defmethod typecheck-sexp ((fun (eql '@)) args)
   (destructuring-bind (sensitivities &rest body)
       args
     ;; We accept single variables or lists of variables as senasitivity,
@@ -82,18 +82,18 @@ block, and are represented by the symbol *."
 
 	      ((edge-trigger-p sensitivities)
 	       ;; a single instance of a trigger operator
-	       (typecheck sensitivities env))
+	       (typecheck sensitivities))
 
 	      (t
 	       ;; a list of sensitivities
 	       (dolist (s sensitivities)
-		 (typecheck s env))))
+		 (typecheck s))))
 
 	;; an atom
-	(typecheck sensitivities env))
+	(typecheck sensitivities))
 
     ;; check the body in the outer environment
-    (mapn (rcurry #'typecheck env) body)))
+    (mapn #'typecheck body)))
 
 
 (defmethod simplify-progn-sexp ((fun (eql '@)) args)
@@ -103,7 +103,7 @@ block, and are represented by the symbol *."
       `(@ ,sensitivities ,@(simplify-progn-body newbody)))))
 
 
-(defmethod synthesise-sexp ((fun (eql '@)) args env (context (eql :inblock)))
+(defmethod synthesise-sexp ((fun (eql '@)) args (context (eql :inblock)))
   (declare (optimize debug))
   (destructuring-bind (sensitivities &rest body)
       args
@@ -122,16 +122,16 @@ block, and are represented by the symbol *."
 
 		     ;; a single trigger, synthesise as a list
 		     (list sensitivities))
-		 env :inexpression
+		 :inexpression
 		 :before "always @(" :after ")"))
     (as-newline)
 
-    (as-block body env :inblock
+    (as-block body :inblock
 	      :before "begin" :after "end" :always t)
     (as-blank-line)))
 
-(defmethod synthesise-sexp ((fun (eql '@)) args env (context (eql :inmodule)))
-  (synthesise-sexp fun args env :inblock))
+(defmethod synthesise-sexp ((fun (eql '@)) args (context (eql :inmodule)))
+  (synthesise-sexp fun args :inblock))
 
 
 ;; ---------- Triggers ----------
@@ -142,33 +142,33 @@ block, and are represented by the symbol *."
        (member (car form) '(posedge negedge))))
 
 
-(defmethod typecheck-sexp ((fun (eql 'posedge)) args env)
+(defmethod typecheck-sexp ((fun (eql 'posedge)) args)
   (destructuring-bind (pin)
       args
-    (let ((ty (typecheck pin env)))
-      (ensure-subtype ty '(unsigned-byte 1) env)
+    (let ((ty (typecheck pin)))
+      (ensure-subtype ty '(unsigned-byte 1))
       ty)))
 
 
-(defmethod synthesise-sexp ((fun (eql 'posedge)) args env (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'posedge)) args (context (eql :inexpression)))
   (destructuring-bind (pin)
       args
     (as-literal"posedge(")
-    (synthesise pin env :inexpression)
+    (synthesise pin :inexpression)
     (as-literal ")")))
 
 
-(defmethod typecheck-sexp ((fun (eql 'negedge)) args env)
+(defmethod typecheck-sexp ((fun (eql 'negedge)) args)
   (destructuring-bind (pin)
       args
-    (let ((ty (typecheck pin env)))
-      (ensure-subtype ty '(unsigned-byte 1) env)
+    (let ((ty (typecheck pin)))
+      (ensure-subtype ty '(unsigned-byte 1))
       ty)))
 
 
-(defmethod synthesise-sexp ((fun (eql 'negedge)) args env (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'negedge)) args (context (eql :inexpression)))
   (destructuring-bind (pin)
       args
     (as-literal "negedge(")
-    (synthesise pin env :inexpression)
+    (synthesise pin :inexpression)
     (as-literal")")))

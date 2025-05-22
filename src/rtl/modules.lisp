@@ -41,7 +41,7 @@ we don't define any sub-typing relationships."
   (caddr ty))
 
 
-(defmethod expand-type-parameters-type ((ty (eql 'module-interface)) args env)
+(defmethod expand-type-parameters-type ((ty (eql 'module-interface)) args)
   `(module-interface ,@args))
 
 
@@ -120,16 +120,16 @@ either bare names ot lists of names and values."
 	(list decls nil))))
 
 
-(defun module-parameter-p (n env)
-  "Test whether N is a module paramater in ENV.
+(defun module-parameter-p (n)
+  "Test whether N is a module paramater.
 
 Module parameters have type :lisp to indicate that they should
 be interpolated."
-  (eql (get-type n env) :lisp))
+  (eql (get-type n) :lisp))
 
 
-(defun typecheck-module-param (env decl)
-  "Type-check a module parameter declaration DECL in ENV.
+(defun typecheck-module-param (decl)
+  "Type-check a module parameter declaration DECL.
 
 The value of the parameter, if provided, is evaluated as a Lisp
 expression in the current Lisp environment, *not* in RTLisp's
@@ -143,24 +143,20 @@ of other parameter values."
 
 	(let ((val (eval v)))
 	  (declare-variable n `((:initial-value ,val)
-				(:as :parameter))
-			    env)))
+				(:as :parameter)))))
 
       ;; naked paramater
       (declare-variable decl `((:initial-value 0)
-			       (:as :parameter))
-			env))
-
-  env)
+			       (:as :parameter)))))
 
 
-(defun typecheck-module-params (decls env)
-  "Type-check the module parameter declarations DECLS to extend ENV."
-  (foldr #'typecheck-module-param decls env))
+(defun typecheck-module-params (decls)
+  "Type-check the module parameter declarations DECLS."
+  (mapc #'typecheck-module-param decls))
 
 
-(defun typecheck-module-arg (env decl)
-  "Type-check a module argument declaration DECL in ENV."
+(defun typecheck-module-arg (decl)
+  "Type-check a module argument declaration DECL."
   (destructuring-bind (n &key
 			   type
 			   width
@@ -171,35 +167,32 @@ of other parameter values."
 
     ;; if we have a width, it's a shortcut for unsigned-byte
     (if width
-	(let* ((w (eval-in-static-environment width env))
+	(let* ((w (eval-in-static-environment width))
 	       (ty `(unsigned-byte ,w)))
 	  (if type
 	      ;; if we have a type, it must match
-	      (ensure-subtype ty type env)
+	      (ensure-subtype ty type)
 
 	      ;; if not, re-assign is to the shortcut
 	      (setq type ty))))
 
     (declare-variable n `((:type ,type)
-			  (:direction ,direction))
-		      env)))
+			  (:direction ,direction)))))
 
 
-(defun typecheck-module-args (decls env)
-  "Type-check the module argument declarations DECLS to extend ENV."
-  (foldr #'typecheck-module-arg decls env))
+(defun typecheck-module-args (decls)
+  "Type-check the module argument declarations DECLS."
+  (mapc #'typecheck-module-arg decls))
 
 
-(defun env-from-module-decls (args params env)
+(defun env-from-module-decls (args params)
   "Create an environment extending ENV from PARAMS and ARGS declarations of a module interface."
-  (let* ((ext (add-frame env))
-	 (extparams (typecheck-module-params params ext))
-	 (extargs (typecheck-module-args args extparams)))
-    extargs))
+  (typecheck-module-params params)
+  (typecheck-module-args args))
 
 
-(defun make-module-environment (decls env)
-  "Return an environment extended on ENV built from the DECLS of a module."
+(defun make-module-environment (decls)
+  "Return an environment built from the DECLS of a module."
   (destructuring-bind (modargs modparams)
       (split-args-params decls)
 
@@ -208,7 +201,7 @@ of other parameter values."
       (error 'not-synthesisable :hint "Module must import at least one wire or register"))
 
     ;; create the environment
-    (env-from-module-decls modargs modparams env)))
+    (env-from-module-decls modargs modparams)))
 
 
 (defun make-module-interface-type (decls)
@@ -218,13 +211,15 @@ of other parameter values."
     `(module-interface ,modparams ,modargs)))
 
 
-(defmethod typecheck-sexp ((fun (eql 'module)) args env)
+(defmethod typecheck-sexp ((fun (eql 'module)) args)
   (destructuring-bind (modname decls &rest body)
       args
 
-    (let ((ext (make-module-environment decls env)))
+    (with-new-frame
+      (make-module-environment decls)
+
       ;; typecheck the body of the module in its environment
-      (typecheck (cons 'progn body) ext)
+      (typecheck (cons 'progn body))
 
       ;; return the interface type
       (make-module-interface-type decls))))
@@ -254,37 +249,37 @@ of other parameter values."
       `(module ,modname ,decls ,@(simplify-implied-progn newbody)))))
 
 
-(defmethod detect-shadowing-sexp ((fun (eql 'module)) args env)
+(defmethod detect-shadowing-sexp ((fun (eql 'module)) args)
   (destructuring-bind (modname decls &rest body)
       args
-    (mapc (rcurry #'detect-shadowing env) body)
+    (mapc #'detect-shadowing body)
     t))
 
 
-(defun synthesise-param (decl env)
-  "Return the code for parameter DECL in ENV."
+(defun synthesise-param (decl)
+  "Return the code for parameter DECL."
   (if (listp decl)
       ;; parameter with an initial value
       (destructuring-bind (n v)
 	  decl
 	(as-literal "parameter ")
-	(synthesise n env :indeclaration)
+	(synthesise n :indeclaration)
 	(as-literal " = ")
-	(synthesise v env :inexpression))
+	(synthesise v :inexpression))
 
       ;; naked parameter
       (progn
 	(as-literal "parameter ")
-	(synthesise decl env :indeclaration))))
+	(synthesise decl :indeclaration))))
 
 
-(defun synthesise-arg (decl env)
-  "Return the code for argument DECL in ENV."
+(defun synthesise-arg (decl)
+  "Return the code for argument DECL."
   (declare (optimize debug))
 
   (destructuring-bind (n &key direction type (as :wire))
       decl
-    (let ((width (bitwidth type (empty-environment))))
+    (let ((width (bitwidth type)))
       (as-literal (format nil "~a ~a"
 			  (case direction
 			    (:in    "input")
@@ -294,35 +289,37 @@ of other parameter values."
 				   (= width 1))
 			      ""
 			      (format nil "[ ~(~a~) - 1 : 0 ] " width))))
-      (synthesise n env :indeclaration))))
+      (synthesise n :indeclaration))))
 
 
-(defmethod synthesise-sexp ((fun (eql 'module)) args env (context (eql :toplevel)))
+(defmethod synthesise-sexp ((fun (eql 'module)) args (context (eql :toplevel)))
   (destructuring-bind (modname decls &rest body)
       args
     (as-literal "module ")
-    (synthesise modname env :inexpression)
+    (synthesise modname :inexpression)
 
     (destructuring-bind (args params)
 	(split-args-params decls)
       ;; parameters
       (if params
-	  (as-argument-list params env :indeclaration :before " #(" :after ")"
-						      :sep ", "
-						      :process (lambda (form env context)
-								 (synthesise-param form env))))
+	  (as-argument-list params :indeclaration :before " #(" :after ")"
+						  :sep ", "
+						  :process (lambda (form context)
+							     (synthesise-param form))))
 
       ;; arguments
-      (as-argument-list args env :indeclaration :before "(" :after ");"
-						:sep ", "
-						:process (lambda (form env context)
-							   (synthesise-arg form env))))
+      (as-argument-list args :indeclaration :before "(" :after ");"
+					    :sep ", "
+					    :process (lambda (form context)
+						       (synthesise-arg form))))
     (as-blank-line)
 
     ;; body
-    (let ((ext (make-module-environment decls env)))
+    (with-new-frame
+      (make-module-environment decls)
+
       (with-indentation
-	(synthesise `(progn ,@body) ext :inmodule)))
+	(synthesise `(progn ,@body) :inmodule)))
 
     ;; late initialisationn (if any)
     (when (module-late-initialisation-p)
@@ -403,12 +400,13 @@ and causes a NOT-IMPORTABLE error if not."
     (mapcar #'symbol-name (every-argument modargs))))
 
 
-(defun env-from-module-interface (intf env)
-  "Return an environment corresponding to INTF in ENV."
-  (env-from-module-decls (module-interface-arguments intf) (module-interface-parameters intf) env))
+(defun env-from-module-interface (intf)
+  "Return an environment corresponding to INTF."
+  (env-from-module-decls (module-interface-arguments intf)
+			 (module-interface-parameters intf)))
 
 
-(defmethod typecheck-sexp ((fun (eql 'make-instance)) args env)
+(defmethod typecheck-sexp ((fun (eql 'make-instance)) args)
   (destructuring-bind (modname &rest initargs)
       args
 
@@ -422,22 +420,24 @@ and causes a NOT-IMPORTABLE error if not."
       (ensure-module-arguments-match-interface modname intf modargs)
 
       ;; typecheck the provided arguments against the interface
-      (let ((modenv (env-from-module-interface intf env))
-	    (initargs-plist (plist-alist initargs)))
-	(dolist (arg modargs)
-	  (let ((v (cdr (assoc arg initargs-plist
-			       :key #'symbol-name
-			       :test #'string-equal))))
-	    (cond ((argument-for-module-interface-p arg intf)
-		   (let ((tyval (typecheck v env))
-			 (tyarg (get-type arg modenv)))
-		     (ensure-subtype tyval tyarg env)))
-		  ((parameter-for-module-interface-p arg intf)
-		   (let ((tyval (typecheck (eval-in-static-environment v env) env))
-			 (tyarg (get-type arg modenv)))
-		     (ensure-subtype tyval tyarg env))))))
+      (with-new-frame
+	(env-from-module-interface intf)
 
-	intf))))
+	(let ((initargs-plist (plist-alist initargs)))
+	  (dolist (arg modargs)
+	    (let ((v (cdr (assoc arg initargs-plist
+				 :key #'symbol-name
+				 :test #'string-equal))))
+	      (cond ((argument-for-module-interface-p arg intf)
+		     (let ((tyval (typecheck v))
+			   (tyarg (get-type arg)))
+		       (ensure-subtype tyval tyarg)))
+		    ((parameter-for-module-interface-p arg intf)
+		     (let ((tyval (typecheck (eval-in-static-environment v)))
+			   (tyarg (get-type arg)))
+		       (ensure-subtype tyval tyarg))))))
+
+	  intf)))))
 
 
 (defmethod rewrite-variables-sexp ((fun (eql 'make-instance)) args rewrites)
@@ -453,7 +453,7 @@ and causes a NOT-IMPORTABLE error if not."
       `(,fun ,modname ,@(rewrite-args initargs)))))
 
 
-(defun synthesise-param-binding (decl env context args)
+(defun synthesise-param-binding (decl context args)
   "Synthesise the binding of parameter DECLs from ARGS in ENV."
   (destructuring-bind (n v)
       decl
@@ -462,13 +462,13 @@ and causes a NOT-IMPORTABLE error if not."
 		       :test #'string-equal)))
       (let ((v (cdr m)))
 	(as-literal ".")
-	(synthesise n env :indeclaration)
+	(synthesise n :indeclaration)
 	(as-literal "(")
-	(synthesise v env :inexpression)
+	(synthesise v :inexpression)
 	(as-literal ")")))))
 
 
-(defun synthesise-arg-binding (decl env context args)
+(defun synthesise-arg-binding (decl context args)
   "Synthesise the binding of DECL from ARGS in ENV."
   (destructuring-bind (n &key &allow-other-keys)
       decl
@@ -476,14 +476,14 @@ and causes a NOT-IMPORTABLE error if not."
 			 :key #'symbol-name
 			 :test #'string-equal))))
       (as-literal ".")
-      (synthesise n env :indeclaration)
+      (synthesise n :indeclaration)
       (as-literal "(")
-      (synthesise v env :inexpression)
+      (synthesise v :inexpression)
       (as-literal ")"))))
 
 
-(defun synthesise-module-instance-params (initargs intf env)
-  "Synthesise the parameter bindings INITARGS of INTF in ENV."
+(defun synthesise-module-instance-params (initargs intf)
+  "Synthesise the parameter bindings INITARGS of INTF."
   (declare (optimize debug))
   (let ((paramdecls (module-interface-parameters intf)))
     ;; extract all the parameters actually specified
@@ -500,36 +500,36 @@ and causes a NOT-IMPORTABLE error if not."
       (if paramdeclsgiven
 	  (progn
 	    (as-literal " ")
-	    (as-argument-list paramdeclsgiven env :indeclaration
+	    (as-argument-list paramdeclsgiven :indeclaration
 			      :before "#(" :after ")"
 			      :process (rcurry #'synthesise-param-binding args-alist)))
 
 	  (as-literal " ")))))
 
 
-(defun synthesise-module-instance-args (initargs intf env)
-  "Synthesise the argument bindings INITARGS of INTF in ENV."
+(defun synthesise-module-instance-args (initargs intf)
+  "Synthesise the argument bindings INITARGS of INTF."
   (let ((argdecls (module-interface-arguments intf)))
-    (as-argument-list argdecls env :indeclaration
+    (as-argument-list argdecls :indeclaration
 		      :before "(" :after ");"
 		      :process (rcurry #'synthesise-arg-binding (plist-alist initargs)))))
 
 
-(defun synthesise-module-instance (n modname initargs env)
-  "Synthesise the module instanciation MODNAME in ENV with given INITARGS assigning the instance to N."
+(defun synthesise-module-instance (n modname initargs)
+  "Synthesise the module instanciation MODNAME with given INITARGS assigning the instance to N."
   ;; skip over leading quote of module name,
   ;; for compatability with Common Lisp usage
   (unquote modname)
 
   (let ((intf (get-module-interface modname)))
-    (synthesise modname env :indeclaration)
-    (synthesise-module-instance-params initargs intf env)
-    (synthesise n env :indeclaration)
+    (synthesise modname :indeclaration)
+    (synthesise-module-instance-params initargs intf)
+    (synthesise n :indeclaration)
     (as-literal " ")
-    (synthesise-module-instance-args initargs intf env)))
+    (synthesise-module-instance-args initargs intf)))
 
 
-(defmethod synthesise-sexp ((fun (eql 'make-instance)) args env (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'make-instance)) args (context (eql :inexpression)))
   (labels ((args-to-alist (plist)
 	     "Convert a plist of arguments to an alist, respecting sub-lists. "
 	     (if (null plist)
@@ -548,9 +548,9 @@ and causes a NOT-IMPORTABLE error if not."
 	    (modargs (keys-to-arguments modname initargs)))
 
 	;; arguments
-	(as-argument-list (arguments intf) env :indeclaration
+	(as-argument-list (arguments intf) :indeclaration
 			  :before "(" :after ");"
 			  :process (rcurry #'synthesise-arg-binding (args-to-alist initargs)))))))
 
-(defmethod synthesise-sexp ((fun (eql 'make-instance)) args env (context (eql :inblock)))
-  (synthesise-sexp fun args env :inmodule))
+(defmethod synthesise-sexp ((fun (eql 'make-instance)) args (context (eql :inblock)))
+  (synthesise-sexp fun args :inmodule))

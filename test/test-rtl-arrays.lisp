@@ -26,21 +26,18 @@
 (test test-array-decl
   "Test we can declare arrays."
   (is (subtypep (rtl:typecheck '(make-array '(16)
-				 :element-type (unsigned-byte 8))
-			       emptyenv)
+				 :element-type (unsigned-byte 8)))
 		'(array (unsigned-byte 8) (16))))
 
   ;; version without the Lisp-compatible quote on the shape
   (is (subtypep (rtl:typecheck '(make-array (16)
-				 :element-type (unsigned-byte 8))
-			       emptyenv)
+				 :element-type (unsigned-byte 8)))
 		'(array (unsigned-byte 8) (16))))
 
   ;; at the moment we only allow one dimension
   (signals (rtl:type-mismatch)
     (rtl:typecheck '(make-array '(16 16)
-		     :element-type (unsigned-byte 8))
-		   emptyenv)))
+		     :element-type (unsigned-byte 8)))))
 
 
 (test test-array-bind
@@ -49,7 +46,7 @@
 				 :element-type (unsigned-byte 8)))
 			     (b 0))
 			(setq b 12)))))
-    (is (subtypep (rtl:typecheck p emptyenv)
+    (is (subtypep (rtl:typecheck p)
 		  '(unsigned-byte 8)))))
 
 
@@ -64,8 +61,8 @@
 			      :as :wire)
 			     (c 10 :type (unsigned-byte 8)))
 			(setf c 0)))))
-    (rtl:typecheck p emptyenv)
-    (is (rtl:synthesise p emptyenv :inmodule))))
+    (rtl:typecheck p)
+    (is (rtl:synthesise p :inmodule))))
 
 
 (test test-synthesise-array-decl-type-inferred
@@ -77,8 +74,8 @@
 		   :as :wire)
 		  (c 10))
 	     (setf c 100))))
-    (rtl:typecheck p emptyenv)
-    (is (rtl:synthesise p emptyenv :inmodule))))
+    (rtl:typecheck p)
+    (is (rtl:synthesise p :inmodule))))
 
 
 (test test-synthesise-array-init-from-data
@@ -89,8 +86,8 @@
 			      :as :register)
 			     (c 10))
 			(setf c (aref b 1))))))
-    (rtl:typecheck p emptyenv)
-    (is (rtl:synthesise p emptyenv :inmodule))))
+    (rtl:typecheck p)
+    (is (rtl:synthesise p :inmodule))))
 
 
 (test test-synthesise-array-init-from-file
@@ -103,8 +100,8 @@
 			      :as :register)
 			     (c 10))
 			(setf c (aref b 1))))))
-    (rtl:typecheck p emptyenv)
-    (rtl:synthesise p emptyenv :inmodule)
+    (rtl:typecheck p)
+    (rtl:synthesise p :inmodule)
     (is (rtl::module-late-initialisation-p))))
 
 
@@ -115,7 +112,7 @@
   (let ((p (copy-tree '(let ((a (make-array '(16)
 				 :element-type (unsigned-byte 32))))
 			(setf (aref a 8) (aref a 0))))))
-    (is (subtypep (rtl:typecheck p emptyenv)
+    (is (subtypep (rtl:typecheck p)
 		  '(unsigned-byte 32)))))
 
 
@@ -123,9 +120,9 @@
   "Test we can bit-index into an element of an array."
   (let ((p (copy-tree '(let ((a (make-array '(16)
 				 :element-type (unsigned-byte 32))))
-			(setf (rtl::bits (aref a 8) 3 :end 0)
-			 (rtl::bits (aref a 0) 3 :end 0))))))
-    (is (subtypep (rtl:typecheck p emptyenv)
+			(setf (rtl::bref (aref a 8) 3 :end 0)
+			 (rtl::bref (aref a 0) 3 :end 0))))))
+    (is (subtypep (rtl:typecheck p)
 		  '(unsigned-byte 32)))))
 
 
@@ -134,8 +131,8 @@
   (let ((p (copy-tree '(let ((a (make-array '(16)
 				 :element-type (unsigned-byte 32))))
 			(setf (aref a 8) (aref a 0))))))
-    (rtl:typecheck p emptyenv)
-    (is (rtl:synthesise p emptyenv :inblock))))
+    (rtl:typecheck p)
+    (is (rtl:synthesise p :inblock))))
 
 
 ;; ---------- Initialisation ----------
@@ -145,14 +142,13 @@
   (let ((p (copy-tree  '(let ((a (make-array (5)
 				  :initial-contents (1 2 3 4 5))))
 			 (aref a 0)))))
-    (is (subtypep (rtl:typecheck p emptyenv)
+    (is (subtypep (rtl:typecheck p)
 		  '(unsigned-byte 8))))
 
   (signals (rtl:shape-mismatch)
     (rtl:typecheck '(let ((a (make-array (5)
 			      :initial-contents (1 2 3))))
-		     (aref a 0))
-		   emptyenv)))
+		     (aref a 0)))))
 
 
 (test test-typecheck-array-initialiser-bad-value
@@ -161,8 +157,7 @@
     (rtl:typecheck '(let ((a (make-array (5)
 			      :element-type '(unsigned-byte 4)
 			      :initial-contents (1 2 35))))
-		     (aref a 0))
-		   emptyenv)))
+		     (aref a 0)))))
 
 
 (test test-syntheseise-array-init
@@ -171,8 +166,8 @@
 				 :initial-contents '(1 2 3 4 5 6 7 8 9 10)))
 			     (b 0))
 			(setf b (aref a 1))))))
-    (rtl:typecheck p emptyenv)
-    (is (rtl:synthesise p emptyenv :inblock))))
+    (rtl:typecheck p)
+    (is (rtl:synthesise p :inblock))))
 
 
 ;; The next test uses ROM data from the SAP-1 example
@@ -184,6 +179,6 @@
 					     :initial-contents '(:file ,fn)))
 			      (b 0))
 			  (setf b (aref a 1))))))
-    (rtl:typecheck p emptyenv)
-    (is (rtl:synthesise p emptyenv :inblock))
+    (rtl:typecheck p)
+    (is (rtl:synthesise p :inblock))
     (rtl::run-module-late-initialisation)))

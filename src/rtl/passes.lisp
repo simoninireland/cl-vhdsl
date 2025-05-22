@@ -70,24 +70,24 @@ form."
 ;; since the float-let-blocks pass will place them all at the same level
 ;; (Don't want to leave detection till then because of macro-expansion.)
 
-(defgeneric detect-shadowing (form env)
-  (:documentation "Check whether FORM shadows variables declared in ENV.
+(defgeneric detect-shadowing (form)
+  (:documentation "Check whether FORM shadows variables declared previously.
 
 This pass is used to disallow shadowing in all case.")
-  (:method ((form integer) env)
+  (:method ((form integer))
     '())
-  (:method ((form symbol) env)
+  (:method ((form symbol))
     '())
-  (:method ((form list) env)
+  (:method ((form list))
     (destructuring-bind (fun &rest args)
 	form
-      (detect-shadowing-sexp fun args env))))
+      (detect-shadowing-sexp fun args))))
 
 
-(defgeneric detect-shadowing-sexp (fun args env)
+(defgeneric detect-shadowing-sexp (fun args)
   (:documentation "Check whether FUN called on ARGS in ENV shadows any variables.")
-  (:method (fun args env)
-    (mapc (rcurry #'detect-shadowing env) args)
+  (:method (fun args)
+    (mapc #'detect-shadowing args)
     t))
 
 
@@ -153,14 +153,14 @@ calculations that can be done early.")
 
 ;; ---------- Type and width checking and inference ----------
 
-(defgeneric typecheck (form env)
-  (:documentation "Type-check FORM in ENV.")
-  (:method ((form list) env)
+(defgeneric typecheck (form)
+  (:documentation "Type-check FORM in the current global environment.")
+  (:method ((form list))
     (let ((fun (car form))
 	  (args (cdr form)))
       (with-rtl-errors-not-synthesisable
 	(with-current-form (cons fun args)
-	  (expand-type-parameters (typecheck-sexp fun args env) env))))))
+	  (expand-type-parameters (typecheck-sexp fun args)))))))
 
 
 ;; Wrap an error catcher around the function to convert parsing
@@ -175,11 +175,11 @@ calculations that can be done early.")
 ;;     (call-next-method)))
 
 
-(defgeneric typecheck-sexp (fun args env)
-  (:documentation "Type-check the application of FUN to ARGS in ENV."))
+(defgeneric typecheck-sexp (fun args)
+  (:documentation "Type-check the application of FUN to ARGS in the global environment."))
 
 
-(defgeneric typecheck-sexp-setf (selector val env selectorargs &key sync)
+(defgeneric typecheck-sexp-setf (selector val selectorargs &key sync)
   (:documentation "Type-check a SETF form allowing generalised places.
 
 This matches a form (SETF (SELECTOR SELECTORARGS) VAL) and allows
@@ -284,8 +284,6 @@ well as PROGNs nested inside other PROGNs.")
 	(expand-descend fun args)))))
 
 
-
-
 ;; ---------- Synthesis ----------
 
 ;; In an expression-oriented language like Lisp, any form can
@@ -309,8 +307,8 @@ well as PROGNs nested inside other PROGNs.")
 ;; - :indeclaration -- for declarations
 ;; - :inassignment -- as the target for an assignment
 
-(defgeneric synthesise (form env context)
-  (:documentation "Synthesise the Verilog for FORM in ENV.
+(defgeneric synthesise (form context)
+  (:documentation "Synthesise the Verilog for FORM in the current environment.
 
 The form may have a specified role of position indicated by CONTEXT.
 This may be used to specialise synthesis methods according to
@@ -318,16 +316,16 @@ syntactic classes and the like.
 
 A NOT-SYNTHESISABLE error will be signalled for all underlying
 conditions.")
-  (:method ((form list) env context)
+  (:method ((form list) context)
     (let ((fun (car form))
 	  (args (cdr form)))
       (with-rtl-errors-not-synthesisable
-	(synthesise-sexp fun args env context)
+	(synthesise-sexp fun args context)
 	t))))
 
 
-(defgeneric synthesise-sexp (fun args env context)
-  (:documentation "Write the synthesised Verilog of FUN called with ARGS in ENV.
+(defgeneric synthesise-sexp (fun args context)
+  (:documentation "Write the synthesised Verilog of FUN called with ARGS in the current environment.
 
 The synthesised code may depend on the role or position CONTEXT,
 which can be used to specialise the method."))
@@ -335,20 +333,20 @@ which can be used to specialise the method."))
 
 ;; ---------- Lispification ----------
 
-(defgeneric lispify (form env)
-  (:documentation "Convert FORM to a Lisp expression  in ENV.")
-  (:method ((form list) env)
+(defgeneric lispify (form)
+  (:documentation "Convert FORM to a Lisp expression.")
+  (:method ((form list))
     (let ((fun (car form))
 	  (args (cdr form)))
       (with-rtl-errors-not-synthesisable
-	(lispify-sexp fun args env)))))
+	(lispify-sexp fun args)))))
 
 
-(defgeneric lispify-sexp (fun args env)
-  (:documentation "Convert FUN applied to ARGS in ENV to Lisp.
+(defgeneric lispify-sexp (fun args)
+  (:documentation "Convert FUN applied to ARGS to Lisp.
 
 The default leaves the expression unchanged, i.e., assumes that
 this RTLisp fragment is valid Lisp.")
-  (:method (fun args env)
-    (let ((lispargs (mapcar (rcurry #'lispify env) args)))
+  (:method (fun args)
+    (let ((lispargs (mapcar #'lispify args)))
       `(,fun ,@lispargs))))

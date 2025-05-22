@@ -23,14 +23,12 @@
 
 (test test-make-bitfields-literal
   "Test we can make a bitfield from literals."
-  (is (subtypep (rtl:typecheck '(rtl:make-bitfields #2r111 #2r100)
-			    emptyenv)
+  (is (subtypep (rtl:typecheck '(rtl:make-bitfields #2r111 #2r100))
 		'(unsigned-byte 6)))
 
   (is (subtypep (rtl:typecheck '(rtl:make-bitfields
 				 #2r111
-				 (the (unsigned-byte 12) 0))
-			       emptyenv)
+				 (the (unsigned-byte 12) 0)))
 		'(unsigned-byte 15))))
 
 
@@ -38,31 +36,27 @@
   "Test we can extend bitfields."
   (is (subtypep (rtl:typecheck '(rtl:make-bitfields
 				 #2r101
-				 (rtl:extend-bits #2r0 5))
-			       emptyenv)
+				 (rtl:extend-bits #2r0 5)))
 		'(unsigned-byte 8)))
 
   ;; repeats must be statically known, but pattern can be variable
   (is (subtypep (rtl:typecheck '(let ((a 8))
-				 (rtl:make-bitfields (rtl:extend-bits a 5)))
-			       emptyenv)
+				 (rtl:make-bitfields (rtl:extend-bits a 5))))
 		'(unsigned-byte 20)))
   (is (subtypep (rtl:typecheck '(let ((a 8))
-				 (rtl:make-bitfields (rtl:extend-bits (+ a 9) 5)))
-			       emptyenv)
+				 (rtl:make-bitfields (rtl:extend-bits (+ a 9) 5))))
 		'(unsigned-byte 25)))
   (signals (rtl::not-static)
     (rtl:typecheck '(let ((a 8))
-		     (rtl:make-bitfields (rtl:extend-bits 0 a)))
-		   emptyenv)))
+		     (rtl:make-bitfields (rtl:extend-bits 0 a))))))
 
 
 (test test-test-synthesise-make-bitfields
   "Test we can synthesise constructed bitfields."
   (is (rtl:synthesise '(rtl:make-bitfields #2r111 #2r100)
-		      emptyenv :inexpression))
+		      :inexpression))
   (let ((p (copy-tree '(let ((a 1)
 			     b)
 			(setq b (rtl:make-bitfields (rtl:extend-bits a 5)))))))
-    (rtl:typecheck p emptyenv)
-    (rtl:synthesise p emptyenv :inmodule)))
+    (rtl:typecheck p)
+    (rtl:synthesise p :inmodule)))

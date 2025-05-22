@@ -21,69 +21,74 @@
 (declaim (optimize debug))
 
 
-(defun writeable-p (n env)
-  "Test whether N is writeable in ENV.
+(defun writeable-p (n)
+  "Test whether N is writeable.
 
 To be writeable a variable must be a register or wire, not a constant,
 and not an input argument."
-  (and (not (get-constant n env))
-       (not (eql (get-representation n env) :constant))
-       (not (eql (get-direction n env) :in))))
+  (and (variable-declared-p n)
+       (not (get-constant n))
+       (not (eql (get-representation n) :constant))
+       (not (eql (get-direction n) :in))))
 
 
-(defun ensure-writeable (n env)
-  "Ensure N is writeable in ENV.
+(defun ensure-writeable (n)
+  "Ensure N is writeable.
 
 Signals NOT-SYNTHESISABLE if an attempt is made to update a
-constant or an input parameter."
-  (unless (writeable-p n env)
+constant or an input parameter, or UNKNOWN-VARIABLE if the variable
+isn't declared."
+  (unless (variable-declared-p n)
+    (error 'unknown-variable :variable n
+			     :hint "Make sure the variable is in scope"))
+  (unless (writeable-p n)
     (error 'not-synthesisable :hint "Ensure target is writeable")))
 
 
 ;; ---------- setq ----------
 
-(defmethod typecheck-sexp ((fun (eql 'setq)) args env)
+(defmethod typecheck-sexp ((fun (eql 'setq)) args)
   (destructuring-bind (n v &key sync)
       args
     ;; catch the common mistake of using SETQ when we need SETF
     (unless (symbolp n)
       (error 'not-synthesisable :hint "Do you need SETF instead of SETQ?"))
 
-    (let ((tyvar (typecheck n env))
-	  (tyval (typecheck v env)))
-      (ensure-subtype tyval tyvar env)
-      (ensure-writeable n env)
-      (add-type-constraint n tyval env)
+    (let ((tyvar (typecheck n))
+	  (tyval (typecheck v)))
+      (ensure-subtype tyval tyvar)
+      (ensure-writeable n)
+      (add-type-constraint n tyval)
 
       tyval)))
 
 
-(defmethod synthesise-sexp ((fun (eql 'setq)) args env (context (eql :inblock)))
+(defmethod synthesise-sexp ((fun (eql 'setq)) args (context (eql :inblock)))
   (destructuring-bind (var val &key (sync nil))
       args
-    (synthesise var env :inassignment)
+    (synthesise var :inassignment)
     (if sync
 	(as-literal " = ")
 	(as-literal " <= "))
-    (synthesise val env :inexpression)
+    (synthesise val :inexpression)
     (format *synthesis-stream* ";")))
 
 
-(defmethod synthesise-sexp ((fun (eql 'setq)) args env (context (eql :inmodule)))
+(defmethod synthesise-sexp ((fun (eql 'setq)) args (context (eql :inmodule)))
   (destructuring-bind (var val)
       args
     (as-literal "assign ")
-    (synthesise var env :inassignment)
+    (synthesise var :inassignment)
     (as-literal " = ")
-    (synthesise val env :inexpression)
+    (synthesise val :inexpression)
     (as-literal ";")))
 
 
 
 ;; ---------- setf (generalised places) ----------
 
-(defgeneric generalised-place-p (form env)
-  (:documentation "Test whether FORM is a generalised place in ENV.
+(defgeneric generalised-place-p (form)
+  (:documentation "Test whether FORM is a generalised place.
 
 Generalised places can appear as the target of SETF forms. (In other
 languages they are sometimes referred to as /lvalues/.) This is
@@ -91,14 +96,14 @@ separate, but related to, their type: a generalised place has a type,
 but is also SETF-able.
 
 By default forms are /not/ generalised places.")
-  (:method ((form integer) env)
+  (:method ((form integer))
     nil)
-  (:method ((form symbol) env)
-    (not (get-constant form env)))
-  (:method ((form list) env)
+  (:method ((form symbol))
+    (not (get-constant form)))
+  (:method ((form list))
     (destructuring-bind (fun &rest args)
 	form
-      (generalised-place-sexp-p fun args env))))
+      (generalised-place-sexp-p fun args))))
 
 
 ;; No need to dive into the args in most cases, just the selector
@@ -106,56 +111,56 @@ By default forms are /not/ generalised places.")
 ;; There might be a better approach to this using reference types
 ;; to differentiate between l- and r-value instances
 
-(defgeneric generalised-place-sexp-p (fun args env)
-  (:documentation "Test whether FUN applied to ARGS identifies a generalised place in ENV.
+(defgeneric generalised-place-sexp-p (fun args)
+  (:documentation "Test whether FUN applied to ARGS identifies a generalised place.
 
 The default is for a form /not/ to be a generalised place.")
-  (:method (fun args env)
+  (:method (fun args)
     nil))
 
 
-(defun ensure-generalised-place (form env)
-  "Ensure FORM is a generalised place in ENV."
-  (unless (generalised-place-p form env)
+(defun ensure-generalised-place (form)
+  "Ensure FORM is a generalised place."
+  (unless (generalised-place-p form)
     (error 'not-synthesisable :hint "Make sure the code identifies a generalised, SETF-able, place")))
 
 
-(defmethod typecheck-sexp ((fun (eql 'setf)) args env)
+(defmethod typecheck-sexp ((fun (eql 'setf)) args)
   (destructuring-bind (var val &key sync)
       args
     (if (listp var)
-	(typecheck-sexp-setf (car var) val (cdr var) env :sync sync)
+	(typecheck-sexp-setf (car var) val (cdr var) :sync sync)
 
 	;; a SETF to a simple variable is a SETQ
-	(typecheck `(setq ,var ,val :sync ,sync) env))))
+	(typecheck `(setq ,var ,val :sync ,sync)))))
 
 
-(defmethod typecheck-sexp-setf ((selector symbol) val selectorargs env &key sync)
+(defmethod typecheck-sexp-setf ((selector symbol) val selectorargs &key sync)
   (let* ((place `(,selector ,@selectorargs))
-	 (tyvar (typecheck place env))
-	 (tyval (typecheck val env)))
-    (ensure-subtype tyval tyvar env)
-    (ensure-generalised-place place env)
+	 (tyvar (typecheck place))
+	 (tyval (typecheck val)))
+    (ensure-subtype tyval tyvar)
+    (ensure-generalised-place place)
 
     tyvar))
 
 
-(defmethod synthesise-sexp ((fun (eql 'setf)) args env (context (eql :inblock)))
+(defmethod synthesise-sexp ((fun (eql 'setf)) args (context (eql :inblock)))
   (destructuring-bind (var val &key (sync nil))
       args
-    (synthesise var env :inassignment)
+    (synthesise var :inassignment)
     (if sync
 	(as-literal " = ")
 	(as-literal " <= "))
-    (synthesise val env :inexpression)
+    (synthesise val :inexpression)
     (as-literal ";")))
 
 
-(defmethod synthesise-sexp ((fun (eql 'setf)) args env (context (eql :inmodule)))
+(defmethod synthesise-sexp ((fun (eql 'setf)) args (context (eql :inmodule)))
   (destructuring-bind (var val)
       args
     (as-literal "assign ")
-    (synthesise var env :inassignment)
+    (synthesise var :inassignment)
     (as-literal " = ")
-    (synthesise val env :inexpression)
+    (synthesise val :inexpression)
     (as-literal ";")))

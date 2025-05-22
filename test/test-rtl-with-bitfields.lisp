@@ -63,8 +63,7 @@
 	     (rtl::with-bitfields (a a a b b b c)
 		 a
 	       (setf a (+ b c))))))
-    (is (subtypep (rtl:typecheck (rtl:expand-macros p)
-				 emptyenv)
+    (is (subtypep (rtl:typecheck (rtl:expand-macros p))
 		  '(unsigned-byte 10)))))
 
 
@@ -86,6 +85,5 @@
 						 d e f)
 			      ctrl
 			    (setf a d))))))
-    (is (subtypep (rtl:typecheck (rtl:expand-macros p)
-				 emptyenv)
+    (is (subtypep (rtl:typecheck (rtl:expand-macros p))
 		  'rtl::module-interface))))

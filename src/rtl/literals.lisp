@@ -22,18 +22,18 @@
 
 ;; ---------- Integers ----------
 
-(defmethod bitwidth ((val integer) env)
+(defmethod bitwidth ((val integer))
   (bits-for-integer val))
 
 
-(defmethod typecheck ((form integer) env)
-  (let ((w (bitwidth form env)))
+(defmethod typecheck ((form integer))
+  (let ((w (bitwidth form)))
     (if (< form 0)
 	`(signed-byte ,w)
 	`(unsigned-byte ,w))))
 
 
-(defmethod widthcheck ((form integer) env)
+(defmethod widthcheck ((form integer))
   form)
 
 
@@ -45,9 +45,9 @@
   form)
 
 
-(defmethod synthesise ((form integer) env (context (eql :inexpression)))
+(defmethod synthesise ((form integer) (context (eql :inexpression)))
   (as-literal (format nil "~s" form)))
 
 
-(defmethod lispify ((form integer) env)
+(defmethod lispify ((form integer))
   form)

@@ -33,16 +33,16 @@ A NOT-SYNTHESISABLE error is raised if the arguments are wrong."
 
 ;; ---------- Maths ----------
 
-(defun typecheck-addition (args env)
-  "Type-check an addition or subtraction of ARGS in ENV.
+(defun typecheck-addition (args)
+  "Type-check an addition or subtraction of ARGS.
 
 The width of the resulting number is the width of the widest argument
 plus the number of other arguments."
-  (let ((tys (mapcar (rcurry #'typecheck env) args)))
+  (let ((tys (mapcar #'typecheck args)))
     (dolist (ty tys)
       (ensure-fixed-width ty))
 
-    (let* ((ws (mapcar (rcurry #'bitwidth env) tys))
+    (let* ((ws (mapcar #'bitwidth tys))
 	   (minus (some #'signed-byte-p tys))
 	   (w `(+ (max ,@ws)
 		  (1- ,(length args)))))
@@ -77,60 +77,60 @@ plus the number of other arguments."
 	      `(,fun ,total ,@remaining ))))))
 
 
-(defmethod typecheck-sexp ((fun (eql '+)) args env)
-  (typecheck-addition args env))
+(defmethod typecheck-sexp ((fun (eql '+)) args)
+  (typecheck-addition args))
 
 
 (defmethod fold-constant-expressions-sexp ((fun (eql '+)) args)
   (fold-constant-expressions-addition '+args))
 
 
-(defmethod synthesise-sexp ((fun (eql '+)) args env (context (eql :inexpression)))
-  (as-infix '+ args env))
+(defmethod synthesise-sexp ((fun (eql '+)) args (context (eql :inexpression)))
+  (as-infix '+ args))
 
 
-(defmethod lispify-sexp ((fun (eql '+)) args env)
+(defmethod lispify-sexp ((fun (eql '+)) args)
   (let ((vals (mapcar (lambda (arg)
-			(lispify arg env))
+			(lispify arg))
 		      args)))
     `(+ ,@vals)))
 
 
-(defmethod typecheck-sexp ((fun (eql '-)) args env)
+(defmethod typecheck-sexp ((fun (eql '-)) args)
   (if (= (length args) 1)
       ;; unary negation
-      (let ((ty (typecheck (car args) env)))
-	`(signed-byte ,(1+ (bitwidth ty env))))
+      (let ((ty (typecheck (car args))))
+	`(signed-byte ,(1+ (bitwidth ty))))
 
       ;; general substraction
       ;; we force subtractions to be signed
-      (let ((ty (typecheck-addition args env)))
-	`(signed-byte ,(bitwidth ty env)))))
+      (let ((ty (typecheck-addition args)))
+	`(signed-byte ,(bitwidth ty)))))
 
 
 (defmethod fold-constant-expressions-sexp ((fun (eql '-)) args)
   (fold-constant-expressions-addition '- args))
 
 
-(defmethod synthesise-sexp ((fun (eql '-)) args env (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql '-)) args (context (eql :inexpression)))
   (if (= (length args) 1)
       ;; unary minus
       (progn
 	(as-literal "(- ")
-	(synthesise (car args) env :inexpression)
+	(synthesise (car args) :inexpression)
 	(as-literal ")"))
 
       ;; application
-      (as-infix '- args env)))
+      (as-infix '- args)))
 
 
-(defmethod synthesise-sexp ((fun (eql '*)) args env (context (eql :inexpression)))
-  (as-infix '* args env))
+(defmethod synthesise-sexp ((fun (eql '*)) args (context (eql :inexpression)))
+  (as-infix '* args))
 
 
-(defmethod lispify-sexp ((fun (eql '-)) args env)
+(defmethod lispify-sexp ((fun (eql '-)) args)
   (let ((vals (mapcar (lambda (arg)
-			(lispify arg env))
+			(lispify arg))
 		      args)))
     `(- ,@vals)))
 
@@ -147,20 +147,20 @@ plus the number of other arguments."
 ;;
 ;; The result is always unsigned.
 
-(defmethod typecheck-sexp ((fun (eql '<<)) args env)
+(defmethod typecheck-sexp ((fun (eql '<<)) args)
   (ensure-number-of-arguments fun args 2)
 
   (destructuring-bind (val offset)
       args
-    (let ((tyval (typecheck val env))
-	  (tyoffset (typecheck offset env)))
+    (let ((tyval (typecheck val))
+	  (tyoffset (typecheck offset)))
       (ensure-fixed-width tyval)
       (ensure-fixed-width tyoffset)
 
       ;; the width is the width of the value plus the
       ;; maximum number that can be in the offset
-      `(unsigned-byte ,(+ (bitwidth tyval env)
-			  (1- (ash 1 (bitwidth tyoffset env))))))))
+      `(unsigned-byte ,(+ (bitwidth tyval)
+			  (1- (ash 1 (bitwidth tyoffset))))))))
 
 
 (defmethod fold-constant-expressions-sexp ((fun (eql '<<)) args)
@@ -172,34 +172,34 @@ plus the number of other arguments."
 	`('<< ,val ,offset))))
 
 
-(defmethod synthesise-sexp ((fun (eql '<<)) args env (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql '<<)) args (context (eql :inexpression)))
   (destructuring-bind (val offset)
       args
-    (as-infix '<< args env)))
+    (as-infix '<< args)))
 
 
-(defmethod lispify-sexp ((fun (eql '<<)) args env)
+(defmethod lispify-sexp ((fun (eql '<<)) args)
   (let ((vals (mapcar (lambda (arg)
-			(lispify arg env))
+			(lispify arg))
 		      args)))
     `(ash ,@vals)))
 
 
 ;; We should probably do sign extension here, like Lisp does
 
-(defmethod typecheck-sexp ((fun (eql '>>)) args env)
+(defmethod typecheck-sexp ((fun (eql '>>)) args)
   (ensure-number-of-arguments fun args 2)
 
   (destructuring-bind (val offset)
       args
-    (let ((tyval (typecheck val env))
-	  (tyoffset (typecheck offset env)))
+    (let ((tyval (typecheck val))
+	  (tyoffset (typecheck offset)))
       (ensure-fixed-width tyval)
       (ensure-fixed-width tyoffset)
 
       ;; use the width of the value as the maximum width, since
       ;; shifting right can only make it smaller
-      `(unsigned-byte ,(bitwidth tyval env)))))
+      `(unsigned-byte ,(bitwidth tyval)))))
 
 
 (defmethod fold-constant-expressions-sexp ((fun (eql '>>)) args)
@@ -211,104 +211,104 @@ plus the number of other arguments."
 	`('<< ,val ,offset))))
 
 
-(defmethod synthesise-sexp ((fun (eql '>>)) args env (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql '>>)) args (context (eql :inexpression)))
   (destructuring-bind (val offset)
       args
-    (as-infix '>> args env)))
+    (as-infix '>> args)))
 
 
-(defmethod lispify-sexp ((fun (eql '>>)) args env)
+(defmethod lispify-sexp ((fun (eql '>>)) args)
   (let ((vals (mapcar (lambda (arg)
-			(lispify arg env))
+			(lispify arg))
 		      args)))
     `(ash ,(car vals) (- ,(cadr vals)))))
 
 
 ;; ---------- Bitwise operators ----------
 
-(defun typecheck-bitwise-operator (args env)
-  "Typecheck the arguments ARGS to a logical operator in ENV."
+(defun typecheck-bitwise-operator (args)
+  "Typecheck the arguments ARGS to a logical operator."
   (let ((ty (foldr (lambda (ty1 arg)
-		     (lub ty1 (typecheck arg env) env))
+		     (lub ty1 (typecheck arg)))
 		   args nil)))
-    (ensure-subtype ty 'unsigned-byte env)
+    (ensure-subtype ty 'unsigned-byte)
 
     ty))
 
 
-(defmethod typecheck-sexp ((fun (eql 'logand)) args env)
-  (typecheck-bitwise-operator args env))
+(defmethod typecheck-sexp ((fun (eql 'logand)) args)
+  (typecheck-bitwise-operator args))
 
 
 (defmethod fold-constant-expressions-sexp ((fun (eql 'logand)) args)
   (fold-constant-expressions-addition 'logand args))
 
 
-(defmethod synthesise-sexp ((fun (eql 'logand)) args env (context (eql :inexpression)))
-  (as-infix '& args env))
+(defmethod synthesise-sexp ((fun (eql 'logand)) args (context (eql :inexpression)))
+  (as-infix '& args))
 
 
-(defmethod typecheck-sexp ((fun (eql 'logior)) args env)
-  (typecheck-bitwise-operator args env))
+(defmethod typecheck-sexp ((fun (eql 'logior)) args)
+  (typecheck-bitwise-operator args))
 
 
 (defmethod fold-constant-expressions-sexp ((fun (eql 'logior)) args)
   (fold-constant-expressions-addition 'logior args))
 
 
-(defmethod synthesise-sexp ((fun (eql 'logior)) args env (context (eql :inexpression)))
-  (as-infix '|\|| args env))
+(defmethod synthesise-sexp ((fun (eql 'logior)) args (context (eql :inexpression)))
+  (as-infix '|\|| args))
 
 
-(defmethod typecheck-sexp ((fun (eql 'logxor)) args env)
-  (typecheck-bitwise-operator args env))
+(defmethod typecheck-sexp ((fun (eql 'logxor)) args)
+  (typecheck-bitwise-operator args))
 
 
 (defmethod fold-constant-expressions-sexp ((fun (eql 'logxor)) args)
   (fold-constant-expressions-addition 'logxor args))
 
 
-(defmethod synthesise-sexp ((fun (eql 'logxor)) args env (context (eql :inexpression)))
-  (as-infix '^ args env))
+(defmethod synthesise-sexp ((fun (eql 'logxor)) args (context (eql :inexpression)))
+  (as-infix '^ args))
 
 
 ;; ---------- Logical ----------
 
-(defun typecheck-logical-operator (args env)
-  "Typecheck the arguments ARGS to a logical operator in ENV.
+(defun typecheck-logical-operator (args)
+  "Typecheck the arguments ARGS to a logical operator.
 
 All arguments must be booleans."
   (mapc (lambda (arg)
-	  (let ((ty (typecheck arg env)))
-	    (ensure-boolean ty env)))
+	  (let ((ty (typecheck arg)))
+	    (ensure-boolean ty)))
 	args)
   '(unsigned-byte 1))
 
 
-(defmethod typecheck-sexp ((fun (eql 'and)) args env)
-  (typecheck-logical-operator args env))
+(defmethod typecheck-sexp ((fun (eql 'and)) args)
+  (typecheck-logical-operator args))
 
 
-(defmethod synthesise-sexp ((fun (eql 'and)) args env (context (eql :inexpression)))
-  (as-infix '&& args env))
+(defmethod synthesise-sexp ((fun (eql 'and)) args (context (eql :inexpression)))
+  (as-infix '&& args))
 
 
-(defmethod typecheck-sexp ((fun (eql 'or)) args env)
-  (typecheck-logical-operator args env))
+(defmethod typecheck-sexp ((fun (eql 'or)) args)
+  (typecheck-logical-operator args))
 
 
-(defmethod synthesise-sexp ((fun (eql 'or)) args env (context (eql :inexpression)))
-  (as-infix '|\|\|| args env))
+(defmethod synthesise-sexp ((fun (eql 'or)) args (context (eql :inexpression)))
+  (as-infix '|\|\|| args))
 
 
-(defmethod typecheck-sexp ((fun (eql 'not)) args env)
+(defmethod typecheck-sexp ((fun (eql 'not)) args)
   (ensure-number-of-arguments 'not args 1)
-  (ensure-boolean (car args) env)
+  (ensure-boolean (car args))
   '(unsigned-byte 1))
 
 
-(defmethod synthesise-sexp ((fun (eql 'not)) args env (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'not)) args (context (eql :inexpression)))
   (as-literal "(")
   (as-literal "!")
-  (synthesise (car args) env :inexpression)
+  (synthesise (car args) :inexpression)
   (as-literal ")"))

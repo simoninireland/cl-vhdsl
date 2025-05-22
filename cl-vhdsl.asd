@@ -43,6 +43,7 @@
 		:components ((:file "package")
 			     (:file "env")
 			     (:file "pretty-printer")
+			     (:file "context")
 			     (:file "passes")
 			     (:file "typeops")
 			     (:file "identifiers")

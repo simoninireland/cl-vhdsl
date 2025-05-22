@@ -23,51 +23,51 @@
 
 ;; ---------- make-bitfields ----------
 
-(defun typecheck-pattern (pat env)
-  "Typecheck bitfield pattern PAT in ENV."
-  (let ((typ (typecheck pat env)))
+(defun typecheck-pattern (pat)
+  "Typecheck bitfield pattern PAT."
+  (let ((typ (typecheck pat)))
     (ensure-fixed-width typ)
     typ))
 
 
-(defmethod typecheck-sexp ((fun (eql 'make-bitfields)) args env)
+(defmethod typecheck-sexp ((fun (eql 'make-bitfields)) args)
   (destructuring-bind (&rest pats)
       args
-    (let ((tys (mapcar (rcurry #'typecheck-pattern env) pats)))
+    (let ((tys (mapcar #'typecheck-pattern pats)))
       ;; work out the bit width of the result
       (let ((w (foldr #'+
-		      (mapcar (rcurry #'bitwidth env) tys)
+		      (mapcar #'bitwidth tys)
 		      0)))
 	`(unsigned-byte ,w)))))
 
 
-(defmethod synthesise-sexp ((fun (eql 'make-bitfields)) args env (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'make-bitfields)) args (context (eql :inexpression)))
   (as-literal "{")
-  (as-inline-forms args env :inexpression
+  (as-inline-forms args :inexpression
 		   :sep ",")
   (as-literal "}"))
 
 
 ;; ---------- extend-bits ----------
 
-(defmethod typecheck-sexp ((fun (eql 'extend-bits)) args env)
+(defmethod typecheck-sexp ((fun (eql 'extend-bits)) args)
   (destructuring-bind (bs width)
       args
-    (let ((tyw (typecheck width env))
-	  (tyb (typecheck bs env)))
+    (let ((tyw (typecheck width))
+	  (tyb (typecheck bs)))
       (ensure-fixed-width tyw)
       (ensure-fixed-width tyb)
 
       ;; evaluate the width, which must be statically determined
-      (let ((w (ensure-static width env)))
+      (let ((w (ensure-static width)))
 	`(unsigned-byte ,w)))))
 
 
-(defun synthesise-fixed-width-constant (c width env &optional (base 2))
-  "Synthesise C as a constant with the given WIDTH in ENV.
+(defun synthesise-fixed-width-constant (c width &optional (base 2))
+  "Synthesise C as a constant with the given WIDTH.
 
 The BASE used can be 2, 8, 10, or 16."
-  (synthesise width env :inexpression)
+  (synthesise width :inexpression)
   (as-literal "'")
   (as-literal (ecase base
 		(2  "b")
@@ -75,21 +75,21 @@ The BASE used can be 2, 8, 10, or 16."
 		(10 "d")
 		(16 "x")))
   (let ((*print-base* base))
-    (synthesise c env :inexpression)))
+    (synthesise c :inexpression)))
 
 
-(defmethod synthesise-sexp ((fun (eql 'extend-bits)) args env (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'extend-bits)) args (context (eql :inexpression)))
   (destructuring-bind (bs width)
       args
     (as-literal "{")
-    (synthesise width env :inexpression)
+    (synthesise width :inexpression)
     (as-literal "{")
-    (if (static-constant-p bs nil)
+    (if (static-constant-p bs)
 	;; value is a static constant, output it
-	(let ((w (bitwidth (ensure-static bs nil) nil)))
-	  (synthesise-fixed-width-constant bs w env))
+	(let ((w (bitwidth (ensure-static bs))))
+	  (synthesise-fixed-width-constant bs w))
 
 	;; value is an expression, synthesise it
 	(progn
-	  (synthesise bs env :inexpression)))
+	  (synthesise bs :inexpression)))
     (as-literal "}}")))

@@ -58,7 +58,7 @@ one that operate on the complete environment."))
   (make-instance 'frame))
 
 
-(defun add-frame (env)
+(defun add-environment-frame (env)
   "Return a new environment consisting of ENV with a new empty frame.
 
 ENV is unchanged by this operation."
@@ -87,13 +87,18 @@ An UNKNOWN-VARIABLE error is signalled if N is undefined."
   (mapcar #'car (decls env)))
 
 
+(defun empty-frame-p (env)
+  "Test whether ENV's shallowest frame is empty."
+  (null (get-frame-names env)))
+
+
 (defun variable-declared-in-frame-p (n env)
   "Test whether N is defined in the topmost frame of ENV."
   (not (null (if (symbolp n)
 		 (assoc n (decls env))
 		 (assoc n (decls env)
-			 :key #'symbol-name
-			 :test #'string-equal)))))
+			:key #'symbol-name
+			:test #'string-equal)))))
 
 
 (defun get-frame-property (n prop env &key default)
@@ -152,9 +157,14 @@ An UNKNOWN-VARIABLE error is signalled if N is undefined."
 
 (defun get-environment-names (env)
   "Return the names in ENV."
-  (foldr #'union (map-environment (lambda (n env) (list  n))
+  (foldr #'union (map-environment (lambda (n env) (list n))
 				  env)
 	 '()))
+
+
+(defun empty-environment-p (env)
+  "Test whether ENV is empty."
+  (null (get-environment-names env)))
 
 
 (defun get-environment-property (n prop env &key default)
@@ -176,12 +186,12 @@ This affects the shallowest declaration of N."
   (set-frame-property n prop v (get-frame-declaring n env)))
 
 
-(defun variable-declared-p (n env)
+(defun variable-declared-in-environment-p (n env)
   "Test whether N is declared in ENV."
   (not (null (member n (get-environment-names env)))))
 
 
-(defun declare-variable (n props env)
+(defun declare-environment-variable (n props env)
   "Declare a variable N with properties PROPS in the shallowest frame of ENV.
 
 Return the updated environment.
@@ -212,7 +222,7 @@ will return the correct value for that variable at that depth)."
 						(get-frame-names l)))
 		       (fenv (make-instance 'frame :parent (descend-env (parent-frame l)))))
 		   (mapc (lambda (n)
-			   (declare-variable n (get-frame-properties n l) fenv))
+			   (declare-environment-variable n (get-frame-properties n l) fenv))
 			 retained)
 		   fenv))))
 
@@ -235,41 +245,3 @@ flat, regardless of the frame structure of ENV."
 			 (descend-env (parent-frame l))))))
 
     (descend-env env)))
-
-
-
-;;---------- Common property access ----------
-
-(defun get-type (n env)
-  "Return the type of N in ENV.
-
-The type is the most definite of an inferred type (:INFERRED-TYPE),
-any explicitly-provided type (:TYPE), and the default type (a
-standard-width unsigned integer).
-
-(The logic of this orderig is o allow the same function
-to be used during and after type inferenece.)"
-  (or (get-environment-property n :inferred-type env :default nil)
-      (get-environment-property n :type env :default nil)
-      `(unsigned-byte ,*default-register-width*)))
-
-
-(defun get-representation (n env)
-  "Return the representation of N in ENV."
-  (get-environment-property n :as env))
-
-
-(defun get-initial-value (n env)
-  "Return the initial value of N in ENV."
-  (get-environment-property n :initial-value env :default 0))
-
-
-(defun get-constant (n env)
-  "Return whether N is constant in ENV."
-  (if-let ((rep (get-representation n env)))
-    (eql rep :constant)))
-
-
-(defun get-direction (n env)
-  "Return the direction of N in ENV."
-  (get-environment-property n :direction env))

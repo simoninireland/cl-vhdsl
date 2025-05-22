@@ -25,18 +25,16 @@
 
 (test test-typecheck-the
   "Test we can typecheck THE."
-  (is (subtypep (rtl:typecheck '(the (unsigned-byte 8) 12)
-			       emptyenv)
+  (is (subtypep (rtl:typecheck '(the (unsigned-byte 8) 12))
 		'(unsigned-byte 8)))
 
   (signals (rtl:type-mismatch)
-    (rtl:typecheck '(the (unsigned-byte 8) 1230)
-		   emptyenv)))
+    (rtl:typecheck '(the (unsigned-byte 8) 1230))))
 
 
 (test test-synthesise-the
   "Test we can synthesise a value whose type has been asserted explicitly."
-  (is (rtl:synthesise '(the (unsigned-byte 8) 12) emptyenv :inexpression)))
+  (is (rtl:synthesise '(the (unsigned-byte 8) 12) :inexpression)))
 
 
 
@@ -44,88 +42,82 @@
 
 (test test-typecheck-coerce
   "Test we can typecheck coercions."
-  (is (subtypep (rtl:typecheck '(coerce 12 (unsigned-byte 8)) emptyenv)
+  (is (subtypep (rtl:typecheck '(coerce 12 (unsigned-byte 8)))
 		'(unsigned-byte 8)))
 
   ;; type is the type coerced to, not of the value (unlike for the)
-  (is (not (subtypep (rtl:typecheck '(coerce 12 (unsigned-byte 8)) emptyenv)
+  (is (not (subtypep (rtl:typecheck '(coerce 12 (unsigned-byte 8)))
 		     '(unsigned-byte 4))))
 
-  (is (subtypep (rtl:typecheck '(coerce 12 (signed-byte 5)) emptyenv)
+  (is (subtypep (rtl:typecheck '(coerce 12 (signed-byte 5)))
 		'(signed-byte 5)))
 
   ;; can't coerce anything not fixed-width
   (signals (rtl:coercion-mismatch)
     (rtl:typecheck '(coerce (make-array '(10) :element-type (unsigned-byte 8))
-		     (signed-byte 58))
-		   emptyenv))
+		     (signed-byte 58))))
 
   ;; can coerce elements though
   (is (subtypep (rtl:typecheck '(let ((a (make-array '(10) :element-type (unsigned-byte 8))))
-				 (coerce (aref a 3) (signed-byte 16)))
-			       emptyenv)
+				 (coerce (aref a 3) (signed-byte 16))))
 		'(signed-byte 16))))
 
 
 (test test-synthesise-coerce-equal-width-same-sign
   "Test we can coerce equal-width and -signedness numbers."
-  (let ((env (rtl::add-frame emptyenv)))
-    (rtl::declare-variable 'a '((:type (unsigned-byte 8))) env)
-    (is (rtl:synthesise '(coerce a (unsigned-byte 8)) env :inexpression))
+  (rtl::with-new-frame
+    (rtl::declare-variable 'a '((:type (unsigned-byte 8))))
+    (is (rtl:synthesise '(coerce a (unsigned-byte 8)) :inexpression))
 
-    (rtl::declare-variable 'b '((:type (signed-byte 8))) env)
-    (is (rtl:synthesise '(coerce b (signed-byte 8)) env :inexpression))
+    (rtl::declare-variable 'b '((:type (signed-byte 8))))
+    (is (rtl:synthesise '(coerce b (signed-byte 8)) :inexpression))
 
-    (rtl::declare-variable 'c '((:type (unsigned-byte 8))) env)
-    (is (rtl:synthesise '(coerce c (signed-byte 8)) env :inexpression))
+    (rtl::declare-variable 'c '((:type (unsigned-byte 8))))
+    (is (rtl:synthesise '(coerce c (signed-byte 8)) :inexpression))
 
-    (rtl::declare-variable 'd '((:type (signed-byte 8))) env)
-    (is (rtl:synthesise '(coerce d (unsigned-byte 8)) env :inexpression))))
+    (rtl::declare-variable 'd '((:type (signed-byte 8))))
+    (is (rtl:synthesise '(coerce d (unsigned-byte 8)) :inexpression))))
 
 
 (test test-synthesise-coerce-narrower-same-sign
   "Test we can coerce narrower numbers."
-  (let ((env (rtl::add-frame emptyenv)))
-    (rtl::declare-variable 'a '((:type (unsigned-byte 16))) env)
-    (is (rtl:synthesise '(coerce a (unsigned-byte 8)) env :inexpression))
+  (rtl::with-new-frame
+    (rtl::declare-variable 'a '((:type (unsigned-byte 16))))
+    (is (rtl:synthesise '(coerce a (unsigned-byte 8)) :inexpression))
 
-    (rtl::declare-variable 'b '((:type (signed-byte 16))) env)
-    (is (rtl:synthesise '(coerce b (signed-byte 8)) env :inexpression))
+    (rtl::declare-variable 'b '((:type (signed-byte 16))))
+    (is (rtl:synthesise '(coerce b (signed-byte 8)) :inexpression))
 
-    (rtl::declare-variable 'c '((:type (unsigned-byte 16))) env)
-    (is (rtl:synthesise '(coerce c (signed-byte 8)) env :inexpression))
+    (rtl::declare-variable 'c '((:type (unsigned-byte 16))))
+    (is (rtl:synthesise '(coerce c (signed-byte 8)) :inexpression))
 
-    (rtl::declare-variable 'd '((:type (signed-byte 16))) env)
-    (is (rtl:synthesise '(coerce d (unsigned-byte 8)) env :inexpression))))
+    (rtl::declare-variable 'd '((:type (signed-byte 16))))
+    (is (rtl:synthesise '(coerce d (unsigned-byte 8)) :inexpression))))
 
 
 (test test-synthesise-coerce-wider-same-sign
   "Test we can coerce wider numbers."
-  (let ((env (rtl::add-frame emptyenv)))
-    (rtl::declare-variable 'a '((:type (unsigned-byte 8))) env)
-    (is (rtl:synthesise '(coerce a (unsigned-byte 16)) env :inexpression))
+  (rtl::with-new-frame
+    (rtl::declare-variable 'a '((:type (unsigned-byte 8))))
+    (is (rtl:synthesise '(coerce a (unsigned-byte 16)) :inexpression))
 
-    (rtl::declare-variable 'b '((:type (signed-byte 8))) env)
-    (is (rtl:synthesise '(coerce b (signed-byte 16)) env :inexpression))
+    (rtl::declare-variable 'b '((:type (signed-byte 8))))
+    (is (rtl:synthesise '(coerce b (signed-byte 16)) :inexpression))
 
-    (rtl::declare-variable 'c '((:type (unsigned-byte 8))) env)
-    (is (rtl:synthesise '(coerce c (signed-byte 16)) env :inexpression))
+    (rtl::declare-variable 'c '((:type (unsigned-byte 8))))
+    (is (rtl:synthesise '(coerce c (signed-byte 16)) :inexpression))
 
-    (rtl::declare-variable 'd '((:type (signed-byte 8))) env)
-    (is (rtl:synthesise '(coerce d (unsigned-byte 16)) env :inexpression))))
+    (rtl::declare-variable 'd '((:type (signed-byte 8))))
+    (is (rtl:synthesise '(coerce d (unsigned-byte 16)) :inexpression))))
 
 
 (test test-synthesise-coerce-real
-  "Test coerciosn against a real expression."
+  "Test coercions against a real expression."
   (let ((p (copy-tree '(let ((instr 0 :width 32)
 			     a)
-			(let ((bs (rtl:bits instr 31 :end 20)))
+			(let ((bs (rtl:bref instr 31 :end 20)))
 			  (let ((Iimm (coerce bs
 					      (signed-byte 32))))
 			    (setq a Iimm)))))))
-    (rtl:typecheck p emptyenv)
-    p
-    ;;(rtl:synthesise p emptyenv :inmodule)
-
-    )
-  )
+    (rtl:typecheck p)
+    (is (rtl:synthesise p :inmodule))))

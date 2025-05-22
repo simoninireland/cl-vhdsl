@@ -25,6 +25,5 @@
 
 (test test-typecheck-equality
   "Test we can type-check equality."
-  (is (subtypep (rtl:typecheck '(= 1 2)
-			       emptyenv)
+  (is (subtypep (rtl:typecheck '(= 1 2))
 		'(unsigned-byte 1))))

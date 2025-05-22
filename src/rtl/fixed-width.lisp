@@ -49,48 +49,44 @@
 			  :got ty)))
 
 
-(defmethod expand-type-parameters-type ((ty (eql 'unsigned-byte)) args env)
+(defmethod expand-type-parameters-type ((ty (eql 'unsigned-byte)) args)
   (if (null args)
       ty
       (let ((bounds (car args)))
 	(if (eql bounds '*)
 	    '(unsigned-byte *)
-	    `(unsigned-byte ,(eval-in-static-environment bounds env))))))
+	    `(unsigned-byte ,(eval-in-static-environment bounds))))))
 
 
-(defmethod expand-type-parameters-type ((ty (eql 'signed-byte)) args env)
+(defmethod expand-type-parameters-type ((ty (eql 'signed-byte)) args)
   (if (null args)
       ty
       (let ((bounds (car args)))
 	(if (eql bounds '*)
 	    '(unsigned-byte *)
-	    `(signed-byte ,(eval-in-static-environment bounds env))))))
+	    `(signed-byte ,(eval-in-static-environment bounds))))))
 
 
 
 ;; ---------- Least upper-bound ----------
 
 (defmethod lub-type ((ty1tag (eql 'unsigned-byte)) ty1args
-		     (ty2tag (eql 'unsigned-byte)) ty2args
-		     env)
+		     (ty2tag (eql 'unsigned-byte)) ty2args)
   `(unsigned-byte ,(max (car ty1args) (car ty2args))))
 
 
 (defmethod lub-type ((ty1tag (eql 'signed-byte)) ty1args
-		     (ty2tag (eql 'signed-byte)) ty2args
-		     env)
+		     (ty2tag (eql 'signed-byte)) ty2args)
   `(signed-byte ,(max (car ty1args) (car ty2args))))
 
 
 (defmethod lub-type ((ty1tag (eql 'unsigned-byte)) ty1args
-		     (ty2tag (eql 'signed-byte)) ty2args
-		     env)
+		     (ty2tag (eql 'signed-byte)) ty2args)
   `(signed-byte ,(max (1+ (car ty1args)) (car ty2args))))
 
 
 (defmethod lub-type ((ty1tag (eql 'signed-byte)) ty1args
-		     (ty2tag (eql 'unsigned-byte)) ty2args
-		     env)
+		     (ty2tag (eql 'unsigned-byte)) ty2args)
   `(signed-byte ,(max (car ty1args) (1+ (car ty2args)))))
 
 
@@ -119,9 +115,9 @@
 	   (1+ (bfi (abs val)))))))
 
 
-(defmethod bitwidth-type ((tytag (eql 'unsigned-byte)) tyargs env)
+(defmethod bitwidth-type ((tytag (eql 'unsigned-byte)) tyargs)
   (car tyargs))
 
 
-(defmethod bitwidth-type ((tytag (eql 'signed-byte)) tyargs env)
+(defmethod bitwidth-type ((tytag (eql 'signed-byte)) tyargs)
   (car tyargs))

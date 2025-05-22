@@ -27,16 +27,14 @@ q
   "Test we can check a complete if form."
   (is (subtypep (rtl:typecheck '(if 1
 				 (+ 1 2)
-				 (+ 16 8))
-			       emptyenv)
+				 (+ 16 8)))
 		'(unsigned-byte 6))))
 
 
 (test test-if-then
   "Test we can check an incomplete if form."
   (is (subtypep (rtl:typecheck '(if 1
-				 (+ 1 2))
-			       emptyenv)
+				 (+ 1 2)))
 		 '(unsigned-byte 3))))
 
 
@@ -62,15 +60,15 @@ q
 			      (setf a (+ 1 3)))
 			    (setf a 12)))))
     (let ((p (copy-tree x)))
-      (rtl:typecheck p emptyenv)
-      (is (rtl:synthesise p emptyenv :inmodule))))
+      (rtl:typecheck p)
+      (is (rtl:synthesise p :inmodule))))
 
   ;; no else branch
   (let ((p (copy-tree ' (let ((a 0 :width 4))
 			  (if (logand 1 1)
 			    (setf a (+ 1 2)))))))
-      (rtl:typecheck p emptyenv)
-      (is (rtl:synthesise p emptyenv :inblock))))
+      (rtl:typecheck p)
+      (is (rtl:synthesise p :inblock))))
 
 
 ;; ---------- Multi-armed value comparisons (CASE) ----------
@@ -85,8 +83,7 @@ q
 				   (2
 				    (setf b 34))
 				   (t
-				    (setf b 0))))
-			       emptyenv)
+				    (setf b 0)))))
 		'(unsigned-byte 8))))
 
 
@@ -99,8 +96,7 @@ q
 			   (1
 			    (setf b 23))
 			   (2456
-			    (setf b 34))))
-		       emptyenv)
+			    (setf b 34)))))
 	'(unsigned-byte 8))))
 
 
@@ -116,8 +112,8 @@ q
 		(setf a 0))
 	       (t
 		(setf b 0))))))
-    (rtl:typecheck p emptyenv)
-    (is (rtl:synthesise p emptyenv :inblock))))
+    (rtl:typecheck p)
+    (is (rtl:synthesise p :inblock))))
 
 
 (test test-synthesise-case-assignment
@@ -129,8 +125,8 @@ q
 		(1 12)
 		(2 (+ a 1))
 		(t 0))))))
-    (rtl:typecheck p emptyenv)
-    (is (rtl:synthesise p emptyenv :inblock))))
+    (rtl:typecheck p)
+    (is (rtl:synthesise p :inblock))))
 
 
 (test test-synthesise-case-complex-bodies
@@ -145,5 +141,5 @@ q
 		   (setq b 12)
 		   (+ a 1))
 		  (t 0))))))
-      (rtl:typecheck p emptyenv)
-      (rtl:synthesise p emptyenv :inblock))))
+      (rtl:typecheck p)
+      (rtl:synthesise p :inblock))))

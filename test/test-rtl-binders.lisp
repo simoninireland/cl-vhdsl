@@ -24,8 +24,7 @@
 (test test-let-single
   "Test we can typecheck an expression."
   (is (subtypep (rtl:typecheck '(let ((a 1 :width 5))
-				 (+ 1 a))
-			       emptyenv)
+				 (+ 1 a)))
 		'(unsigned-byte 6))))
 
 
@@ -33,15 +32,13 @@
   "Test that a variable gets at least a width of one bit."
   (is (equal '(unsigned-byte 1)
 	     (rtl:typecheck '(let ((a 0))
-			      a)
-			    emptyenv))))
+			      a)))))
 
 
 (test test-let-single-infer-width
   "Test we can infer a width."
   (is (subtypep (rtl:typecheck '(let ((a 1))
-				 (+ 1 a))
-			       emptyenv)
+				 (+ 1 a)))
 		'(unsigned-byte 2))))
 
 
@@ -49,8 +46,7 @@
   "Test we can typecheck an expression with two variables."
   (is (subtypep (rtl:typecheck '(let ((a 1 :width 8)
 				      (b 6 :width 16))
-				 (+ a b))
-			       emptyenv)
+				 (+ a b)))
 		'(unsigned-byte 24))))
 
 
@@ -58,15 +54,13 @@
   "Test we pick up too-wide initial values."
   (signals (rtl:type-mismatch)
     (rtl:typecheck '(let ((a 100 :type (unsigned-byte 5)))
-		     (+ 1 a))
-		   emptyenv)))
+		     (+ 1 a)))))
 
 
 (test test-let-widen
   "Test we can take the width from a given type."
   (is (subtypep (rtl:typecheck '(let ((a 5 :type (unsigned-byte 8)))
-				 (setf a (+ 1 a)))
-			       emptyenv)
+				 (setf a (+ 1 a))))
 		'(unsigned-byte 9))))
 
 
@@ -74,16 +68,14 @@
   "Test we pick up an inferred width conflicting with a set type"
   (signals (rtl:type-mismatch)
     (rtl:typecheck '(let ((a 5))
-		     (setq a 16))
-		   emptyenv)))
+		     (setq a 16)))))
 
 
 (test test-let-scope
   "Test we catch variables not declared."
   (signals (rtl:unknown-variable)
     (rtl:typecheck '(let ((a 1))
-		     (+ 1 b))
-		   emptyenv)))
+		     (+ 1 b)))))
 
 
 (test test-let-result
@@ -91,16 +83,14 @@
   (is (subtypep (rtl:typecheck '(let ((a 99)
 				      (b 100 :width 8))
 				 (+ b 1)
-				 (+ b a b))
-			       emptyenv)
+				 (+ b a b)))
 		'(unsigned-byte 10))))
 
 
 (test test-let-constant
   "Test we admit constant bindings."
   (is (subtypep (rtl:typecheck '(let ((a 15 :as :constant))
-				 a)
-			       emptyenv)
+				 a))
 		'(unsigned-byte 4))))
 
 
@@ -108,8 +98,7 @@
   "Test that we accept "naked" declarations."
   (is (subtypep (rtl:typecheck '(let ((a 10)
 				      b)
-				 (+ a b))
-			       emptyenv)
+				 (+ a b)))
 		`(unsigned-byte 5))))
 
 
@@ -127,14 +116,14 @@
 		     c)
 		 (setf c (+ a b)))))
     (let ((p (copy-tree x)))
-      (rtl:typecheck p emptyenv)
-      (is (rtl:synthesise p emptyenv :inblock))))
+      (rtl:typecheck p)
+      (is (rtl:synthesise p :inblock))))
 
   ;; can't return values in statement role
   (signals (error)
     (let ((p (copy-tree `(let ((a 1 :width 8))
 			   (+ a 1)))))
-      (rtl:synthesise p emptyenv :inblock))))
+      (rtl:synthesise p :inblock))))
 
 
 
@@ -142,6 +131,5 @@
 (test test-let-width
   "Test the :width shortcuts works."
   (is (subtypep (rtl:typecheck '(let ((a 0 :width 12))
-				  a)
-			       emptyenv)
+				  a))
 		'(unsigned-byte 12))))

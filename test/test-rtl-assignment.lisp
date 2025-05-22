@@ -26,29 +26,25 @@
 (test test-setq
   "Test we can typecheck the SETQ form."
   (is (subtypep (rtl:typecheck '(let ((a 13))
-				 (setq a 9))
-			       emptyenv)
+				 (setq a 9)))
 		'(unsigned-byte 8)))
 
   (signals (rtl:not-synthesisable)
     (rtl:typecheck '(let ((a 12 :as :constant))
-		     (setq a 9))
-		   emptyenv)))
+		     (setq a 9)))))
 
 
 (test test-assignment-same-width
   "Test we can assign."
   (is (subtypep (rtl:typecheck '(let ((a 10))
-				 (setq a 12))
-			       emptyenv)
+				 (setq a 12)))
 		'(unsigned-byte 5))))
 
 
 (test test-assignment-same-width-sync
   "Test we can assign synchronously (same types)."
   (is (subtypep (rtl:typecheck '(let ((a 10))
-				 (setq a 12 :sync t))
-			       emptyenv)
+				 (setq a 12 :sync t)))
 		'(unsigned-byte 5))))
 
 
@@ -56,15 +52,13 @@
   "Test we catch assigning a value that's too wide for its explicit type."
   (signals (rtl:type-mismatch)
     (rtl:typecheck '(let ((a 10 :type (unsigned-byte 5)))
-		     (setq a 120))
-		   emptyenv)))
+		     (setq a 120)))))
 
 
 (test test-assignment-too-wide-widenable
   "Test we can assign a value to a variable that can be widened."
   (is (subtypep (rtl:typecheck '(let ((a 10))
-				 (setq a 120))
-			       emptyenv)
+				 (setq a 120)))
 		'(unsigned-byte 7))))
 
 
@@ -72,7 +66,7 @@
   "Test we don't update the type when we have an explicit one already."
   (let ((p (copy-tree '(let ((a 10 :type (unsigned-byte 5) :as :register))
 			(setq a 120)))))
-    (subtypep (rtl:typecheck p emptyenv)
+    (subtypep (rtl:typecheck p)
 	      '(unsigned-byte 7))
 
     ;; code tree not updated
@@ -85,7 +79,7 @@
   "Test we update the code to match inferred types."
   (let ((p (copy-tree'(let ((a 10))
 		       (setq a 120)))))
-    (is (subtypep (rtl:typecheck p emptyenv)
+    (is (subtypep (rtl:typecheck p)
 		  '(unsigned-byte 7)))
 
     ;; code tree updated to reflect inferred type
@@ -98,33 +92,28 @@
   "Test we can't assign to a non-existent variable."
   (signals (rtl:unknown-variable)
     (rtl:typecheck '(let ((a 10))
-		     (setq b 12))
-		   emptyenv)))
+		     (setq b 12)))))
 
 
 (test test-assignment-constant
   "Test we can't assign to a constant variable."
   (signals (rtl:not-synthesisable)
     (rtl:typecheck '(let ((a 10 :as :constant))
-		     (setq a 12))
-		   emptyenv)))
+		     (setq a 12)))))
 
 
 (test test-synthesise-setq
   "Test we can synthesise assignments."
   ;; as statements
-  (is (rtl:synthesise '(setq a 5)
-		      emptyenv :inblock))
-  (is (rtl:synthesise '(setq a 5 :sync t)
-		      emptyenv :inblock)))
+  (is (rtl:synthesise '(setq a 5) :inblock))
+  (is (rtl:synthesise '(setq a 5 :sync t) :inblock)))
 
 
 (test test-typecheck-setq-generalised-place
   "Test we catch the common mistake of using SETQ when we mean SETF."
   (signals (rtl:not-synthesisable)
     (rtl:typecheck '(let ((a 0 :type (unsigned-byte 4)))
-		     (setq (bit a 0) 1))
-		   emptyenv)))
+		     (setq (bit a 0) 1)))))
 
 
 ;; ---------- Generalised places (SETF) ----------
@@ -132,48 +121,43 @@
 (test test-setf-as-setq
   "Test we can convert a simple SETF into a SETQ."
   (is (subtypep (rtl:typecheck '(let ((a 12))
-				 (setf a 9))
-			       emptyenv)
+				 (setf a 9)))
 		'(unsigned-byte 8)))
 
   (is (subtypep (rtl:typecheck '(let ((a 12))
-				 (setf a 9 :sync t))
-			       emptyenv)
+				 (setf a 9 :sync t)))
 		'(unsigned-byte 8))))
 
 
 (test test-setf-variable
   "Test we can setf to a variable."
   (is (rtl:typecheck '(let ((a 12))
-		       (setf a 14))
-		     emptyenv)))
+		       (setf a 14)))))
 
 
 (test test-setf-variable-bits
   "Test we can setf to bits in a variable."
   (is (subtypep (rtl:typecheck '(let ((a 12))
-				 (setf (rtl::bits a 1 :end 0) 2))
-			       emptyenv)
+				 (setf (rtl::bref a 1 :end 0) 2)))
 		'(unsigned-byte 2)))
 
   ;; signals a problem because default width of a is too small
   (signals (rtl:type-mismatch)
     (rtl:typecheck '(let ((a 12))
-		     (setf (rtl::bits a 6 :end 0) 0))
-		   emptyenv))
+		     (setf (rtl::bref a 6 :end 0) 0))))
 
   ;; ... and widens the variable
   (let ((p (copy-tree '(let ((a 12))
-			(setf (rtl::bits a 6 :end 0) 0)))))
-    (rtl:typecheck p emptyenv)
+			(setf (rtl::bref a 6 :end 0) 0)))))
+    (rtl:typecheck p)
     (is (equal p
 	       '(let ((a 12 :type (unsigned-byte 7) :as :register))
-			(setf (rtl::bits a 6 :end 0) 0)))))
+			(setf (rtl::bref a 6 :end 0) 0)))))
 
   ;; but not when there's an explicit width
   (let ((p (copy-tree '(let ((a 12 :type (unsigned-byte 8)))
-			(setf (rtl::bits a 6 :end 0) 0)))))
-    (rtl:typecheck p emptyenv)
+			(setf (rtl::bref a 6 :end 0) 0)))))
+    (rtl:typecheck p)
     (is (equal p
 	       '(let ((a 12 :type (unsigned-byte 8) :as :register))
-			(setf (rtl::bits a 6 :end 0) 0))))))
+			(setf (rtl::bref a 6 :end 0) 0))))))

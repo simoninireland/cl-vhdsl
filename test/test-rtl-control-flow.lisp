@@ -28,7 +28,7 @@
   (is (rtl:synthesise '(progn
 			(setf a 5)
 			(setf b 34))
-		      emptyenv :inblock)))
+		      :inblock)))
 
 
 ;; ---------- @ ----------
@@ -39,8 +39,7 @@
   (is (subtypep (rtl:typecheck '(let ((clk 0 :as :wire)
 				      (a 0))
 				 (rtl::@ ((rtl::posedge clk))
-				  (setf a 1)))
-			       emptyenv)
+				  (setf a 1))))
 		'(unsigned-byte 1)))
 
   ;; multiple wires sensitivity
@@ -48,8 +47,7 @@
 				      (rst 0 :as :wire)
 				      (a 0))
 				 (rtl::@ ((rtl::posedge clk) (rtl::negedge rst))
-				  (setf a 1)))
-			       emptyenv)
+				  (setf a 1))))
 		'(unsigned-byte 1))))
 
 
@@ -58,8 +56,7 @@
   (is (subtypep (rtl:typecheck '(let ((clk 0 :as :wire)
 				      (a 0))
 				 (rtl::@ ((rtl::posedge clk))
-				  (setq a clk)))
-			       emptyenv)
+				  (setq a clk))))
 		'(unsigned-byte 1))))
 
 
@@ -68,8 +65,7 @@
   (is (subtypep (rtl:typecheck '(let ((clk 0 :as :wire)
 				      (a 0))
 				 (rtl::@ clk
-				  (setq a clk)))
-			       emptyenv)
+				  (setq a clk))))
 		'(unsigned-byte 1))))
 
 
@@ -78,8 +74,7 @@
   (is (subtypep (rtl:typecheck '(let ((clk 0 :as :wire)
 				      (a 0))
 				 (rtl::@ (rtl::posedge clk)
-				  (setq a clk)))
-			       emptyenv)
+				  (setq a clk))))
 		'(unsigned-byte 1))))
 
 
@@ -89,8 +84,8 @@
 		  (a 0))
 	     (rtl::@ ((rtl::posedge clk) a)
 	      (setq a clk)))))
-    (rtl:typecheck p emptyenv)
-    (is (rtl:synthesise p emptyenv :inblock))))
+    (rtl:typecheck p)
+    (is (rtl:synthesise p :inblock))))
 
 
 (test test-synthesise-wire-singleton
@@ -99,8 +94,8 @@
 		   (a 0))
 	      (rtl::@ clk
 	       (setq a clk)))))
-    (rtl:typecheck p emptyenv)
-    (is (rtl:synthesise p emptyenv :inblock))))
+    (rtl:typecheck p)
+    (is (rtl:synthesise p :inblock))))
 
 
 (test test-synthesise-wire-trigger
@@ -109,5 +104,5 @@
 		   (a 0))
 	      (rtl::@ (rtl:posedge clk)
 	       (setq a clk)))))
-    (rtl:typecheck p emptyenv)
-    (is (rtl:synthesise p emptyenv :inblock))))
+    (rtl:typecheck p)
+    (is (rtl:synthesise p :inblock))))
