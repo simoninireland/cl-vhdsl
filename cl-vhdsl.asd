@@ -71,11 +71,11 @@
 	       (:module "def"
 		:components ((:file "package")
 			     (:file "constants")
-			     (:file "mop")
-			     (:file "component")
-			     (:file "mixins")
-			     (:file "synthesis")
-			     (:file "isa")
+			     ;;(:file "mop")
+			     ;;(:file "component")
+			     ;;(:file "mixins")
+			     ;;(:file "synthesis")
+			     ;;(:file "isa")
 			     (:file "conditions"))))
   :in-order-to ((test-op (test-op "cl-vhdsl/test"))))
 
