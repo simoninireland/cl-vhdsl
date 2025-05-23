@@ -108,6 +108,7 @@
    #:unknown-variable
    #:bad-variable
    #:unknown-module
+   #:unknown-form
    #:duplicate-variable
    #:duplicate-module
    #:not-importable
