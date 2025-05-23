@@ -109,6 +109,21 @@ limitations in the underlying technology). Te variable name is usually
 re-written to something legal."))
 
 
+(define-condition unknown-form (rtl-condition)
+  ((form
+    :documentation "The form."
+    :initarg :form
+    :reader form))
+  (:report (lambda (c str)
+	     (format-condition-context (format nil "Unknown form ~a"
+					       (form c))
+				       c str)))
+  (:documentation "Condition signalled when an unknown form is encountered.
+
+This is usually caused by using a Lisp function that is not supported
+by RTLip, or an undefined macro."))
+
+
 (define-condition unknown-module (rtl-condition)
   ((modname
     :documentation "The module."

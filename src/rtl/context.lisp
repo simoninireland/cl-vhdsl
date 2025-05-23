@@ -107,4 +107,31 @@ to be used during and after type inferenece.)"
   (variable-property n :direction))
 
 
-;; ---------- Context ----------
+;; ---------- Form handling ----------
+
+(defparameter *current-form-queue* nil
+  "The current form being evaluated.
+
+This is a stack of forms being evaluated, used to contextualise
+conditions.")
+
+
+(defmacro with-current-form (form &body body)
+  "Execute BODY within the current FORM.
+
+Any conditions reported in BODY will be pointed as FORM as the current
+form."
+  `(unwind-protect
+	(progn
+	  (push ,form *current-form-queue*)
+	  ,@body)
+
+     (pop *current-form-queue*)))
+
+
+(defun current-form ()
+  "Return the current form."
+  (car *current-form-queue*))
+
+
+;; ---------- Synthesis context ----------

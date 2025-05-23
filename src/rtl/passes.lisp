@@ -23,44 +23,52 @@
 
 ;; ---------- Helper macros ----------
 
-;; Needs more finesse -- at the moment does nothing useful
-
 (defmacro with-rtl-errors-not-synthesisable (&body body)
   "Run BODY within a handler that makes RTLisp errors non-synthesisable.
 
 Non-error conditions are ignored; non-RTLisp-specific errors are reported
 as NON-SYNTHESISABLE errors."
-  `(handler-bind ((error #'(lambda (cond)
-			     (cond ((subtypep (type-of cond) 'rtl-condition)
-				    (error cond))
+  `(handler-bind ((error #'(lambda (condition)
+			     (cond ((subtypep (type-of condition) 'rtl-condition)
+				    (error condition))
 				   (t
-				    (error cond))))))
+				    (error 'not-synthesisable :underlying-condition condition))))))
      ,@body))
 
 
-(defparameter *current-form-queue* nil
-  "The current form being evaluated.
+(defun failed-form (condition)
+  "Return the form that can't be handled based on CONDITION.
 
-This is a stack of forms being evaluated, used to contextualise
-conditions.")
+If CONDITION does not indicate such a failure, return nil.
+
+There is no standard way to retrieve this information, so this
+function is implementation-dependent."
+
+  #+sbcl
+  (if (subtypep (type-of condition) 'sb-pcl::no-applicable-method-error)
+      (car (slot-value condition 'sb-pcl::args))
+
+      ;; condition is not caused by an unknown form
+      nil)
+
+  ;; can't handle other Lisp implementations for now
+  #-sbcl
+  nil)
 
 
-(defmacro with-current-form (form &body body)
-  "Execute BODY within the current FORM.
+(defmacro with-unknown-forms (&body body)
+  "Run BODY in an environment that traps errors due to unknown forms.
 
-Any conditions reported in BODY will be pointed as FORM as the current
-form."
-  `(unwind-protect
-	(progn
-	  (push ,form *current-form-queue*)
-	  ,@body)
+Any unknown forms are reported as UNKNOWN-FORM exceptions. The
+actual way these forms are captured is unfortunately implementation-specific."
+  `(handler-bind ((error #'(lambda (condition)
+			     (if-let ((form (failed-form condition)))
+			       ;; we encountered an unknown form signal it as such
+			       (error 'unknown-form :form form)
 
-     (pop *current-form-queue*)))
-
-
-(defun current-form ()
-  "Return the current form."
-  (car *current-form-queue*))
+			       ;; propagate the condition
+			       (error condition)))))
+     ,@body))
 
 
 ;; ---------- Variable shadowing ----------
@@ -159,20 +167,9 @@ calculations that can be done early.")
     (let ((fun (car form))
 	  (args (cdr form)))
       (with-rtl-errors-not-synthesisable
-	(with-current-form (cons fun args)
-	  (expand-type-parameters (typecheck-sexp fun args)))))))
-
-
-;; Wrap an error catcher around the function to convert parsing
-;; issues (which signal implementation-specific conditions)
-;; into not-synthesisable conditions
-
-;; (defmethod typecheck :around (form env)
-;;   (handler-bind
-;;       ((error (lambda (cond)
-;;		(error 'not-synthesisable :underlying-condition cond
-;;					  :hint "Mistake"))))
-;;     (call-next-method)))
+	(with-unknown-forms
+	  (with-current-form (cons fun args)
+	    (expand-type-parameters (typecheck-sexp fun args))))))))
 
 
 (defgeneric typecheck-sexp (fun args)
