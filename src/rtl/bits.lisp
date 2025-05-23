@@ -104,23 +104,25 @@
 (defmethod synthesise-sexp ((fun (eql 'bref)) args (context (eql :inexpression)))
   (destructuring-bind (var start &key end width)
       args
-    (setq start (eval-in-static-environment start))
-    (when width
-      (setq width (eval-in-static-environment width)))
-    (when end
-      (setq end (eval-in-static-environment end)))
 
-    ;; default to accessing the single START bit
+    ;; compute bounds give the optional arguments
     (if (null width)
 	(if (null end)
-	    (setq width 1)
-	    (setq width (1+ (- start end)))))
-    (setq end (compute-end-bit start end width))
+	    ;; one bit at start
+	    (setq end start)
+
+	    ;; set width to reflect end
+	    ;; (not actually used, just needs to be non-nil)
+	    (setq width `(+ (- start end) 1)))
+
+	(if (null end)
+	    ;; compute end based on width
+	    (setq end `(+ ,start (- ,width 1)))))
 
     (synthesise var :inexpression)
     (as-literal "[ ")
     (synthesise start :inexpression)
-    (when (> width 1)
+    (when width
       (as-literal " : ")
       (synthesise end :inexpression))
     (as-literal " ]")))
