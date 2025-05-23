@@ -52,8 +52,8 @@ in many applications."
 (defmethod typecheck-sexp ((fun (eql '/=)) args)
   (destructuring-bind (l r)
       args
-    (ensure-boolean (typecheck l env))
-    (ensure-boolean (typecheck r env))
+    (ensure-boolean (typecheck l))
+    (ensure-boolean (typecheck r))
 
     '(unsigned-byte 1)))
 
