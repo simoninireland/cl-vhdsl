@@ -85,7 +85,7 @@ plus the number of other arguments."
   (fold-constant-expressions-addition '+args))
 
 
-(defmethod synthesise-sexp ((fun (eql '+)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql '+)) args)
   (as-infix '+ args))
 
 
@@ -112,19 +112,19 @@ plus the number of other arguments."
   (fold-constant-expressions-addition '- args))
 
 
-(defmethod synthesise-sexp ((fun (eql '-)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql '-)) args)
   (if (= (length args) 1)
       ;; unary minus
       (progn
 	(as-literal "(- ")
-	(synthesise (car args) :inexpression)
+	(synthesise (car args))
 	(as-literal ")"))
 
       ;; application
       (as-infix '- args)))
 
 
-(defmethod synthesise-sexp ((fun (eql '*)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql '*)) args)
   (as-infix '* args))
 
 
@@ -172,7 +172,7 @@ plus the number of other arguments."
 	`('<< ,val ,offset))))
 
 
-(defmethod synthesise-sexp ((fun (eql '<<)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql '<<)) args)
   (destructuring-bind (val offset)
       args
     (as-infix '<< args)))
@@ -211,7 +211,7 @@ plus the number of other arguments."
 	`('<< ,val ,offset))))
 
 
-(defmethod synthesise-sexp ((fun (eql '>>)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql '>>)) args)
   (destructuring-bind (val offset)
       args
     (as-infix '>> args)))
@@ -244,7 +244,7 @@ plus the number of other arguments."
   (fold-constant-expressions-addition 'logand args))
 
 
-(defmethod synthesise-sexp ((fun (eql 'logand)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'logand)) args)
   (as-infix '& args))
 
 
@@ -256,7 +256,7 @@ plus the number of other arguments."
   (fold-constant-expressions-addition 'logior args))
 
 
-(defmethod synthesise-sexp ((fun (eql 'logior)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'logior)) args)
   (as-infix '|\|| args))
 
 
@@ -268,7 +268,7 @@ plus the number of other arguments."
   (fold-constant-expressions-addition 'logxor args))
 
 
-(defmethod synthesise-sexp ((fun (eql 'logxor)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'logxor)) args)
   (as-infix '^ args))
 
 
@@ -289,7 +289,7 @@ All arguments must be booleans."
   (typecheck-logical-operator args))
 
 
-(defmethod synthesise-sexp ((fun (eql 'and)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'and)) args)
   (as-infix '&& args))
 
 
@@ -297,7 +297,7 @@ All arguments must be booleans."
   (typecheck-logical-operator args))
 
 
-(defmethod synthesise-sexp ((fun (eql 'or)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'or)) args)
   (as-infix '|\|\|| args))
 
 
@@ -307,8 +307,8 @@ All arguments must be booleans."
   '(unsigned-byte 1))
 
 
-(defmethod synthesise-sexp ((fun (eql 'not)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'not)) args)
   (as-literal "(")
   (as-literal "!")
-  (synthesise (car args) :inexpression)
+  (synthesise (car args))
   (as-literal ")"))

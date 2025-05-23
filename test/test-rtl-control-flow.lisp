@@ -27,8 +27,7 @@
   "Test we can synthesise PROGN forms."
   (is (rtl:synthesise '(progn
 			(setf a 5)
-			(setf b 34))
-		      :inblock)))
+			(setf b 34)))))
 
 
 ;; ---------- @ ----------
@@ -85,7 +84,7 @@
 	     (rtl::@ ((rtl::posedge clk) a)
 	      (setq a clk)))))
     (rtl:typecheck p)
-    (is (rtl:synthesise p :inblock))))
+    (is (rtl:synthesise p))))
 
 
 (test test-synthesise-wire-singleton
@@ -95,7 +94,7 @@
 	      (rtl::@ clk
 	       (setq a clk)))))
     (rtl:typecheck p)
-    (is (rtl:synthesise p :inblock))))
+    (is (rtl:synthesise p))))
 
 
 (test test-synthesise-wire-trigger
@@ -105,4 +104,4 @@
 	      (rtl::@ (rtl:posedge clk)
 	       (setq a clk)))))
     (rtl:typecheck p)
-    (is (rtl:synthesise p :inblock))))
+    (is (rtl:synthesise p))))

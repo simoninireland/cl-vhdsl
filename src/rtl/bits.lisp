@@ -101,7 +101,7 @@
 	`(unsigned-byte ,l)))))
 
 
-(defmethod synthesise-sexp ((fun (eql 'bref)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'bref)) args)
   (destructuring-bind (var start &key end width)
       args
 
@@ -119,12 +119,12 @@
 	    ;; compute end based on width
 	    (setq end `(+ ,start (- ,width 1)))))
 
-    (synthesise var :inexpression)
+    (synthesise var)
     (as-literal "[ ")
-    (synthesise start :inexpression)
+    (synthesise start)
     (when width
       (as-literal " : ")
-      (synthesise end :inexpression))
+      (synthesise end))
     (as-literal " ]")))
 
 

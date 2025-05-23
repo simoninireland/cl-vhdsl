@@ -53,10 +53,10 @@
 
 (test test-test-synthesise-make-bitfields
   "Test we can synthesise constructed bitfields."
-  (is (rtl:synthesise '(rtl:make-bitfields #2r111 #2r100)
-		      :inexpression))
+  (is (rtl:synthesise '(rtl:make-bitfields #2r111 #2r100)))
+
   (let ((p (copy-tree '(let ((a 1)
 			     b)
 			(setq b (rtl:make-bitfields (rtl:extend-bits a 5)))))))
     (rtl:typecheck p)
-    (rtl:synthesise p :inmodule)))
+    (rtl:synthesise p)))

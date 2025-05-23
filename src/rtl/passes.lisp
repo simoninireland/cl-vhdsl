@@ -21,56 +21,6 @@
 (declaim (optimize debug))
 
 
-;; ---------- Helper macros ----------
-
-(defmacro with-rtl-errors-not-synthesisable (&body body)
-  "Run BODY within a handler that makes RTLisp errors non-synthesisable.
-
-Non-error conditions are ignored; non-RTLisp-specific errors are reported
-as NON-SYNTHESISABLE errors."
-  `(handler-bind ((error #'(lambda (condition)
-			     (cond ((subtypep (type-of condition) 'rtl-condition)
-				    (error condition))
-				   (t
-				    (error 'not-synthesisable :underlying-condition condition))))))
-     ,@body))
-
-
-(defun failed-form (condition)
-  "Return the form that can't be handled based on CONDITION.
-
-If CONDITION does not indicate such a failure, return nil.
-
-There is no standard way to retrieve this information, so this
-function is implementation-dependent."
-
-  #+sbcl
-  (if (subtypep (type-of condition) 'sb-pcl::no-applicable-method-error)
-      (car (slot-value condition 'sb-pcl::args))
-
-      ;; condition is not caused by an unknown form
-      nil)
-
-  ;; can't handle other Lisp implementations for now
-  #-sbcl
-  nil)
-
-
-(defmacro with-unknown-forms (&body body)
-  "Run BODY in an environment that traps errors due to unknown forms.
-
-Any unknown forms are reported as UNKNOWN-FORM exceptions. The
-actual way these forms are captured is unfortunately implementation-specific."
-  `(handler-bind ((error #'(lambda (condition)
-			     (if-let ((form (failed-form condition)))
-			       ;; we encountered an unknown form signal it as such
-			       (error 'unknown-form :form form)
-
-			       ;; propagate the condition
-			       (error condition)))))
-     ,@body))
-
-
 ;; ---------- Variable shadowing ----------
 
 ;; For now we disallow shadowing variables in nested scopes
@@ -168,7 +118,7 @@ calculations that can be done early.")
 	  (args (cdr form)))
       (with-rtl-errors-not-synthesisable
 	(with-unknown-forms
-	  (with-current-form (cons fun args)
+	  (with-current-form form
 	    (expand-type-parameters (typecheck-sexp fun args))))))))
 
 
@@ -283,49 +233,19 @@ well as PROGNs nested inside other PROGNs.")
 
 ;; ---------- Synthesis ----------
 
-;; In an expression-oriented language like Lisp, any form can
-;; be used within the body or arguments of any other form.
-;; In statement-oriented languages like Verilog, however, there
-;; are more restrictions on what can appear where and often
-;; specific syntax to be used for the same concepts in different
-;; plaes (for example if statements /versus/ conditional expressions).
-;;
-;; To bridge this gap, synthesis occurs in a specific /context/
-;; indicating how the form is being used. The context for synthesising
-;; a sub-form can be set by its parent form, and may be different to
-;; that form's own context.
-;;
-;; We use the following contexts:
-;;
-;; - :toplevel -- for top-level items like modules
-;; - :inmodule -- for elements directly within a module
-;; - :inblock -- for elements used as statements within a block
-;; - :inexpression -- for expressions
-;; - :indeclaration -- for declarations
-;; - :inassignment -- as the target for an assignment
-
-(defgeneric synthesise (form context)
-  (:documentation "Synthesise the Verilog for FORM in the current environment.
-
-The form may have a specified role of position indicated by CONTEXT.
-This may be used to specialise synthesis methods according to
-syntactic classes and the like.
-
-A NOT-SYNTHESISABLE error will be signalled for all underlying
-conditions.")
-  (:method ((form list) context)
+(defgeneric synthesise (form)
+  (:documentation "Synthesise the Verilog for FORM in the current environment.")
+  (:method ((form list))
     (let ((fun (car form))
 	  (args (cdr form)))
       (with-rtl-errors-not-synthesisable
-	(synthesise-sexp fun args context)
-	t))))
+	(with-current-form form
+	  (synthesise-sexp fun args)
+	  t)))))
 
 
-(defgeneric synthesise-sexp (fun args context)
-  (:documentation "Write the synthesised Verilog of FUN called with ARGS in the current environment.
-
-The synthesised code may depend on the role or position CONTEXT,
-which can be used to specialise the method."))
+(defgeneric synthesise-sexp (fun args)
+  (:documentation "Write the synthesised Verilog of FUN called with ARGS in the current environment."))
 
 
 ;; ---------- Lispification ----------

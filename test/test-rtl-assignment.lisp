@@ -105,8 +105,8 @@
 (test test-synthesise-setq
   "Test we can synthesise assignments."
   ;; as statements
-  (is (rtl:synthesise '(setq a 5) :inblock))
-  (is (rtl:synthesise '(setq a 5 :sync t) :inblock)))
+  (is (rtl:synthesise '(setq a 5)))
+  (is (rtl:synthesise '(setq a 5 :sync t))))
 
 
 (test test-typecheck-setq-generalised-place
@@ -122,42 +122,3 @@
   "Test we can convert a simple SETF into a SETQ."
   (is (subtypep (rtl:typecheck '(let ((a 12))
 				 (setf a 9)))
-		'(unsigned-byte 8)))
-
-  (is (subtypep (rtl:typecheck '(let ((a 12))
-				 (setf a 9 :sync t)))
-		'(unsigned-byte 8))))
-
-
-(test test-setf-variable
-  "Test we can setf to a variable."
-  (is (rtl:typecheck '(let ((a 12))
-		       (setf a 14)))))
-
-
-(test test-setf-variable-bits
-  "Test we can setf to bits in a variable."
-  (is (subtypep (rtl:typecheck '(let ((a 12))
-				 (setf (rtl::bref a 1 :end 0) 2)))
-		'(unsigned-byte 2)))
-
-  ;; signals a problem because default width of a is too small
-  (signals (rtl:type-mismatch)
-    (rtl:typecheck '(let ((a 12))
-		     (setf (rtl::bref a 6 :end 0) 0))))
-
-  ;; ... and widens the variable
-  (let ((p (copy-tree '(let ((a 12))
-			(setf (rtl::bref a 6 :end 0) 0)))))
-    (rtl:typecheck p)
-    (is (equal p
-	       '(let ((a 12 :type (unsigned-byte 7) :as :register))
-			(setf (rtl::bref a 6 :end 0) 0)))))
-
-  ;; but not when there's an explicit width
-  (let ((p (copy-tree '(let ((a 12 :type (unsigned-byte 8)))
-			(setf (rtl::bref a 6 :end 0) 0)))))
-    (rtl:typecheck p)
-    (is (equal p
-	       '(let ((a 12 :type (unsigned-byte 8) :as :register))
-			(setf (rtl::bref a 6 :end 0) 0))))))

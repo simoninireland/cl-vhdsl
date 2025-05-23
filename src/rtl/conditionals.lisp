@@ -21,7 +21,7 @@
 (declaim (optimize debug))
 
 
-;; ---------- if (statement) ----------
+;; ---------- if ----------
 
 (defmethod typecheck-sexp ((fun (eql 'if)) args)
   (destructuring-bind (condition then &rest else)
@@ -39,55 +39,48 @@
 	  tythen))))
 
 
-(defmethod synthesise-sexp ((fun (eql 'if)) args (context (eql :inblock)))
+(defmethod synthesise-sexp ((fun (eql 'if)) args)
   (destructuring-bind (condition then &rest else)
       args
-    ;; condition
-    (as-literal "if(")
-    (synthesise condition :inexpression)
-    (as-literal ")")
-    (as-newline)
 
-    ;; then arm
-    (as-block (list then) :inblock
-	      :before "begin" :after "end"
-	      :always t)
+    (if (in-expression-context-p)
+	;; in expression, synthesise as a conditional expression
+	(progn
+	  (as-literal "(")
+	  (synthesise condition)
+	  (as-literal " ? ")
+	  (synthesise then)
+	  (as-literal " : ")
+	  (synthesise (car else))
+	  (as-literal ")"))
 
-    ;; else arm
-    (when else
-      (if (and (listp else)
-	       (eql (caar else) 'if))
-	  ;; else arm is another if, don't indent
-	  (progn
-	    (as-literal "else ")
-	    (as-block else :inblock
-		      :indent nil
-		      :always t))
+	;; elsewhere, synthesise as a conditional statement
+	(progn
+	  ;; condition
+	  (as-literal "if(")
+	  (synthesise condition)
+	  (as-literal ")")
+	  (as-newline)
 
-	  ;; otherwise indent
-	  (progn
-	    (as-literal "else" :newline t)
-	    (as-block else :inblock
-		      :before "begin" :after "end"
-		      :always t))))))
+	  ;; then arm
+	  (as-block (list then) :before "begin" :after "end"
+				:always t)
 
+	  ;; else arm
+	  (when else
+	    (if (and (listp else)
+		     (eql (caar else) 'if))
+		;; else arm is another if, don't indent
+		(progn
+		  (as-literal "else ")
+		  (as-block else :indent nil
+				 :always t))
 
-(defmethod synthesise-sexp ((fun (eql 'if)) args (context (eql :inmodule)))
-  (synthesise-sexp fun args :inblock))
-
-
-;; ---------- if (expression) ----------
-
-(defmethod synthesise-sexp ((fun (eql 'if)) args (context (eql :inexpression)))
-  (destructuring-bind (condition then else)
-      args
-    (as-literal "(")
-    (synthesise condition :inexpression)
-    (as-literal " ? ")
-    (synthesise then :inexpression)
-    (as-literal " : ")
-    (synthesise else :inexpression)
-    (as-literal ")")))
+		;; otherwise indent
+		(progn
+		  (as-literal "else" :newline t)
+		  (as-block else :before "begin" :after "end"
+				 :always t))))))))
 
 
 ;; ---------- case ----------
@@ -122,33 +115,17 @@ The type is the lub of the clause types."
       (typecheck-clauses clauses ty))))
 
 
-(defun synthesise-clause (clause context)
-  "Synthesise case CLAUSE in CONTEXT."
+(defun synthesise-clause (clause)
+  "Synthesise case CLAUSE"
   (destructuring-bind (val &rest body)
       clause
     (if (eql val 't)
 	(as-literal "default")
-	(synthesise val :inexpression))
-    (as-literal ":":newline t)
+	(synthesise val))
+    (as-literal ":" :newline t)
 
-    (as-block body context
-	      :before "begin"
+    (as-block body :before "begin"
 	      :after "end")))
-
-
-(defmethod synthesise-sexp ((fun (eql 'case)) args (context (eql :inblock)))
-  (destructuring-bind (condition &rest clauses)
-      args
-    (as-literal"case (")
-    (synthesise condition :inexpression)
-    (as-literal ")" :newline t)
-
-    (as-block clauses :inblock :process #'synthesise-clause)
-
-    (as-literal "endcase" :newline t)))
-
-(defmethod synthesise-sexp ((fun (eql 'case)) args (context (eql :inmodule)))
-  (synthesise-sexp fun args :inblock))
 
 
 (defun synthesise-nested-if (condition clauses)
@@ -174,9 +151,19 @@ The type is the lub of the clause types."
 	     0))))
 
 
-(defmethod synthesise-sexp ((fun (eql 'case)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'case)) args)
   (destructuring-bind (condition &rest clauses)
       args
-    ;; synthsise a nested if expression and synthesisise that
-    ;; (almost like we're a macro, but just for this particular context)
-    (synthesise (synthesise-nested-if condition clauses) :inexpression)))
+    (if (in-expression-context-p)
+	;; within an expression, expand as nested conditional expressions
+	(synthesise-nested-if condition clauses)
+
+	;; elsewhere, synthesise as case
+	(progn
+	  (as-literal"case (")
+	  (synthesise condition)
+	  (as-literal ")" :newline t)
+
+	  (as-block clauses :process #'synthesise-clause)
+
+	  (as-literal "endcase" :newline t)))))

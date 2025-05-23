@@ -45,7 +45,7 @@
   form)
 
 
-(defmethod synthesise ((form integer) (context (eql :inexpression)))
+(defmethod synthesise ((form integer))
   (as-literal (format nil "~s" form)))
 
 

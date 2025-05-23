@@ -79,7 +79,7 @@ The type is the most definite of an inferred type (:INFERRED-TYPE),
 any explicitly-provided type (:TYPE), and the default type (a
 standard-width unsigned integer).
 
-(The logic of this orderig is o allow the same function
+(The logic of this ordering is to allow the same function
 to be used during and after type inferenece.)"
   (or (variable-property n :inferred-type :default nil)
       (variable-property n :type :default nil)
@@ -107,13 +107,14 @@ to be used during and after type inferenece.)"
   (variable-property n :direction))
 
 
-;; ---------- Form handling ----------
+;; ---------- Form context ----------
 
 (defparameter *current-form-queue* nil
   "The current form being evaluated.
 
 This is a stack of forms being evaluated, used to contextualise
-conditions.")
+conditions and change synthesis based on a form's position in
+the larger program.")
 
 
 (defmacro with-current-form (form &body body)
@@ -134,4 +135,27 @@ form."
   (car *current-form-queue*))
 
 
-;; ---------- Synthesis context ----------
+(defun containing-form ()
+  "Return the form containing the current form."
+  (cadr *current-form-queue*))
+
+
+(defun in-top-level-context-p ()
+  "Test whether the current context is top-level."
+  (and (= (length *current-form-queue*) 1)
+       (eql (car (current-form)) 'module)))
+
+
+(defun in-module-context-p ()
+  "Test whether the current context is directly within a module."
+  (and (>= (length *current-form-queue*) 2)
+       (eql (car (containing-form)) 'module)))
+
+
+(defun in-expression-context-p ()
+  "Test whether the current context is within an expression."
+  (and (>= (length *current-form-queue*) 2)
+       (member (car (containing-form)) '(+ - *
+					 = /= > >= < <=
+					 logand logior logxor
+					 setq setf))))

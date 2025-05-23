@@ -63,26 +63,8 @@ isn't declared."
       tyval)))
 
 
-(defmethod synthesise-sexp ((fun (eql 'setq)) args (context (eql :inblock)))
-  (destructuring-bind (var val &key (sync nil))
-      args
-    (synthesise var :inassignment)
-    (if sync
-	(as-literal " = ")
-	(as-literal " <= "))
-    (synthesise val :inexpression)
-    (format *synthesis-stream* ";")))
-
-
-(defmethod synthesise-sexp ((fun (eql 'setq)) args (context (eql :inmodule)))
-  (destructuring-bind (var val)
-      args
-    (as-literal "assign ")
-    (synthesise var :inassignment)
-    (as-literal " = ")
-    (synthesise val :inexpression)
-    (as-literal ";")))
-
+(defmethod synthesise-sexp ((fun (eql 'setq)) args)
+  (synthesise `(setf ,@args)))
 
 
 ;; ---------- setf (generalised places) ----------
@@ -145,22 +127,23 @@ The default is for a form /not/ to be a generalised place.")
     tyvar))
 
 
-(defmethod synthesise-sexp ((fun (eql 'setf)) args (context (eql :inblock)))
+(defmethod synthesise-sexp ((fun (eql 'setf)) args)
   (destructuring-bind (var val &key (sync nil))
       args
-    (synthesise var :inassignment)
-    (if sync
-	(as-literal " = ")
-	(as-literal " <= "))
-    (synthesise val :inexpression)
-    (as-literal ";")))
+    (if (in-module-context-p)
+	;; outermost in a module
+	(progn
+	  (as-literal "assign ")
+	  (synthesise var)
+	  (as-literal " = ")
+	  (synthesise val))
 
+	;; elsewhere (in a block)
+	(progn
+	  (synthesise var)
+	  (if sync
+	      (as-literal " = ")
+	      (as-literal " <= "))
+	  (synthesise val)))
 
-(defmethod synthesise-sexp ((fun (eql 'setf)) args (context (eql :inmodule)))
-  (destructuring-bind (var val)
-      args
-    (as-literal "assign ")
-    (synthesise var :inassignment)
-    (as-literal " = ")
-    (synthesise val :inexpression)
     (as-literal ";")))

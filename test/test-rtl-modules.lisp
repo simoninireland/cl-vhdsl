@@ -56,8 +56,7 @@
 			      (y 10 :type (unsigned-byte 8))
 			      (z 44 :as :constant))
 			  (rtl::@ (rtl::posedge clk)
-				  (setf x (+ x b) :sync t))))
-		      :toplevel)))
+				  (setf x (+ x b) :sync t)))))))
 
 
 (test test-synthesise-module-late-init
@@ -73,7 +72,7 @@
 	       (rtl::@ (rtl::posedge clk)
 		       (setf x (aref a 4)))))))
     (rtl:typecheck p)
-    (is (rtl:synthesise p :toplevel)))
+    (is (rtl:synthesise p)))
 
   ;; make sure synthesis cleared the late intiialisation queue
   (is (not (rtl::module-late-initialisation-p))))
@@ -96,8 +95,8 @@
 				 (let ((clock (make-instance 'clock :clk-in clk-in
 								    :clk-out clk)))
 				   clock)))))
-    (subtypep (rtl:typecheck p)
-	      'rtl::module-interface))
+    (is (subtypep (rtl:typecheck p)
+		  'rtl::module-interface)))
 
   ;; check we need to wire all arguments
   (signals (rtl:not-importable)
@@ -118,7 +117,7 @@
 			    (setq clk 1)))))))
     (setq p (rtl:simplify-progn (car (rtl:float-let-blocks p))))
     (rtl:typecheck p)
-    (is (rtl:synthesise p :toplevel))))
+    (is (rtl:synthesise p))))
 
 
 (test test-module-instanciate-with-bitfields
@@ -150,8 +149,7 @@
 							 ctrl
 						       (let ((clock (make-instance 'clock :clk_in clk_in
 											  :clk_out clk)))
-							 (setf ctrl 1)))))))))
-		      :toplevel)))
+							 (setf ctrl 1))))))))))))
 
 
 (test test-synthesise-module-instanciation
@@ -165,12 +163,10 @@
 
   (is (rtl:synthesise '(let ((c 0 :as :wire :type (unsigned-byte 1))
 			     (d 0 :as :wire :type (unsigned-byte 1)))
-			(let ((a (make-instance 'clock :clk_in c :clk_out d)))))
-		      :inmodule))
+			(let ((a (make-instance 'clock :clk_in c :clk_out d)))))))
   (is (rtl:synthesise '(let ((c 0 :as :wire :type (unsigned-byte 1))
 			     (d 0 :as :wire :type (unsigned-byte 1)))
-			(let ((a (make-instance 'clock :clk_in c :clk_out d :p 23)))))
-		      :inmodule)))
+			(let ((a (make-instance 'clock :clk_in c :clk_out d :p 23))))))))
 
 
 ;; ---------- Larger and more complicated/contrived examples ----------
@@ -193,7 +189,7 @@
 
     (setq p (rtl:expand-macros p))
     (rtl:typecheck p)
-    (is (rtl:synthesise p :toplevel))))
+    (is (rtl:synthesise p))))
 
 
 (test test-module-array-size-param
@@ -225,4 +221,4 @@
 
       (is (subtypep (rtl:typecheck p)
 		    '(unsigned-byte 8)))
-      (is (rtl:synthesise p :inmodule)))))
+      (is (rtl:synthesise p)))))

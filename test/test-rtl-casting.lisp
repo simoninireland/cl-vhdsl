@@ -34,7 +34,7 @@
 
 (test test-synthesise-the
   "Test we can synthesise a value whose type has been asserted explicitly."
-  (is (rtl:synthesise '(the (unsigned-byte 8) 12) :inexpression)))
+  (is (rtl:synthesise '(the (unsigned-byte 8) 12))))
 
 
 
@@ -67,48 +67,48 @@
   "Test we can coerce equal-width and -signedness numbers."
   (rtl::with-new-frame
     (rtl::declare-variable 'a '((:type (unsigned-byte 8))))
-    (is (rtl:synthesise '(coerce a (unsigned-byte 8)) :inexpression))
+    (is (rtl:synthesise '(coerce a (unsigned-byte 8))))
 
     (rtl::declare-variable 'b '((:type (signed-byte 8))))
-    (is (rtl:synthesise '(coerce b (signed-byte 8)) :inexpression))
+    (is (rtl:synthesise '(coerce b (signed-byte 8))))
 
     (rtl::declare-variable 'c '((:type (unsigned-byte 8))))
-    (is (rtl:synthesise '(coerce c (signed-byte 8)) :inexpression))
+    (is (rtl:synthesise '(coerce c (signed-byte 8))))
 
     (rtl::declare-variable 'd '((:type (signed-byte 8))))
-    (is (rtl:synthesise '(coerce d (unsigned-byte 8)) :inexpression))))
+    (is (rtl:synthesise '(coerce d (unsigned-byte 8))))))
 
 
 (test test-synthesise-coerce-narrower-same-sign
   "Test we can coerce narrower numbers."
   (rtl::with-new-frame
     (rtl::declare-variable 'a '((:type (unsigned-byte 16))))
-    (is (rtl:synthesise '(coerce a (unsigned-byte 8)) :inexpression))
+    (is (rtl:synthesise '(coerce a (unsigned-byte 8))))
 
     (rtl::declare-variable 'b '((:type (signed-byte 16))))
-    (is (rtl:synthesise '(coerce b (signed-byte 8)) :inexpression))
+    (is (rtl:synthesise '(coerce b (signed-byte 8))))
 
     (rtl::declare-variable 'c '((:type (unsigned-byte 16))))
-    (is (rtl:synthesise '(coerce c (signed-byte 8)) :inexpression))
+    (is (rtl:synthesise '(coerce c (signed-byte 8))))
 
     (rtl::declare-variable 'd '((:type (signed-byte 16))))
-    (is (rtl:synthesise '(coerce d (unsigned-byte 8)) :inexpression))))
+    (is (rtl:synthesise '(coerce d (unsigned-byte 8))))))
 
 
 (test test-synthesise-coerce-wider-same-sign
   "Test we can coerce wider numbers."
   (rtl::with-new-frame
     (rtl::declare-variable 'a '((:type (unsigned-byte 8))))
-    (is (rtl:synthesise '(coerce a (unsigned-byte 16)) :inexpression))
+    (is (rtl:synthesise '(coerce a (unsigned-byte 16))))
 
     (rtl::declare-variable 'b '((:type (signed-byte 8))))
-    (is (rtl:synthesise '(coerce b (signed-byte 16)) :inexpression))
+    (is (rtl:synthesise '(coerce b (signed-byte 16))))
 
     (rtl::declare-variable 'c '((:type (unsigned-byte 8))))
-    (is (rtl:synthesise '(coerce c (signed-byte 16)) :inexpression))
+    (is (rtl:synthesise '(coerce c (signed-byte 16))))
 
     (rtl::declare-variable 'd '((:type (signed-byte 8))))
-    (is (rtl:synthesise '(coerce d (unsigned-byte 16)) :inexpression))))
+    (is (rtl:synthesise '(coerce d (unsigned-byte 16))))))
 
 
 (test test-synthesise-coerce-real
@@ -120,4 +120,4 @@
 					      (signed-byte 32))))
 			    (setq a Iimm)))))))
     (rtl:typecheck p)
-    (is (rtl:synthesise p :inmodule))))
+    (is (rtl:synthesise p))))

@@ -33,7 +33,7 @@
 		    (setf b 3))))))
     (setq p (rtl:expand-macros p))
     (rtl:typecheck p)
-    (is (rtl:synthesise p :inblock))))
+    (is (rtl:synthesise p))))
 
 
 (test test-synthesise-cond-assignment
@@ -49,4 +49,4 @@
 
     (setq p (rtl:expand-macros p))
     (rtl:typecheck p)
-    (is (rtl:synthesise p :inblock))))
+    (is (rtl:synthesise p))))

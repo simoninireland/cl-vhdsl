@@ -180,7 +180,7 @@ Return the name of the newly-defined module."
 (defun synthesise-module (m str)
   "Synthesise module M to STR."
   (with-synthesis-to-stream str
-      (funcall (compose (rcurry #'synthesise :toplevel)
+      (funcall (compose #'synthesise
 			#'simplify-progn
 			(compose #'car #'float-let-blocks))
 	       m)))

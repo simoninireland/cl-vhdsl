@@ -79,52 +79,60 @@ The name is the first element, whether or not DECL is a list."
   "Extend ENV with the variable declared in DECL."
   (declare (optimize debug))
 
-  (if (listp decl)
-      ;; full declaration
-      (destructuring-bind (n v &key
-				 width
-				 type
-				 (as :register))
-	  decl
+  (with-continue-on-error
+      (if (listp decl)
+	  ;; full declaration
+	  (destructuring-bind (n v &key
+				     width
+				     type
+				     (as :register))
+	      decl
 
-	;; if we have a width, it's a shortcut for unsigned-byte
-	(if width
-	    (let* ((w (eval-in-static-environment width))
-		   (ty `(unsigned-byte ,w)))
-	      (if type
-		  ;; if we have a type, it must match
-		  (ensure-subtype ty type)
+	    ;; if we have a width, it's a shortcut for unsigned-byte
+	    (if width
+		(let* ((w (eval-in-static-environment width))
+		       (ty `(unsigned-byte ,w)))
+		  (if type
+		      ;; if we have a type, it must match
+		      (ensure-subtype ty type)
 
-		  ;; if not, re-assign is to the shortcut
-		  (setq type ty))))
+		      ;; if not, re-assign is to the shortcut
+		      (setq type ty))))
 
-	;; initial inferred type
-	(let ((ity (if type
-		       (expand-type-parameters type)
-		       '(unsigned-byte 1))))
+	    ;; initial inferred type
+	    (let ((ity (if type
+			   (expand-type-parameters type)
+			   '(unsigned-byte 1))))
 
-	  ;; typecheck initial value
-	  (let ((vty (typecheck v)))
-	    (if type
-		;; type provided, ensure it works
-		(ensure-subtype vty type)
+	      ;; typecheck initial value
+	      (let ((vty (typecheck v)))
+		(if type
+		    ;; type provided, ensure it works
+		    (ensure-subtype vty type)
 
-		;; no type provided, infer from the value
-		(setq ity vty)))
+		    ;; no type provided, infer from the value
+		    (setq ity vty)))
 
-	  (declare-variable n `((:type ,type)
-				(:inferred-type ,ity)
-				(:as ,as)
-				(:initial-value ,v)
-				(:type-constraints (,ity))))))
+	      (declare-variable n `((:type ,type)
+				    (:inferred-type ,ity)
+				    (:as ,as)
+				    (:initial-value ,v)
+				    (:type-constraints (,ity))))))
 
-      ;; "naked" declaration
-      ;; TODO: What is the correct default width? -- 1 means it'll get widened
-      ;; as needed, so is perhaps correct?
-      (declare-variable decl `((:inferred-type (unsigned-byte 1))
-			       (:type-constraints ((unsigned-byte 1)))
-			       (:as :register)
-			       (:initial-value 0)))))
+	  ;; "naked" declaration
+	  ;; TODO: What is the correct default width? -- 1 means it'll get widened
+	  ;; as needed, so is perhaps correct?
+	  (declare-variable decl `((:inferred-type (unsigned-byte 1))
+				   (:type-constraints ((unsigned-byte 1)))
+				   (:as :register)
+				   (:initial-value 0))))
+
+    ;; on error, return the most general and innocuous result to
+    ;; allow us to continue
+    (declare-variable n `((:type (unsigned-byte *default-register-width*))
+			  (:as :register)
+			  (:initial-value 0)
+			  (:type-constraints (unsigned-byte *default-register-width*))))))
 
 
 (defun typecheck-env (decls)
@@ -180,7 +188,7 @@ one."
       (typecheck-env decls)
 
       ;; capture type of the last form
-      (let ((ty (mapn #'typecheck body)))
+      (let ((ty (typecheck `(progn ,@body))))
 	;; update declarations with any inferred types and other properties
 	(let ((newdecls (typecheck-infer-decls decls)))
 	  (setf (car args) newdecls))
@@ -359,7 +367,7 @@ SPECIAL-VALUE-P. Specifically, normal values have a bit-width."
   (not (special-value-p form)))
 
 
-(defun synthesise-register (decl context)
+(defun synthesise-register (decl)
   "Synthesise a register declaration within a LET block.
 
 The register has name N and initial value V, with the optional
@@ -378,9 +386,9 @@ WIDTH defaulting to the system's global width."
 		(> width 1))
 	;; we have a width (or a width expression)
 	(as-literal"[ ")
-	(synthesise width :inexpression)
+	(synthesise width)
 	(as-literal " - 1 : 0 ] "))
-      (synthesise n :indeclaration)
+      (synthesise n)
       (if (array-value-p v)
 	  ;; synthesise the array bounds and initialisation
 	  (synthesise-array-init n v)
@@ -388,11 +396,11 @@ WIDTH defaulting to the system's global width."
 	  ;; synthesise the assignment to the initial value
 	  (progn
 	    (as-literal " = ")
-	    (synthesise v :inexpression)))
+	    (synthesise v)))
       (as-literal ";"))))
 
 
-(defun synthesise-wire (decl context)
+(defun synthesise-wire (decl)
   "Synthesise a wire declaration within a LET block.
 
 The wire has name N and initial value V, with the optional WIDTH
@@ -412,9 +420,9 @@ the wire is left un-driven."
 		(> width 1))
 	;; we have a width (or a width expression)
 	(as-literal"[ ")
-	(synthesise width :inexpression)
+	(synthesise width)
 	(as-literal " - 1 : 0 ] "))
-      (synthesise n :indeclaration)
+      (synthesise n)
       (if (array-value-p v)
 	  ;; synthesise the array constructor
 	  (synthesise-array-init n v)
@@ -425,26 +433,26 @@ the wire is left un-driven."
 		(unless (= iv 0)
 		  ;; initial value isn't statially zero, synthesise
 		  (as-literal " = ")
-		  (synthesise v :inexpression))
+		  (synthesise v))
 		(as-literal";"))
 
 	      ;; initial value is an expression, synthesise
 	      (progn
 		(as-literal " = ")
-		(synthesise v :inexpression)
+		(synthesise v)
 		(as-literal";")))))))
 
 
-(defun synthesise-constant (decl context)
+(defun synthesise-constant (decl)
   "Synthesise a constant declaration DECL within a LET block.
 
 Constants turn into local parameters."
   (destructuring-bind (n v &key &allow-other-keys)
       decl
     (as-literal "localparam ")
-    (synthesise n :inexpression)
+    (synthesise n)
     (as-literal " = ")
-    (synthesise v :inexpression)
+    (synthesise v)
     (as-literal ";")))
 
 
@@ -457,7 +465,7 @@ Constants turn into local parameters."
       (synthesise-module-instance n modname initargs))))
 
 
-(defun synthesise-decl (decl context)
+(defun synthesise-decl (decl)
   "Synthesise DECL."
   (destructuring-bind (n v &key type as)
       decl
@@ -468,16 +476,16 @@ Constants turn into local parameters."
 	;; otherwise, creating a variable
 	(case as
 	  (:constant
-	   (synthesise-constant decl context))
+	   (synthesise-constant decl))
 	  (:register
-	   (synthesise-register decl context))
+	   (synthesise-register decl))
 	  (:wire
-	   (synthesise-wire decl context))
+	   (synthesise-wire decl))
 	  (t
-	   (synthesise-register decl context))))))
+	   (synthesise-register decl))))))
 
 
-(defmethod synthesise-sexp ((fun (eql 'let)) args (context (eql :inmodule)))
+(defmethod synthesise-sexp ((fun (eql 'let)) args)
   (let ((decls (car args))
 	(body (cdr args)))
 
@@ -485,13 +493,9 @@ Constants turn into local parameters."
       (typecheck-env decls)
 
       ;; synthesise the constants and registers
-      (as-block-forms decls context :process #'synthesise-decl)
+      (as-block-forms decls :process #'synthesise-decl)
       (if (> (length decls) 0)
 	  (as-blank-line))
 
       ;; synthesise the body
-      (as-block-forms body :inmodule))))
-
-
-(defmethod synthesise-sexp ((fun (eql 'let)) args (context (eql :inblock)))
-  (synthesise-sexp fun args :inmodule))
+      (as-block-forms body))))

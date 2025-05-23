@@ -324,7 +324,7 @@ NEXT macro) that isn;t defined in the surrounding state machine."))
     :reader inferred-value))
   (:report (lambda (c str)
 	     (format-condition-context (format nil "Inferred ~a to have type ~a"
-					       (inferred variable c)
+					       (inferred-variable c)
 					       (inferred-value c))
 				       c str)))
   (:documentation "Condition signalled when a type is inferred.

@@ -62,7 +62,7 @@
 			     (c 10 :type (unsigned-byte 8)))
 			(setf c 0)))))
     (rtl:typecheck p)
-    (is (rtl:synthesise p :inmodule))))
+    (is (rtl:synthesise p))))
 
 
 (test test-synthesise-array-decl-type-inferred
@@ -75,7 +75,7 @@
 		  (c 10))
 	     (setf c 100))))
     (rtl:typecheck p)
-    (is (rtl:synthesise p :inmodule))))
+    (is (rtl:synthesise p))))
 
 
 (test test-synthesise-array-init-from-data
@@ -87,7 +87,7 @@
 			     (c 10))
 			(setf c (aref b 1))))))
     (rtl:typecheck p)
-    (is (rtl:synthesise p :inmodule))))
+    (is (rtl:synthesise p))))
 
 
 (test test-synthesise-array-init-from-file
@@ -101,7 +101,7 @@
 			     (c 10))
 			(setf c (aref b 1))))))
     (rtl:typecheck p)
-    (rtl:synthesise p :inmodule)
+    (rtl:synthesise p)
     (is (rtl::module-late-initialisation-p))))
 
 
@@ -132,7 +132,7 @@
 				 :element-type (unsigned-byte 32))))
 			(setf (aref a 8) (aref a 0))))))
     (rtl:typecheck p)
-    (is (rtl:synthesise p :inblock))))
+    (is (rtl:synthesise p))))
 
 
 ;; ---------- Initialisation ----------
@@ -167,7 +167,7 @@
 			     (b 0))
 			(setf b (aref a 1))))))
     (rtl:typecheck p)
-    (is (rtl:synthesise p :inblock))))
+    (is (rtl:synthesise p))))
 
 
 ;; The next test uses ROM data from the SAP-1 example
@@ -180,5 +180,5 @@
 			      (b 0))
 			  (setf b (aref a 1))))))
     (rtl:typecheck p)
-    (is (rtl:synthesise p :inblock))
+    (is (rtl:synthesise p))
     (rtl::run-module-late-initialisation)))

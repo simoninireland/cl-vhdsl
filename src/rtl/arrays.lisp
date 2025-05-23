@@ -136,9 +136,8 @@ RTLisp, but don't /require/ it."
 
 (defun synthesise-array-init-from-data (data shape)
   "Return the initialisation of DATA with the given SHAPE."
-  (as-list data :inexpression
-	   :before "{ " :after " }"
-	   :per-row 16))
+  (as-list data :before "{ " :after " }"
+		:per-row 16))
 
 
 (defun synthesise-array-init-from-file (n fn)
@@ -149,7 +148,7 @@ Thi is implemented using a late initialisation function."
 	   (as-literal "$readmemh(\"")
 	   (as-literal fn)
 	   (as-literal "\", ")
-	   (synthesise n :inexpression)
+	   (synthesise n)
 	   (as-literal ");" :newline t)))
     (add-module-late-initialisation #'initialise-array-from-file)))
 
@@ -169,7 +168,7 @@ Otheriwse it is read as a literal list."
 
     ;; 1d arrays only for now
     (as-literal "[ 0 : ")
-    (synthesise (car shape) :inexpression)
+    (synthesise (car shape))
     (as-literal " - 1 ]")
 
     ;; intialisation data, if any
@@ -234,16 +233,13 @@ probably should, for those that are statically determined."
   t)
 
 
-(defmethod synthesise-sexp ((fun (eql 'aref)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'aref)) args)
   (destructuring-bind (var &rest indices)
       args
-    (synthesise var :inexpression)
+    (synthesise var)
     (as-literal "[ ")
-    (as-list indices :inexpression)
+    (as-list indices)
     (as-literal " ]")))
-
-(defmethod synthesise-sexp ((fun (eql 'aref)) args (context (eql :inassignment)))
-  (synthesise-sexp fun args :inexpression))
 
 
 (defmethod lispify-sexp ((fun (eql 'aref)) args)

@@ -117,13 +117,14 @@
 		 (setf c (+ a b)))))
     (let ((p (copy-tree x)))
       (rtl:typecheck p)
-      (is (rtl:synthesise p :inblock))))
+      (is (rtl:synthesise p))))
 
   ;; can't return values in statement role
   (signals (error)
     (let ((p (copy-tree `(let ((a 1 :width 8))
-			   (+ a 1)))))
-      (rtl:synthesise p :inblock))))
+			  (+ a 1)))))
+      (rtl:typecheck p)
+      (rtl:synthesise p))))
 
 
 

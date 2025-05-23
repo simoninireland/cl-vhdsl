@@ -41,10 +41,9 @@
 	`(unsigned-byte ,w)))))
 
 
-(defmethod synthesise-sexp ((fun (eql 'make-bitfields)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'make-bitfields)) args)
   (as-literal "{")
-  (as-inline-forms args :inexpression
-		   :sep ",")
+  (as-inline-forms args :sep ",")
   (as-literal "}"))
 
 
@@ -67,7 +66,7 @@
   "Synthesise C as a constant with the given WIDTH.
 
 The BASE used can be 2, 8, 10, or 16."
-  (synthesise width :inexpression)
+  (synthesise width)
   (as-literal "'")
   (as-literal (ecase base
 		(2  "b")
@@ -75,14 +74,14 @@ The BASE used can be 2, 8, 10, or 16."
 		(10 "d")
 		(16 "x")))
   (let ((*print-base* base))
-    (synthesise c :inexpression)))
+    (synthesise c)))
 
 
-(defmethod synthesise-sexp ((fun (eql 'extend-bits)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'extend-bits)) args)
   (destructuring-bind (bs width)
       args
     (as-literal "{")
-    (synthesise width :inexpression)
+    (synthesise width)
     (as-literal "{")
     (if (static-constant-p bs)
 	;; value is a static constant, output it
@@ -91,5 +90,5 @@ The BASE used can be 2, 8, 10, or 16."
 
 	;; value is an expression, synthesise it
 	(progn
-	  (synthesise bs :inexpression)))
+	  (synthesise bs)))
     (as-literal "}}")))

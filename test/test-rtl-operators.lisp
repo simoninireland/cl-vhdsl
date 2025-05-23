@@ -48,16 +48,13 @@
   ;; arithmetic
   (dolist (op '(+ - *))
     ;; conventional two-operand
-    (is (rtl:synthesise `(,op 1 2)
-			:inexpression))
+    (is (rtl:synthesise `(,op 1 2)))
 
     ;; Lisp-y multi-operand
-    (is (rtl:synthesise `(,op 1 2 3)
-			:inexpression)))
+    (is (rtl:synthesise `(,op 1 2 3))))
 
   ;; unary minus
-  (is (rtl:synthesise `(- 1)
-		      :inexpression)))
+  (is (rtl:synthesise `(- 1))))
 
 
 ;; ---------- Shifts ----------
@@ -84,8 +81,7 @@
   "Test we can synthesise shift operators."
   (dolist (op '(rtl::<< rtl::>>))
     ;; conventional two-operand
-    (is (rtl:synthesise `(,op 1 2)
-			:inexpression))))
+    (is (rtl:synthesise `(,op 1 2)))))
 
 
 ;; ---------- Bitwise operators ----------

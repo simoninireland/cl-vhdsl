@@ -24,7 +24,22 @@
 ;; ---------- PROGN ----------
 
 (defmethod typecheck-sexp ((fun (eql 'progn)) args)
-  (mapn #'typecheck args))
+  (labels ((typecheck-forms (forms)
+	     (declare (optimize debug))
+
+	     (let ((ty (with-continue-on-error
+			   (typecheck (car forms))
+
+			 nil)))
+
+	       (if (null (cdr forms))
+		   ;; if we're the last form, return the type
+		   ty
+
+		   ;; otherwise proceed to the next forms
+		   (typecheck-forms (cdr forms))))))
+
+    (typecheck-forms args)))
 
 
 (defun simplify-progn-body (body)
@@ -45,11 +60,8 @@
       `(progn ,@(simplify-progn-body newbody)))))
 
 
-(defmethod synthesise-sexp ((fun (eql 'progn)) args (context (eql :inblock)))
-  (as-block args :inblock :indent nil))
-
-(defmethod synthesise-sexp ((fun (eql 'progn)) args (context (eql :inmodule)))
-  (synthesise-sexp fun args :inblock))
+(defmethod synthesise-sexp ((fun (eql 'progn)) args)
+  (as-block args :indent nil))
 
 
 ;; ---------- Triggered blocks ----------
@@ -103,7 +115,7 @@ block, and are represented by the symbol *."
       `(@ ,sensitivities ,@(simplify-progn-body newbody)))))
 
 
-(defmethod synthesise-sexp ((fun (eql '@)) args (context (eql :inblock)))
+(defmethod synthesise-sexp ((fun (eql '@)) args)
   (declare (optimize debug))
   (destructuring-bind (sensitivities &rest body)
       args
@@ -122,16 +134,11 @@ block, and are represented by the symbol *."
 
 		     ;; a single trigger, synthesise as a list
 		     (list sensitivities))
-		 :inexpression
 		 :before "always @(" :after ")"))
     (as-newline)
 
-    (as-block body :inblock
-	      :before "begin" :after "end" :always t)
+    (as-block body :before "begin" :after "end" :always t)
     (as-blank-line)))
-
-(defmethod synthesise-sexp ((fun (eql '@)) args (context (eql :inmodule)))
-  (synthesise-sexp fun args :inblock))
 
 
 ;; ---------- Triggers ----------
@@ -150,11 +157,11 @@ block, and are represented by the symbol *."
       ty)))
 
 
-(defmethod synthesise-sexp ((fun (eql 'posedge)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'posedge)) args)
   (destructuring-bind (pin)
       args
     (as-literal"posedge(")
-    (synthesise pin :inexpression)
+    (synthesise pin)
     (as-literal ")")))
 
 
@@ -166,9 +173,9 @@ block, and are represented by the symbol *."
       ty)))
 
 
-(defmethod synthesise-sexp ((fun (eql 'negedge)) args (context (eql :inexpression)))
+(defmethod synthesise-sexp ((fun (eql 'negedge)) args)
   (destructuring-bind (pin)
       args
     (as-literal "negedge(")
-    (synthesise pin :inexpression)
+    (synthesise pin)
     (as-literal")")))
