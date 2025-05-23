@@ -41,6 +41,7 @@
 	       ;;		     (:file "conditions")))
 	       (:module "rtl"
 		:components ((:file "package")
+			     (:file "helpers")
 			     (:file "env")
 			     (:file "pretty-printer")
 			     (:file "context")
@@ -119,6 +120,7 @@
 	       (:file "test-rtl-rewriting")
 	       (:file "test-rtl-cond")
 	       (:file "test-rtl-with-bitfields")
+	       (:file "test-rtl-helpers")
 	       (:file "test-def-components")
 	       ;;(:file "test-def-isa")
 	       )
