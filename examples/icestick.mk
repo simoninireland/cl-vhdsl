@@ -38,7 +38,7 @@ DOCKER = docker
 RM = rm -fr
 
 # Tool options
-VHDSLC_OPTS =
+VHDSLC_OPTS = -e elaborated.lisp
 SYNTH_OPTS = -q
 PNR_OPTS = -q
 PROGRAM_OPTS =
