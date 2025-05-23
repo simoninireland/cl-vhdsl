@@ -1,0 +1,20 @@
+* Incomplete RISC-V 32-bit integer core
+
+  This is the minimal RISC-V core defined as ~step8.v~ in the [[https://github.com/BrunoLevy/learn-fpga/blob/master/FemtoRV/TUTORIALS/FROM_BLINKER_TO_RISCV/README.md][Learning
+  FPGA]] tutorial, translated into Verilisp as a larger test for
+  synthesis. It includes the arithmetic operations and jumps, but
+  omits load, store, and branch instructions. It targets the IceStick
+  FPGA development board.
+
+  The core gets firmware (in ~firmware.s~) to flash LEDs written in
+  standard RISC-V assembly language as understood by GNU ~as~. The
+  ~Makefile~ first generates an ELF ~.o~ object file, using ~gcc~ to link
+  the assembly language ready to be loaded at address 0. It then
+  extracts the machine code as 32-bit big-endian hex numbers into a
+  ~.hex~ file that can be loaded by Verilog using its ~readmemh~
+  operator..
+
+** Usage
+
+   Run ~make~ to create the bitstream, including the core itself and its
+   firmware. The ~make upload~ to upload to the IceStick.
