@@ -27,7 +27,7 @@
   (let ((slow-clk 0 :type (unsigned-byte (1+ slow))))
     (@ (posedge clk-in)
        (incf slow-clk))
-    (setf clk (bit slow-clk slow)))
+    (setf clk (bref slow-clk slow)))
 
   ;; reset (always active-high)
   (setq reset reset-in))

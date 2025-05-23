@@ -46,51 +46,51 @@
     (setq leds-out leds)
 
     ;; instruction decoding
-    (let-wires ((isALUreg (= (bits instr 6) #2r0110011) :type (unsigned-byte 1))
-		(isALUimm (= (bits instr 6) #2r0010011) :type (unsigned-byte 1))
-		(isBranch (= (bits instr 6) #2r1100011) :type (unsigned-byte 1))
-		(isJALR   (= (bits instr 6) #2r1100111) :type (unsigned-byte 1))
-		(isJAL    (= (bits instr 6) #2r1101111) :type (unsigned-byte 1))
-		(isAIUPC  (= (bits instr 6) #2r0010111) :type (unsigned-byte 1))
-		(isLUT    (= (bits instr 6) #2r0110111) :type (unsigned-byte 1))
-		(isLoad   (= (bits instr 6) #2r0000011) :type (unsigned-byte 1))
-		(isStore  (= (bits instr 6) #2r0100011) :type (unsigned-byte 1))
-		(isSystem (= (bits instr 6) #2r1110011) :type (unsigned-byte 1))
+    (let-wires ((isALUreg (= (bref instr 6 :end 0) #2r0110011) :type (unsigned-byte 1))
+		(isALUimm (= (bref instr 6 :end 0) #2r0010011) :type (unsigned-byte 1))
+		(isBranch (= (bref instr 6 :end 0) #2r1100011) :type (unsigned-byte 1))
+		(isJALR   (= (bref instr 6 :end 0) #2r1100111) :type (unsigned-byte 1))
+		(isJAL    (= (bref instr 6 :end 0) #2r1101111) :type (unsigned-byte 1))
+		(isAIUPC  (= (bref instr 6 :end 0) #2r0010111) :type (unsigned-byte 1))
+		(isLUT    (= (bref instr 6 :end 0) #2r0110111) :type (unsigned-byte 1))
+		(isLoad   (= (bref instr 6 :end 0) #2r0000011) :type (unsigned-byte 1))
+		(isStore  (= (bref instr 6 :end 0) #2r0100011) :type (unsigned-byte 1))
+		(isSystem (= (bref instr 6 :end 0) #2r1110011) :type (unsigned-byte 1))
 
 		;; intermediate formats
-		(Uimm (make-bitfields (bit instr 31)
-				      (bits instr 30 :end 12)
+		(Uimm (make-bitfields (bref instr 31)
+				      (bref instr 30 :end 12)
 				      (extend-bits 0 12))
 		      :type (unsigned-byte 32))
-		(Iimm (make-bitfields (extend-bits (bit instr 31) 21)
-				      (bits instr 30 :end 20))
+		(Iimm (make-bitfields (extend-bits (bref instr 31) 21)
+				      (bref instr 30 :end 20))
 		      :type (signed-byte 32))
-		(Simm (make-bitfields (extend-bits (bit instr 31) 21)
-				      (bits instr 30 :end 25)
-				      (bits instr 11 :end 7))
+		(Simm (make-bitfields (extend-bits (bref instr 31) 21)
+				      (bref instr 30 :end 25)
+				      (bref instr 11 :end 7))
 		      :type (unsigned-byte 32))
-		(Bimm (make-bitfields (extend-bits (bit instr 31) 20)
-				      (bit instr 7)
-				      (bits instr 30 :end 25)
-				      (bits instr 11 :end 8)
+		(Bimm (make-bitfields (extend-bits (bref instr 31) 20)
+				      (bref instr 7)
+				      (bref instr 30 :end 25)
+				      (bref instr 11 :end 8)
 				      (extend-bits 0 1))
 
 		      :type (signed-byte 32))
-		(Jimm (make-bitfields (extend-bits (bit instr 31) 12)
-				      (bits instr 19 :end 12)
-				      (bit instr 20)
-				      (bits instr 30 :end 21)
+		(Jimm (make-bitfields (extend-bits (bref instr 31) 12)
+				      (bref instr 19 :end 12)
+				      (bref instr 20)
+				      (bref instr 30 :end 21)
 				      (extend-bits 0 1))
 		      :type (signed-byte 32))
 
 		;; source and destination registers
-		(rs1Id (bits instr 19 :end 15) :type (unsigned-byte 5))
-		(rs2Id (bits instr 24 :end 20) :type (unsigned-byte 5))
-		(rdId  (bits instr 11 :end 7)  :type (unsigned-byte 5))
+		(rs1Id (bref instr 19 :end 15) :type (unsigned-byte 5))
+		(rs2Id (bref instr 24 :end 20) :type (unsigned-byte 5))
+		(rdId  (bref instr 11 :end 7)  :type (unsigned-byte 5))
 
 		;; function codes
-		(funct3 (bits instr 14 :end 12) :type (unsigned-byte 3))
-		(funct7 (bits instr 31 :end 25) :type (unsigned-byte 7)))
+		(funct3 (bref instr 14 :end 12) :type (unsigned-byte 3))
+		(funct7 (bref instr 31 :end 25) :type (unsigned-byte 7)))
 
 	       ;; register bank
 	       (let ((RegisterBank  (make-array '(32) :element-type (unsigned-byte 32)))
@@ -106,8 +106,8 @@
 					 Iimm)
 				     :type (unsigned-byte 32))
 			     (shamt (if isALUreg
-					(bits rs2 4)
-					(bits instr 24 :end 20))
+					(bref rs2 4 :end 0)
+					(bref instr 24 :end 20))
 				    :type (unsigned-byte 5)))
 
 			    (let-registers ((aluOut 0 :type (unsigned-byte 32)))
@@ -115,8 +115,8 @@
 					   (@ (*)
 					      (case funct3
 						(#2r000
-						 (if (logand (bit funct7 5)
-							     (bit instr 5))
+						 (if (logand (bref funct7 5)
+							     (bref instr 5))
 						     (setq aluOut (- aluIn1 aluIn2) :sync t)
 						     (setq aluOut (+ aluIn1 aluIn2) :sync t)))
 
@@ -133,7 +133,7 @@
 						 (setq aluOut (logxor aluIn1 aluIn2) :sync t))
 
 						(#2r101
-						 (if (bit funct7 5)
+						 (if (bref funct7 5)
 						     (setq aluOut (>> aluIn1 shamt) :sync t) ;; sign-extended
 						     (setq aluOut (>> aluIn1 shamt) :sync t))) ;; unsigned
 
@@ -183,7 +183,7 @@
 
 						  (case state
 						    (FETCH-INSTR
-						     (setq instr (aref mem (bits pc 31 :end 2)))
+						     (setq instr (aref mem (bref pc 31 :end 2)))
 						     (setq state FETCH-REGS))
 
 						    (FETCH-REGS
