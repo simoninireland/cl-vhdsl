@@ -36,6 +36,8 @@
 
   (:export
    ;; fixed-width types
+   #:unsigned-byte
+   #:signed-byte
    #:bitwidth
 
    ;; environments
@@ -59,8 +61,9 @@
    #:eval-if-static
 
    ;; extra RTLisp functions and macros not in Common Lisp
+   #:unsigned-byte
+   #:signed-byte
    #:module
-   #:module-interface
    #:<<
    #:>>
    #:@

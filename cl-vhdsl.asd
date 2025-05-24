@@ -73,7 +73,7 @@
 			     (:file "component")
 			     (:file "mixins")
 			     (:file "synthesis")
-			     (:file "isa")
+			     ;;(:file "isa")
 			     (:file "conditions"))))
   :in-order-to ((test-op (test-op "cl-vhdsl/test"))))
 
