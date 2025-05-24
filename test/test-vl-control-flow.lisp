@@ -1,0 +1,107 @@
+;; Tests of control flow
+;;
+;; Copyright (C) 2024--2025 Simon Dobson
+;;
+;; This file is part of verilisp, a very Lisp approach to hardware synthesis
+;;
+;; verilisp is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+;;
+;; verilisp is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with verilisp. If not, see <http://www.gnu.org/licenses/gpl.html>.
+
+(in-package :verilisp/test)
+(in-suite verilisp/rtl)
+
+
+;; ---------- PROGN ----------
+
+(test test-synthesise-progn
+  "Test we can synthesise PROGN forms."
+  (is (vl:synthesise '(progn
+			(setf a 5)
+			(setf b 34)))))
+
+
+;; ---------- @ ----------
+
+(test test-typecheck-at
+  "Test we can type-check triggered blocks."
+  ;; single wire sensitivity
+  (is (subtypep (vl:typecheck '(let ((clk 0 :as :wire)
+				      (a 0))
+				 (vl::@ ((vl::posedge clk))
+				  (setf a 1))))
+		'(unsigned-byte 1)))
+
+  ;; multiple wires sensitivity
+  (is (subtypep (vl:typecheck '(let ((clk 0 :as :wire)
+				      (rst 0 :as :wire)
+				      (a 0))
+				 (vl::@ ((vl::posedge clk) (vl::negedge rst))
+				  (setf a 1))))
+		'(unsigned-byte 1))))
+
+
+(test test-typecheck-edges
+  "Test we can type-check edge trigger expressions."
+  (is (subtypep (vl:typecheck '(let ((clk 0 :as :wire)
+				      (a 0))
+				 (vl::@ ((vl::posedge clk))
+				  (setq a clk))))
+		'(unsigned-byte 1))))
+
+
+(test test-typecheck-wire-singleton
+  "Test we can type-check single-wire triggers."
+  (is (subtypep (vl:typecheck '(let ((clk 0 :as :wire)
+				      (a 0))
+				 (vl::@ clk
+				  (setq a clk))))
+		'(unsigned-byte 1))))
+
+
+(test test-typecheck-wire-trigger
+  "Test we can type-check an edge trigger as a singleton, not in a list."
+  (is (subtypep (vl:typecheck '(let ((clk 0 :as :wire)
+				      (a 0))
+				 (vl::@ (vl::posedge clk)
+				  (setq a clk))))
+		'(unsigned-byte 1))))
+
+
+(test test-synthesise-edges
+  "Test synthesis of sensitivies using edges."
+  (let ((p '(let ((clk 0 :as :wire)
+		  (a 0))
+	     (vl::@ ((vl::posedge clk) a)
+	      (setq a clk)))))
+    (vl:typecheck p)
+    (is (vl:synthesise p))))
+
+
+(test test-synthesise-wire-singleton
+  "Test synthesis of sensitivies using edges."
+  (let ((p  '(let ((clk 0 :as :wire)
+		   (a 0))
+	      (vl::@ clk
+	       (setq a clk)))))
+    (vl:typecheck p)
+    (is (vl:synthesise p))))
+
+
+(test test-synthesise-wire-trigger
+  "Test synthesis of sensitivies using a single trigger."
+  (let ((p  '(let ((clk 0 :as :wire)
+		   (a 0))
+	      (vl::@ (vl:posedge clk)
+	       (setq a clk)))))
+    (vl:typecheck p)
+    (is (vl:synthesise p))))

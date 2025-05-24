@@ -19,5 +19,5 @@
 
 (in-package :common-lisp-user)
 
-(defpackage cl-vhdsl/examples/uart
-  (:use :cl :cl-vhdsl/rtl))
+(defpackage verilisp/examples/uart
+  (:use :cl :vl))

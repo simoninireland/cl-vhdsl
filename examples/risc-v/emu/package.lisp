@@ -19,12 +19,12 @@
 
 (in-package :common-lisp-user)
 
-(defpackage cl-vhdsl/examples/risc-v/emu
+(defpackage verilisp/examples/risc-v/emu
   (:use :cl :alexandria)
   (:import-from :read-number
 	       #:read-integer)
   (:import-from :cl-vhdsl
 		#:foldr)
-  (:import-from :cl-vhdsl/rtl
+  (:import-from :vl
 		#:ensure-subtype
 		#:signed-byte-p))
