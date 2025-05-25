@@ -1,6 +1,6 @@
-;; Package for Verilisp
+;; Top-level package definition
 ;;
-;; Copyright (C) 2024--2025 Simon Dobson
+;; Copyright (C) 2023--2025 Simon Dobson
 ;;
 ;; This file is part of verilisp, a very Lisp approach to hardware synthesis
 ;;
@@ -20,108 +20,7 @@
 (in-package :common-lisp-user)
 
 (defpackage verilisp
-  (:documentation "Verilisp, a very Lisp approach to hardware synthesis")
-  (:nicknames :vl)
-  (:use :cl :alexandria
-	:verilisp/utils)
-  (:import-from :cl-ppcre
-		#:create-scanner
-		#:scan
-		#:regex-replace-all)
-  (:import-from :str
-		#:concat
-		#:s-first
-		#:containsp
-		#:shorten
-		#:words)
+  (:use :cl :alexandria :serapeum)
 
   (:export
-   ;; fixed-width types
-   #:bitwidth
-   #:fixed-width-p
-   #:unsigned-byte-p
-   #:signed-byte-p
-
-   ;; environments
-   #:*global-environment*
-   #:empty-environment
-   #:add-frame
-   #:with-new-frame
-   #:declare-variable
-   #:variable-declared-p
-   #:get-frame-names
-   #:get-environment-names
-   #:filter-environment
-   #:get-type
-   #:get-representation
-   #:get-width
-   #:get-initial-value
-
-   ;; evaluating expressions in environments
-   #:close-form-in-environment
-   #:close-form-in-static-environment
-   #:eval-in-static-environment
-   #:ensure-static
-   #:eval-if-static
-
-   ;; extra Verilisp functions and macros not in Common Lisp
-   #:module
-   #:module-interface
-   #:<<
-   #:>>
-   #:@
-   #:posedge
-   #:negedge
-   #:bref
-   #:with-bitfields
-   #:make-bitfields
-   #:extend-bits
-   #:0=
-   #:0/=
-   #:2*
-   #:let-wires
-   #:let-registers
-   #:let-constants
-   #:state-machine
-   #:next
-   #:exit
-
-   ;; DSL functions
-   #:widthcheck
-   #:typecheck
-   #:detect-shadowing
-   #:float-let-blocks
-   #:simplify-progn
-   #:expand-macros
-   #:synthesise
-   #:lispify
-
-   ;; loader
-   #:clear-module-registry
-   #:get-module
-   #:get-module-interface
-   #:get-modules-for-synthesis
-   #:defmodule
-   #:synthesise-module
-
-   ;; conditions
-   #:verilisp-condition
-   #:not-synthesisable
-   #:unknown-variable
-   #:bad-variable
-   #:unknown-module
-   #:unknown-form
-   #:duplicate-variable
-   #:duplicate-module
-   #:not-importable
-   #:not-static
-   #:value-mismatch
-   #:direction-mismatch
-   #:type-mismatch
-   #:coercion-mismatch
-   #:bitfield-mismatch
-   #:shape-mismatch
-   #:state-machine-mismatch
-   #:type-inferred
-   #:representation-mismatch
-   ))
+   #:verilisp-condition))

@@ -18,7 +18,7 @@
 ;; along with verilisp. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 (in-package :verilisp/test)
-(in-suite verilisp/rtl)
+(in-suite verilisp/vl)
 
 
 ;; ---------- Fixed-width integers ----------

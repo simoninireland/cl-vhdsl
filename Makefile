@@ -23,7 +23,7 @@ VERSION = $(shell cat version.sexp)
 
 # ----- Sources -----
 
-SOURCES_ASDF = cl-vhdsl.asd
+SOURCES_ASDF = verilisp.asd
 
 SOURCES = $(shell find src -name '*.lisp' -print)
 SOURCES_GENERATED =
@@ -82,7 +82,7 @@ help:
 test:
 	$(LISP) $(LISPOPTS) \
 	--eval "(push (truename #p\"$(ROOT)\") asdf:*central-registry*)" \
-	--eval "(asdf:test-system :cl-vhdsl)" \
+	--eval "(asdf:test-system :verilisp)" \
 	--eval "(quit)"
 
 # Build the output binaries
@@ -91,7 +91,7 @@ bin:
 	$(MKDIR) $(BINARIES_BUILD_DIR)
 	$(LISP) $(LISPOPTS) \
 	--eval "(push (truename #p\"$(ROOT)\") asdf:*central-registry*)" \
-	--eval "(asdf:make :cl-vhdsl/cli)" \
+	--eval "(asdf:make :verilisp/cli)" \
 	--eval "(quit)"
 
 # Build the API documentation using Sphinx

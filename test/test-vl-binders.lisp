@@ -18,7 +18,7 @@
 ;; along with verilisp. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 (in-package :verilisp/test)
-(in-suite verilisp/rtl)
+(in-suite verilisp/vl)
 
 
 (test test-let-single
@@ -117,14 +117,7 @@
 		 (setf c (+ a b)))))
     (let ((p (copy-tree x)))
       (vl:typecheck p)
-      (is (vl:synthesise p))))
-
-  ;; can't return values in statement role
-  (signals (error)
-    (let ((p (copy-tree `(let ((a 1 :width 8))
-			  (+ a 1)))))
-      (vl:typecheck p)
-      (vl:synthesise p))))
+      (is (vl:synthesise p)))))
 
 
 

@@ -18,19 +18,19 @@
 ;; along with verilisp. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 (in-package :verilisp/test)
-(in-suite verilisp/rtl)
+(in-suite verilisp/vl)
 
 
 ;; ---------- Array declarations ----------
 
 (test test-array-decl
   "Test we can declare arrays."
-  (is (subtypep (rtl:typecheck '(make-array '(16)
+  (is (subtypep (vl:typecheck '(make-array '(16)
 				 :element-type (unsigned-byte 8)))
 		'(array (unsigned-byte 8) (16))))
 
   ;; version without the Lisp-compatible quote on the shape
-  (is (subtypep (rtl:typecheck '(make-array (16)
+  (is (subtypep (vl:typecheck '(make-array (16)
 				 :element-type (unsigned-byte 8)))
 		'(array (unsigned-byte 8) (16))))
 

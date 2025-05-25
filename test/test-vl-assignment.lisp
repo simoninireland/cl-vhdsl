@@ -18,7 +18,7 @@
 ;; along with verilisp. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 (in-package :verilisp/test)
-(in-suite verilisp/rtl)
+(in-suite verilisp/vl)
 
 
 ;; ---------- Simple assignment (SETQ) ----------
@@ -122,3 +122,4 @@
   "Test we can convert a simple SETF into a SETQ."
   (is (subtypep (vl:typecheck '(let ((a 12))
 				 (setf a 9)))
+		'(unsigned-byte 4))))

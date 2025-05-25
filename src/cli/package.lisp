@@ -1,4 +1,4 @@
-;; Package for commaond-line transpiler
+;; Package for command-line transpiler
 ;;
 ;; Copyright (C) 2024--2025 Simon Dobson
 ;;
@@ -20,8 +20,7 @@
 (in-package :common-lisp-user)
 
 (defpackage verilisp/cli
-  (:use :cl :alexandria
-	:vl :local-time)
+  (:use :cl :alexandria :verilisp :verilisp/utils :verilisp/core :local-time)
 
   (:export
    main))

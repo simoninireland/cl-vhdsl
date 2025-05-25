@@ -18,23 +18,23 @@
 ;; along with verilisp. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 (in-package :verilisp/test)
-(in-suite verilisp/rtl)
+(in-suite verilisp/vl)
 
 
 ;; ---------- with-rtl-errors-not-synthesisable ----------
 
 (test test-helper-errors
-  "Test we trap non-RTL errors."
+  "Test we trap non-Verilisp errors."
 
   ;; traps and translates the divide-by-zero condition
   (signals (vl::not-synthesisable)
-    (vl::with-rtl-errors-not-synthesisable
+    (vl::with-vl-errors-not-synthesisable
       (let (a)
 	(setq a (/ 12 0)))))
 
   ;; passes the unknown variable condition
   (signals (vl::unknown-variable)
-    (vl::with-rtl-errors-not-synthesisable
+    (vl::with-vl-errors-not-synthesisable
       (vl:typecheck '(let (a)
 		       (setq b (+ 12 2)))))))
 
@@ -48,7 +48,7 @@
 		     (blig 34)))))
 
 
-;; ---------- with-continue-on-error ----------
+;; ---------- with-recover-on-error ----------
 
 (test test-continue-on-error
   "Test we can continue with compilation after an error."
@@ -65,16 +65,16 @@
 		  (invoke-restart 'continue))))
 
       (dolist (i (list 1 2 3 4))
-	(vl::with-continue-on-error
-	    (if (= i 2)
-		;; 2 is bad...
-		(error "Bad thing happened")
-
-		;; ...anyting else is fine
-		(appendf result (list i)))
-
+	(vl::with-recover-on-error
 	  ;; no recovery action needed
-	  nil)))
+	  nil
+
+	  (if (= i 2)
+	      ;; 2 is bad...
+	      (error "Bad thing happened")
+
+	      ;; ...anyting else is fine
+	      (appendf result (list i))))))
 
     (is (= errors 1))
     (is (equal result '(1 3 4)))))
