@@ -137,7 +137,7 @@
   :description "Command line tool to transpile Verilisp to Verilog."
   :author "Simon Dobson <simoninireland@gmail.com"
   :license "GPL3"
-  :depends-on ("alexandria" "serapeum" "unix-opts" "local-time" "verilisp")
+  :depends-on ("alexandria" "unix-opts" "local-time" "verilisp")
   :pathname "src/cli/"
   :serial t
   :components ((:file "package")
