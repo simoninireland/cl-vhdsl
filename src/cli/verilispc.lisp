@@ -40,7 +40,6 @@
 
 (defvar *warning-flags* '(("bitfield" bitfield-mismatch)
 			  ("value"    value-mismatch)
-			  ("id"       bad-variable)
 			  ("type"     type-mismatch)
 			  ("rep"      representation-mismatch)
 			  ("coerce"   coercion-mismatch)
