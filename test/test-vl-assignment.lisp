@@ -121,5 +121,5 @@
 (test test-setf-as-setq
   "Test we can convert a simple SETF into a SETQ."
   (is (subtypep (vl:typecheck '(let ((a 12))
-				 (setf a 9)))
+				(setf a 9)))
 		'(unsigned-byte 4))))

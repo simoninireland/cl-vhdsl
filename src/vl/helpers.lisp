@@ -25,12 +25,14 @@
 (defmacro with-vl-errors-not-synthesisable (&body body)
   "Run BODY within a handler that makes Verilisp errors non-synthesisable.
 
-Non-error conditions are ignored; non-Verilisp-specific errors are reported
-as NON-SYNTHESISABLE errors."
-  `(handler-bind ((vl-condition #'(lambda (condition)
-				    (error condition)))
-		  (error #'(lambda (condition)
-			     (error 'not-synthesisable :underlying-condition condition))))
+Non-error conditions are passed through; non-Verilisp-specific errors
+are reported as NON-SYNTHESISABLE errors."
+  `(handler-bind ((vl-error (lambda (condition)
+				  (error condition)))
+
+		  (error (lambda (condition)
+			   (error 'not-synthesisable :underlying-condition condition))))
+
      ,@body))
 
 
@@ -74,14 +76,16 @@ actual way these forms are captured is unfortunately implementation-specific."
 ;; ---------- Continuing compilation after an error ----------
 
 (defmacro with-recover-on-error (recovery &body body)
-  "Run the BODY form, offering a restart that runs RECOVERY on error.
+  "Run the BODY forms, offering a restart that runs the RECOVERY form on error.
 
 The restart is called RECOVER and takes no arguments. The recovery
-code should do whatever is necessary to best continue compilation, the
-assumption being that not code will be synthesised after such an
-error."
+form should do whatever is necessary to best continue compilation. The
+handler may decide not to synthesise code after such an error has been
+signalled; alternatively it may treat some such errors as warnings and
+still synthesise code."
   `(restart-case
        (progn
 	 ,@body)
      (recover ()
+       :report "Continue after recovering"
        ,recovery)))

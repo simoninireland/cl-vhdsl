@@ -36,8 +36,12 @@ should be handled correctly using WITH-NEW-FRAME. However...."
 
 (defmacro with-new-frame (&body body)
   "Run BODY in an environment extended from the current environment."
-  `(let ((*global-environment* (add-environment-frame *global-environment*)))
-     ,@body))
+  `(unwind-protect
+`	(progn
+	  (push (add-environment-frame *global-environment*) *global-environment*)
+	  ,@body)
+
+     (pop *global-environment*)))
 
 
 (defun declare-variable (n props)
@@ -146,10 +150,16 @@ form."
        (eql (car (current-form)) 'module)))
 
 
+(defun in-block-context-p ()
+  "Test whether the current context is within an @-block."
+  (some (lambda (form)
+	  (eql (car form) '@))
+	*current-form-queue*))
+
+
 (defun in-module-context-p ()
   "Test whether the current context is directly within a module."
-  (and (>= (length *current-form-queue*) 2)
-       (eql (car (containing-form)) 'module)))
+  (not (in-block-context-p)))
 
 
 (defun in-expression-context-p ()

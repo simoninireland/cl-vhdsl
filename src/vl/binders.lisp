@@ -40,7 +40,7 @@
 (defun ensure-width-can-store (w ty env)
   "Ensure that W bits can accommodate the values of TY in ENV."
   (unless (width-can-store-p w ty env)
-    (signal 'width-mismatch :expected (bitwidth ty env) :got w)))
+    (warn 'width-mismatch :expected (bitwidth ty env) :got w)))
 
 
 ;; ---------- Representationa ----------
@@ -79,60 +79,63 @@ The name is the first element, whether or not DECL is a list."
   "Extend ENV with the variable declared in DECL."
   (declare (optimize debug))
 
-  (with-recover-on-error
-      ;; on error, return the most general and innocuous result to
-      ;; allow us to continue
-      (declare-variable n `((:type (unsigned-byte *default-register-width*))
-			    (:as :register)
-			    (:initial-value 0)
-			    (:type-constraints (unsigned-byte *default-register-width*))))
+  (with-current-form decl
+    (with-recover-on-error
+	;; on error, return the most general and innocuous result to
+	;; allow us to continue
+	(declare-variable (safe-car decl) `((:type (unsigned-byte *default-register-width*))
+					    (:as :register)
+					    (:initial-value 0)
+					    (:type-constraints (unsigned-byte *default-register-width*))))
 
-    (if (listp decl)
-	;; full declaration
-	(destructuring-bind (n v &key
-				   width
-				   type
-				   (as :register))
-	    decl
+      (if (listp decl)
+	  ;; full declaration
+	  (destructuring-bind (n v &key
+				     width
+				     type
+				     (as :register))
+	      decl
 
-	  ;; if we have a width, it's a shortcut for unsigned-byte
-	  (if width
-	      (let* ((w (eval-in-static-environment width))
-		     (ty `(unsigned-byte ,w)))
+	    ;; if we have a width, it's a shortcut for unsigned-byte
+	    (if width
+		(let* ((w (eval-in-static-environment width))
+		       (ty `(unsigned-byte ,w)))
+		  (if type
+		      ;; if we have a type, it should match
+		      (ensure-subtype ty type)
+
+		      ;; if not, re-assign is to the shortcut
+		      (setq type ty))))
+
+	    ;; initial inferred type
+	    (let ((ity (if type
+			   (expand-type-parameters type)
+
+			   ;; pick the narrowest type so it can be widened as needed
+			   '(unsigned-byte 1))))
+
+	      ;; typecheck initial value
+	      (let ((vty (typecheck v)))
 		(if type
-		    ;; if we have a type, it must match
-		    (ensure-subtype ty type)
+		    ;; type provided, ensure it works
+		    (ensure-subtype vty type)
 
-		    ;; if not, re-assign is to the shortcut
-		    (setq type ty))))
+		    ;; no type provided, infer from the value
+		    (setq ity vty)))
 
-	  ;; initial inferred type
-	  (let ((ity (if type
-			 (expand-type-parameters type)
-			 '(unsigned-byte 1))))
+	      (declare-variable n `((:type ,type)
+				    (:inferred-type ,ity)
+				    (:as ,as)
+				    (:initial-value ,v)
+				    (:type-constraints (,ity))))))
 
-	    ;; typecheck initial value
-	    (let ((vty (typecheck v)))
-	      (if type
-		  ;; type provided, ensure it works
-		  (ensure-subtype vty type)
-
-		  ;; no type provided, infer from the value
-		  (setq ity vty)))
-
-	    (declare-variable n `((:type ,type)
-				  (:inferred-type ,ity)
-				  (:as ,as)
-				  (:initial-value ,v)
-				  (:type-constraints (,ity))))))
-
-	;; "naked" declaration
-	;; TODO: What is the correct default width? -- 1 means it'll get widened
-	;; as needed, so is perhaps correct?
-	(declare-variable decl `((:inferred-type (unsigned-byte 1))
-				 (:type-constraints ((unsigned-byte 1)))
-				 (:as :register)
-				 (:initial-value 0))))))
+	  ;; "naked" declaration
+	  ;; TODO: What is the correct default width? -- 1 means it'll get widened
+	  ;; as needed, so is perhaps correct?
+	  (declare-variable decl `((:inferred-type (unsigned-byte 1))
+				   (:type-constraints ((unsigned-byte 1)))
+				   (:as :register)
+				   (:initial-value 0)))))))
 
 
 (defun typecheck-env (decls)
@@ -167,8 +170,8 @@ one."
       (setq inferred-type ty)
 
       ;; no type provided, note that we inferred it
-      (signal 'type-inferred :variable n
-			     :inferred inferred-type))
+      (warn 'type-inferred :variable n
+			   :inferred inferred-type))
 
     `(,n ,(get-initial-value n)
 	 :type ,inferred-type
@@ -208,17 +211,21 @@ one."
 
 (defun rewrite-variables-decl (decl rewrite)
   "Re-write the values of DECL using REWRITE."
-  (destructuring-bind (n v &rest keys)
-      decl
-    (if keys
-	`(,n ,(rewrite-variables v rewrite) ,(rewrite-variables-keys keys rewrite))
+  (if (listp decl)
+      ;; full decl, recurse into key valu es
+      (destructuring-bind (n v &rest keys)
+	  decl
+	(if keys
+	    `(,n ,(rewrite-variables v rewrite) ,(rewrite-variables-keys keys rewrite))
 
-	;; no keys to add
-	`(,n ,(rewrite-variables v rewrite)))))
+	    ;; no keys to add
+	    `(,n ,(rewrite-variables v rewrite))))
+
+      ;; naked declaration, nothing to do
+      decl))
 
 
 (defmethod rewrite-variables-sexp ((fun (eql 'let)) args rewrite)
-  (declare (optimize debug))
   (destructuring-bind (decls &rest body)
       args
     (let* ((rwdecls (mapcar (rcurry #'rewrite-variables-decl rewrite) decls))
@@ -236,6 +243,48 @@ one."
       ;; re-written respecting shadowing
       `(let ,rwdecls
 	 ,@rwbody))))
+
+
+(defun legalise-decls (decls rewrites)
+  "Return a list consisting of the legalised DECLS and a rewrite alist.
+
+PRE can optionally include existing rewrites that are extended."
+  (flet ((legalise-decl (drs decl)
+	   (destructuring-bind (newdecls rewrites)
+	       drs
+	     (if (listp decl)
+		 (destructuring-bind (n v &rest rest)
+		     decl
+		   (if-let ((l (ensure-legal-identifier n)))
+		     ;; name changed, return new decl and rewrite
+		     (list (append newdecls (list `(,l ,v ,@rest)))
+			   (cons (list n l)
+				 rewrites))
+
+		     ;; name was legal, return the decl and rewrites unchanged
+		     (list (append newdecls (list decl))
+			   rewrites)))
+
+		 (if-let ((l (ensure-legal-identifier decl)))
+		   ;; name changed, return new decl and rewrite
+		   (list (append newdecls (list l))
+			 (cons (list decl l)
+			       rewrites))
+
+		   ;; name was legal, return the decl and rewrites unchanged
+		   (list (append newdecls (list decl))
+			 rewrites))))))
+
+    (foldr #'legalise-decl decls (list '() rewrites))))
+
+
+(defmethod legalise-variables-sexp ((fun (eql 'let)) args rewrites)
+  (destructuring-bind (decls &rest body)
+      args
+    (destructuring-bind (legaldecls extrewrites)
+	(legalise-decls decls rewrites)
+      `(let ,legaldecls
+	 ,(legalise-variables `(progn ,@body) extrewrites)))))
 
 
 ;; ---------- Macro expansion ----------

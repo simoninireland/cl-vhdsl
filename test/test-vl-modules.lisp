@@ -78,6 +78,20 @@
   (is (not (vl::module-late-initialisation-p))))
 
 
+(test test-module-legalise
+  "Test we can legalise module arguments and parameters."
+  (let ((p '(vl::module test ((clk-in  :type (unsigned-byte 1) :direction :in)
+			      (clk-out :type (unsigned-byte 1) :direction :out)
+			      (a       :type (unsigned-byte 32) :direction :in)
+			      &key e (f 45) (a-b-c 67))
+	     (vl:@ (vl:posedge clk-in)
+	      (setf a (+ a a-b-c 1))))))
+    (vl::legalise-variables p '())
+
+    )
+
+  )
+
 ;; ---------- Module instanciation ----------
 
 (test test-module-instanciate
@@ -86,23 +100,23 @@
   (vl:clear-module-registry)
 
   (vl:defmodule clock ((clk-in  :direction :in  :as :wire :type (unsigned-byte 1))
-			(clk-out :direction :out :as :wire :type (unsigned-byte 1)))
+		       (clk-out :direction :out :as :wire :type (unsigned-byte 1)))
     (setq clk-out clk-in))
 
   ;; ckeck that the import types correctly
   (let ((p (copy-tree '(let ((clk 0    :type (unsigned-byte 1) :as :wire)
-				      (clk-in 0 :type (unsigned-byte 1) :as :wire))
-				 (let ((clock (make-instance 'clock :clk-in clk-in
-								    :clk-out clk)))
-				   clock)))))
+			     (clk-in 0 :type (unsigned-byte 1) :as :wire))
+			(let ((clock (make-instance 'clock :clk-in clk-in
+							   :clk-out clk)))
+			  clock)))))
     (is (subtypep (vl:typecheck p)
 		  'vl::module-interface)))
 
   ;; check we need to wire all arguments
   (signals (vl:not-importable)
     (vl:typecheck '(let ((clk 0 :type (unsigned-byte 1) :as :wire))
-		     (let ((clock (make-instance 'clock :clk-out clk)))
-		       clock))))
+		    (let ((clock (make-instance 'clock :clk-out clk)))
+		      clock))))
 
   ;; check wires can be deliberately left unconnected
   ;; TBD
@@ -222,3 +236,34 @@
       (is (subtypep (vl:typecheck p)
 		    '(unsigned-byte 8)))
       (is (vl:synthesise p)))))
+
+
+(test test-module-in-error-handler
+  "Test we get the correct error-handling behaviour."
+  (let ((errors 0)
+	(warnings 0))
+
+    (handler-bind ((error (lambda (condition)
+			    (incf errors)
+			    (invoke-restart 'vl::recover)))
+
+		   (warning (lambda (condition)
+			      (incf warnings)
+			      (muffle-warning condition))))
+
+      (vl:with-new-frame
+	(vl::make-module-environment '((clk      :width 1  :direction :in)
+				       (addr-in  :width 32 :direction :in)
+				       (data-out :width 32 :direction :out)
+				       &key (size 256)))
+	(let ((p (copy-tree '(let ((mem (make-array '((vl:>> size 2))
+					 :element-type (unsigned-byte 8)))
+				   b)
+			      (setq b (aref mem addr-in))))))
+
+	  (subtypep (vl:typecheck p)
+		    '(unsigned-byte 8))
+	  (vl:synthesise p))))
+
+    (is (= errors 0))
+    (is (= warnings 1))))

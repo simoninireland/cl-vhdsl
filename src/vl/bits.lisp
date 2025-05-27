@@ -29,9 +29,9 @@
 	  (progn
 	    (setq end (1+ (- start width)))
 	    (if (< end 0)
-		(error 'type-mismatch :expected 0
-				      :got end
-				      :hint "Width greater than the number of remaining bits")
+		(warn 'type-mismatch :expected 0
+				     :got end
+				     :hint "Width greater than the number of remaining bits")
 		end))
 
 	  ;; default is to the end of the pattern
@@ -40,9 +40,9 @@
       (if width
 	  ;; if both are set, width and end must agree
 	  (if (/= width (1+ (- start end)))
-	      (error 'type-mismatch :expected (1+ (- start end))
-				    :got width
-				    :hint "Explicit width does not agree with start and end positions")
+	      (warn 'type-mismatch :expected (1+ (- start end))
+				   :got width
+				   :hint "Explicit width does not agree with start and end positions")
 	      end)
 
 	  ;; otherwise just use the given end
@@ -90,9 +90,9 @@
 	    (vw (bitwidth tyvar)))
 	(when (> l vw)
 	  ;; signal to allow this to be picked up
-	  (signal 'type-mismatch :expected vw
-				 :got l
-				 :hint "Width greater than base variable")
+	  (warn 'type-mismatch :expected vw
+			       :got l
+			       :hint "Width greater than base variable")
 
 	  ;; add a constraint
 	  (add-type-constraint var `(unsigned-byte ,l)))

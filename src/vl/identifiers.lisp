@@ -62,16 +62,14 @@ of *IDENTIFIER-ILLEGAL-CHARACTER-REPLACEMENT*."
 	(setq no-illegal (concat *identifier-illegal-character-replacement* no-illegal)))
 
     ;; prepend any identifiers not starting with a legal starting character
-    (if (not (scan *identifier-legal-leading-character-regexp* (s-first no-illegal)))
-	(setq no-illegal (concat *identifier-illegal-character-replacement* no-illegal)))
+    (when (not (scan *identifier-legal-leading-character-regexp* (s-first no-illegal)))
+      (setq no-illegal (concat *identifier-illegal-character-replacement* no-illegal)))
 
     ;; bomb-out if the identifier is still illegal
-    (if (string-equal no-illegal "_")
-	(error 'not-synthesisable :hint "Use meaningful variable names :-)"))
+    (when (string-equal no-illegal "_")
+      (error 'not-synthesisable :hint "Use meaningful variable names :-)"))
 
-    ;; signal if the variable has been re-written
-    (if (not (string-equal n no-illegal))
-	(signal 'bad-variable :variable n :rewritten-to no-illegal))
-
-    ;; return the legalised identifier
-    no-illegal))
+    ;; return the legalised identifier or nil if unchanged
+    (if (string-equal n no-illegal)
+	nil
+	(ensure-symbol no-illegal))))

@@ -30,7 +30,7 @@ can be ignored for systems not concerned with loss of precision."
   (let ((ety1 (expand-type-parameters ty1))
 	(ety2 (expand-type-parameters ty2)))
     (when (not (subtypep ety1 ety2))
-      (signal 'type-mismatch :expected ty2 :got ty1))))
+      (warn 'type-mismatch :expected ty2 :got ty1))))
 
 
 ;; ---------- Bit widths ----------

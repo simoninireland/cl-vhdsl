@@ -37,8 +37,8 @@ whose values are statically determinable."
 (defun ensure-valid-array-shape (shape)
   "Ensure SHAPE is a valid array shape."
   (unless (valid-array-shape-p shape)
-    (error 'type-mismatch :expected "constant" :got "something else"
-			  :hint "Make sure shape is valid for an array")))
+    (warn 'type-mismatch :expected "constant" :got "something else"
+			 :hint "Make sure shape is valid for an array")))
 
 
 (defun data-has-shape-p (data shape)
@@ -50,8 +50,8 @@ whose values are statically determinable."
 (defun ensure-data-has-shape (data shape)
   "Ensure DATA has the given SHAPE."
   (unless (data-has-shape-p data shape)
-    (signal 'shape-mismatch :expected shape
-			    :hint "Ensure initial contents have the right shape")))
+    (warn 'shape-mismatch :expected shape
+			  :hint "Ensure initial contents have the right shape")))
 
 
 ;; ---------- Array construction ----------
@@ -209,8 +209,8 @@ probably should, for those that are statically determined."
 (defun ensure-valid-array-index (ty indices)
   "Ensure INDICES are valid for accessing TY."
   (unless (valid-array-index-p ty indices)
-    (error 'type-mismatch :expected ty :got indices
-			  :hint "Indices must match array dimension")))
+    (warn 'type-mismatch :expected ty :got indices
+			 :hint "Indices must match array dimension")))
 
 
 (defun element-type-of-array (ty)

@@ -177,10 +177,17 @@ Return the name of the newly-defined module."
 
 ;; ---------- Module synthesis ----------
 
+(defun elaborate-module (m)
+  "Elaborate the code of M entirely, ready for synthesis."
+  (funcall (compose #'legalise-variables
+		    #'simplify-progn
+		    (compose #'car #'float-let-blocks))
+	     m))
+
+
 (defun synthesise-module (m str)
-  "Synthesise module M to STR."
+  "Synthesise module M to STR.
+
+M needs to be fully elaborated."
   (with-synthesis-to-stream str
-      (funcall (compose #'synthesise
-			#'simplify-progn
-			(compose #'car #'float-let-blocks))
-	       m)))
+    (synthesise m)))

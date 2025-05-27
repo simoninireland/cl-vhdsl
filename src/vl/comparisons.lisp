@@ -33,8 +33,9 @@ in many applications."
 (defmethod typecheck-sexp ((fun (eql '=)) args)
   (destructuring-bind (l r)
       args
-    (ensure-boolean (typecheck l))
-    (ensure-boolean (typecheck r))
+    (let ((ty1 (typecheck l))
+	  (ty2 (typecheck r)))
+      (ensure-subtype ty2 ty1))
 
     '(unsigned-byte 1)))
 
@@ -52,8 +53,9 @@ in many applications."
 (defmethod typecheck-sexp ((fun (eql '/=)) args)
   (destructuring-bind (l r)
       args
-    (ensure-boolean (typecheck l))
-    (ensure-boolean (typecheck r))
+    (let ((ty1 (typecheck l))
+	  (ty2 (typecheck r)))
+       (ensure-subtype ty2 ty1))
 
     '(unsigned-byte 1)))
 

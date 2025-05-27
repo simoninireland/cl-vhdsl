@@ -86,9 +86,10 @@
    #:exit
 
    ;; DSL functions
-   #:widthcheck
    #:typecheck
    #:detect-shadowing
+   #:rewrite-variables
+   #:legalise-variables
    #:float-let-blocks
    #:simplify-progn
    #:expand-macros
@@ -101,13 +102,16 @@
    #:get-module-interface
    #:get-modules-for-synthesis
    #:defmodule
+   #:elaborate-module
    #:synthesise-module
 
    ;; conditions
    #:vl-condition
+   #:vl-error
+   #:vl-warning
+   #:recover
    #:not-synthesisable
    #:unknown-variable
-   #:bad-variable
    #:unknown-module
    #:unknown-form
    #:duplicate-variable

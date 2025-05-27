@@ -102,6 +102,38 @@
 		`(unsigned-byte 5))))
 
 
+(test test-binders-conditional
+  "Test we can assign to a conditional."
+  (is (subtypep (vl:typecheck '(let ((a 1)
+				     (b 23))
+				(let ((c (if (= a 0)
+					     23
+					     1)
+					 :as :wire
+					 :type (unsigned-byte 32)))
+				  (setq a c))))
+		'(unsigned-byte 32))))
+
+
+(test test-test-binders-legalise
+  "Test we can legalise variables within a binding."
+  (is (tree-equal (vl::legalise-variables `(let ((a 12)
+						 (a-b-c 35)
+						 (c 45)
+						 (d-e-f 77)
+						 d)
+					     (let (e)
+					       (setq a (+ d a-b-c d-e-f)))))
+		  '(let ((a 12)
+			 (a_b_c 35)
+			 (c 45)
+			 (d_e_f 77)
+			 d)
+		    (progn
+		      (let (e)
+			(setq a (+ d a_b_c d_e_f))))))))
+
+
 (test test-synthesise-binders
   "Test we can synthesise binders."
   ;; as statements
@@ -118,8 +150,6 @@
     (let ((p (copy-tree x)))
       (vl:typecheck p)
       (is (vl:synthesise p)))))
-
-
 
 
 (test test-let-width

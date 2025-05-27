@@ -74,7 +74,6 @@
 				      (bref instr 30 :end 25)
 				      (bref instr 11 :end 8)
 				      (extend-bits 0 1))
-
 		      :type (signed-byte 32))
 		(Jimm (make-bitfields (extend-bits (bref instr 31) 12)
 				      (bref instr 19 :end 12)

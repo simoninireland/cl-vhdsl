@@ -120,6 +120,13 @@ either bare names ot lists of names and values."
 	(list decls nil))))
 
 
+(defun join-args-params (args params)
+  "Join ARGS and PARAMS into a single module lambda-list of decls."
+  (if params
+      (append args (list '&key) params)
+      args))
+
+
 (defun module-parameter-p (n)
   "Test whether N is a module paramater.
 
@@ -247,6 +254,21 @@ of other parameter values."
       args
     (let ((newbody (mapcar #'simplify-progn body)))
       `(module ,modname ,decls ,@(simplify-implied-progn newbody)))))
+
+
+(defmethod legalise-variables-sexp ((fun (eql 'module)) args rewrites)
+  (declare (optimize debug))
+
+  (destructuring-bind (modname decls &rest body)
+      args
+    (destructuring-bind (modargs modparams)
+	(split-args-params decls)
+      (destructuring-bind (legalargs argrewrites)
+	  (legalise-decls modargs rewrites)
+	(destructuring-bind (legalparams paramrewrites)
+	    (legalise-decls modparams argrewrites)
+	  `(module ,modname ,(join-args-params legalargs legalparams)
+		   ,@(mapcar (rcurry #'legalise-variables paramrewrites ) body)))))))
 
 
 (defmethod detect-shadowing-sexp ((fun (eql 'module)) args)

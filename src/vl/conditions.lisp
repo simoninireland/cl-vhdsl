@@ -32,7 +32,7 @@ form queue, or can be provided explicitly using the :FRAGMENT key."
     :initform (current-form)
     :initarg :fragment
     :reader fragment))
-  (:documentation "Base class for Verilisp language conditions.
+  (:documentation "Mixin for Verilisp language conditions.
 
 The fragment is the code that gave rise to the condition, and is
 used to add contxt to the report."))
@@ -45,22 +45,40 @@ This only changes the printed length: the entire fragment is retained.")
 
 
 (defmethod format-condition-context (detail (c vl-condition) str)
-  ;; generate the basic report
-  (call-next-method)
+  (format str detail)
 
   ;; add context if known
   (if-let ((code (fragment c)))
-    (format str "~%Context: ~a" (shorten *maximum-code-fragment-length*
-					 (format nil "~a" code)
-					 :ellipsis "..."))))
+    (format str " Context: ~a" (shorten *maximum-code-fragment-length*
+					(format nil "~a" code)
+					:ellipsis "..."))))
+
+
+(define-condition vl-warning (vl-condition warning)
+  ()
+  (:documentation "Base condition for warnings.
+
+Warnings can be ignored by simply returning from their handler."))
+
+
+(define-condition vl-error (vl-condition error)
+  ()
+  (:documentation "Base condition for errors.
+
+Errors cannot be ignored like warnings, However, they will typically be
+signalled from a context that exports a RECOVER restart to re-start
+processing from a \"safe\" point. This lets processing continuue, but
+might still cause a cascade of further errors. use WITH-RECOVER-ON-ERROR
+to set up recovery actions."))
 
 
 ;; ---------- Synthesis ----------
 
-(define-condition not-synthesisable (vl-condition)
+(define-condition not-synthesisable (vl-error)
   ()
   (:report (lambda (c str)
-	     (format-condition-context "Could not synthesise code"
+	     (format-condition-context (format nil "Could not synthesise code (~s)"
+					       (underlying-condition c))
 				       c str)))
   (:documentation "Condition signalled when code can't be synthesised.
 
@@ -71,7 +89,7 @@ synthesiser's code generator."))
 
 ;; ---------- Checking ----------
 
-(define-condition unknown-variable (vl-condition)
+(define-condition unknown-variable (vl-error)
   ((var
     :documentation "The variable(s)."
     :initarg :variable
@@ -87,29 +105,7 @@ This is caused either by an undeclared variable or by use of a variable
 that should be declared in the architectural environment, such as a register."))
 
 
-(define-condition bad-variable (vl-condition)
-  ((var
-    :documentation "The variable."
-    :initarg :variable
-    :reader variables)
-   (newvar
-    :documentation "The new re-written variable."
-    :initarg :rewritten-to
-    :reader rewritten-variable))
-  (:report (lambda (c str)
-	     (format-condition-context (format nil "Re-wrote variable ~a to ~a"
-					       (variables c)
-					       (rewritten-variable c))
-				       c str)))
-  (:documentation "Condition signalled when an unacceptable identifier is encountered.
-
-This is caused by using identifier names may be legal in Lisp (with
-its very permissive rules) but that can't be synthesised (because of
-limitations in the underlying technology). Te variable name is usually
-re-written to something legal."))
-
-
-(define-condition unknown-form (vl-condition)
+(define-condition unknown-form (vl-error)
   ((form
     :documentation "The form."
     :initarg :form
@@ -124,7 +120,7 @@ This is usually caused by using a Lisp function that is not supported
 by RTLip, or an undefined macro."))
 
 
-(define-condition unknown-module (vl-condition)
+(define-condition unknown-module (vl-error)
   ((modname
     :documentation "The module."
     :initarg :module
@@ -139,7 +135,7 @@ This means that the required module isn't available, either having not yet
 been defined or not having been imported."))
 
 
-(define-condition duplicate-variable (vl-condition)
+(define-condition duplicate-variable (vl-error)
   ((var
     :documentation "The variable(s)."
     :initarg :variable
@@ -152,7 +148,7 @@ been defined or not having been imported."))
   (:documentation "Condition signalled when a variable is re-defined in the same scope."))
 
 
-(define-condition duplicate-module (vl-condition)
+(define-condition duplicate-module (vl-error)
   ((modname
     :documentation "The module."
     :initarg :module
@@ -164,7 +160,7 @@ been defined or not having been imported."))
   (:documentation "Condition signalled when a module is re-defined."))
 
 
-(define-condition not-importable (vl-condition)
+(define-condition not-importable (vl-error)
   ((modname
     :documentation "The module."
     :initarg :module
@@ -179,7 +175,7 @@ This is usually caused by mismatched arguments, either an unknown argument
 being provided in the import or one that's needed not being provided."))
 
 
-(define-condition not-static (vl-condition)
+(define-condition not-static (vl-error)
   ()
   (:report (lambda (c str)
 	     (format-condition-context "Expression is not static" c str)))
@@ -206,11 +202,11 @@ include terms that are only known at run-time."))
   (:documentation "Condition signalled when a mis-matched value is received."))
 
 
-(define-condition direction-mismatch (vl-condition)
+(define-condition direction-mismatch (vl-error)
   ((expected
-    :documentation "The direction(s) allowed."
-    :initarg :expected
-    :reader expected-values)
+     :documentation "The direction(s) allowed."
+     :initarg :expected
+     :reader expected-values)
    (received
     :documentation "The direction received."
     :initarg :got
@@ -222,17 +218,19 @@ include terms that are only known at run-time."))
 				       c str)))
   (:documentation "Condition signalled when a mis-matched direction is received.
 
-This is usually caused by assigning to a module argument denoteed :IN."))
+This is usually caused by assigning to a module argument denoted :IN."))
 
 
-(define-condition type-mismatch (vl-condition)
+(define-condition type-mismatch (vl-warning)
   ((expected
     :documentation "The expected type."
     :initarg :expected
+    :initform "unknown"
     :reader expected-type)
    (received
     :documentation "The received type."
     :initarg :got
+    :initform "unknown"
     :reader received-type))
   (:report (lambda (c str)
 	     (format-condition-context (format nil "Expected a value of type ~a, got one of type ~a"
@@ -248,7 +246,7 @@ sometimes-acceptable default action to risk the loss of precision
 caused by the assignment."))
 
 
-(define-condition coercion-mismatch (vl-condition)
+(define-condition coercion-mismatch (vl-warning)
   ((expected
     :documentation "The type we tried to coerce to."
     :initarg :expected
@@ -267,7 +265,7 @@ caused by the assignment."))
 Coercion only currently works between fixed-width types."))
 
 
-(define-condition bitfield-mismatch (vl-condition)
+(define-condition bitfield-mismatch (vl-warning)
   ((pattern
     :documentation "The bitfield pattern."
     :initarg :pattern
@@ -282,7 +280,7 @@ Coercion only currently works between fixed-width types."))
 This is usually caused by non-consecutive uses of variables in the pattern."))
 
 
-(define-condition shape-mismatch (vl-condition)
+(define-condition shape-mismatch (vl-error)
   ((shape
     :documentation "The expected shape."
     :initarg :expected
@@ -298,7 +296,7 @@ shape for the array. Usually this can be fixed by simply reformatting
 the data, and/or making sure there's the right amount of it."))
 
 
-(define-condition state-machine-mismatch (vl-condition)
+(define-condition state-machine-mismatch (vl-error)
   ((state
     :documentation "The state."
     :initarg :state
@@ -313,7 +311,7 @@ This usualy happens when a state is targeted as the next state (using the
 NEXT macro) that isn;t defined in the surrounding state machine."))
 
 
-(define-condition type-inferred (vl-condition)
+(define-condition type-inferred (vl-warning)
   ((var
     :documentation "The variable."
     :initarg :variable
@@ -335,7 +333,7 @@ cause downstream errors if the inferred type is incorrect, but that will
 only happen when the types are being used inconsistently."))
 
 
-(define-condition representation-mismatch (vl-condition)
+(define-condition representation-mismatch (vl-warning)
   ((expected
     :documentation "The representation expected."
     :initarg :expected

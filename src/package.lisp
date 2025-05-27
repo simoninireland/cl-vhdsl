@@ -23,4 +23,6 @@
   (:use :cl :alexandria :serapeum)
 
   (:export
-   #:verilisp-condition))
+   #:verilisp-condition
+   #:underlying-condition
+   #:format-condition-context))

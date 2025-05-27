@@ -44,9 +44,9 @@
 (defun ensure-fixed-width (ty)
   "Ensure that TY is a fixed-width integer."
   (unless (fixed-width-p ty)
-    (error 'type-mismatch :expected '(unsigned-byte
-				      signed-byte)
-			  :got ty)))
+    (warn 'type-mismatch :expected '(unsigned-byte
+				     signed-byte)
+			 :got ty)))
 
 
 (defmethod expand-type-parameters-type ((ty (eql 'unsigned-byte)) args)

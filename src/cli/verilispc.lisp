@@ -20,10 +20,86 @@
 (in-package :verilisp/cli)
 
 
-;; ---------- Globals ----------
+;; ---------- Error handling ----------
 
 (defvar *errors* 0
   "Number of errors caught.")
+
+
+(defvar *warnings* 0
+  "Number of warnings caught.")
+
+
+(defvar *reported-warnings* ()
+  "The warning conditions that should be reported.")
+
+
+(defvar *fatal-warnings* ()
+  "The warning conditions that should be treated as errors.")
+
+
+(defvar *warning-flags* '(("bitfield" bitfield-mismatch)
+			  ("value"    value-mismatch)
+			  ("id"       bad-variable)
+			  ("type"     type-mismatch)
+			  ("rep"      representation-mismatch)
+			  ("coerce"   coercion-mismatch)
+			  ("infer"    type-inferred))
+  "An alist mapping warning flags on the command line to warning class names.")
+
+
+(defun reported-warning-condition-p (condition)
+  "Test whether CONDITION should be reported as a warning."
+  (member (type-of condition) *reported-warnings*))
+
+
+(defun fatal-warning-condition-p (condition)
+  "Test whether CONDITION should be treated as a fatal error."
+  (member (type-of condition) *fatal-warnings*))
+
+
+(defun flag-to-warnings (w)
+  "Convert flag W to a list of warnings.
+
+This uses *WARNING-FLAGS* to convert flags to conditions. It also
+accepts \"none\" and \"all\" as abbreviations."
+  (if-let ((a (assoc w *warning-flags* :test #'string-equal)))
+    ;; flag found, return the associated condition
+    (cdr a)
+
+    ;; flag not found, try abbreviaions
+    (cond ((string-equal w "all")
+	   (mapcar #'cadr *warning-flags*))
+
+	  ((string-equal w "none")
+	   '())
+
+	  (t
+	   ;; not recognised as a flag
+	   (error "Flag ~s not recognised as a warning (valid options are ~s)"
+		  w
+		  (mapcar #'car *warning-flags*))))))
+
+
+(defun add-reported-warning (w)
+  "Add the warning corresponding to the given flag to those reported."
+  (if-let ((ws (flag-to-warnings w)))
+    (appendf *reported-warnings* ws)
+
+    ;; no warnings, clear the list
+    (setq *reported-warnings* nil)))
+
+
+(defun add-fatal-warning (w)
+  "Add the warning corresponding to the given flag to those treated as fatal."
+  (if-let ((ws (flag-to-warnings w)))
+    (appendf *fatal-warnings* ws)
+
+    ;; no warnings, clear the list
+    (setq *fatal-warnings* nil)))
+
+
+;; ---------- Module source file handling ----------
 
 
 (defvar *module-source-file-names* nil
@@ -63,6 +139,12 @@ Reyirn NIL if the module isn't known."
   "If T, don't synthesise any files if there were errors in loading any.")
 
 
+(defvar *debug-on-error* nil
+  "If T, enter the debugger when any Verilog errors occur.
+
+This is intended for debugging the compiler, not the program being compiled.")
+
+
 (defvar *output-file* nil
   "Name of file that gets the synthesised Verilog.
 
@@ -72,7 +154,7 @@ If absent, generate one file per module.")
 (defvar *elaborated-file* nil
   "Name of file that gets the elaborated Lisp.
 
-If absent, don;t output the Lisp code.")
+If absent, don't output the Lisp code.")
 
 
 (opts:define-opts
@@ -88,6 +170,22 @@ If absent, don;t output the Lisp code.")
    :description "Synthesise even if there were errors loading"
    :short #\c
    :long "continue")
+  (:name :report-warnings
+   :description "Report the given warning."
+   :arg-parser (lambda (w) (add-reported-warning w))
+   :short #\W
+   :meta-var "WARNING")
+  (:name :fatal-warnings
+   :description "Treat the given warning as fatal."
+   :arg-parser (lambda (w) (add-fatal-warning w))
+   :short #\F
+   :meta-var "WARNING")
+  (:name :all-fatal-warnings
+   :description "Treat all warnings as fatal."
+   :long "strict")
+  (:name :debug-on-error
+   :description "Invoke the Lisp debugger on errors."
+   :long "debug")
   (:name :output-file
    :description "File name for all synthesised code"
    :arg-parser (lambda (fn) (setq *output-file* fn))
@@ -128,26 +226,39 @@ a list of files to be processed."
 
 	(opts:missing-arg (condition)
 	  (format t "Option ~s needs an argument~%"
-		  (opts:option condition)))
+		  (opts:option condition))
+	  (uiop:quit 1))
+
 	(opts:arg-parser-failed (condition)
 	  (format t "Cannot parse ~s as argument of ~s~%"
 		  (opts:raw-arg condition)
-		  (opts:option condition)))
+		  (opts:option condition))
+	  (uiop:quit 1))
+
 	(opts:missing-required-option (con)
 	  (format t "Fatal: ~a~%" con)
 	  (uiop:quit 1)))
 
     (when-option (options :verbose)
-      (setq *verbosity* 1))
+		 (setq *verbosity* 1))
+
+    (when-option (options :debug-on-error)
+		 (setq *debug-on-error* 1))
+
     (when-option (options :continue-on-fail)
-      (setq *fail-on-load* nil))
+		 (setq *fail-on-load* nil))
+
+    (when-option (options :all-fatal-warnings)
+		 (add-fatal-warning "all"))
+
     (when-option (options :help)
-      (opts:describe
-	:prefix   "Transpiler from Verilisp to Verilog."
-	:suffix   "Lisp files can use all of Lisp."
-	:usage-of (car (opts:argv))
-	:args     "[LISP-FILES]")
-      (uiop:quit 0))
+		 (opts:describe
+		  :prefix   "Transpiler from Verilisp to Verilog."
+		  :suffix   (format nil "Lisp files can use all of Lisp as long as they yield Verilisp.~%~%Valid WARNINGs are ~s."
+				    (append '("all" "none") (mapcar #'car *warning-flags*)))
+		  :usage-of (car (opts:argv))
+		  :args     "[LISP-FILES]")
+		 (uiop:quit 0))
 
     ;; return the files, which are all the non-option arguments
     free-args))
@@ -196,6 +307,85 @@ The header will need to be preceded by an appropriate comment string."
       (apply #'format `(*standard-output* ,line ,@args)))))
 
 
+(defmacro with-error-handling (&body body)
+  "Run BODY in an environment that handles warnings and errors appropriately.
+
+Warnings are reported as requested and/or treated as fatal, causing processing
+to continue after recovery. Errors are similarly recovered. After BODY has
+run, errors will usually cause an exit unless failure-on-load has been
+explicitly disabled."
+  `(progn
+     (handler-bind
+	 ((vl-error (lambda (condition)
+		   (format *error-output* "ERROR: ~a~%" condition)
+		   (incf *errors*)
+
+		   ;; call debugger if requested
+		   (if *debug-on-error*
+		       (invoke-debugger condition)
+
+		       ;; continue compilation if possible
+		       (if-let ((recovery (find-restart 'recover)))
+			 (invoke-restart recovery)
+
+			 ;; otherwise skip the file
+			 (invoke-restart 'ignore-file-with-errors)))))
+
+	  (error (lambda (condition)
+		   (format *error-output* "SYSTEM ERROR: ~a~%" condition)
+		   (incf *errors*)
+
+		   ;; call debugger if requested
+		   (if *debug-on-error*
+		       (invoke-debugger condition)
+
+		       ;; skip the rest of the file (don't try to recover)
+		       (invoke-restart 'ignore-file-with-errors))))
+
+	  (warning (lambda (condition)
+		     (cond ((fatal-warning-condition-p condition)
+			    (format *error-output* "ERROR: ~a~%" condition)
+			    (incf *errors*))
+
+			   ((reported-warning-condition-p condition)
+			    (format *error-output* "WARNING: ~a~%" condition)
+			    (incf *warnings*)))
+
+		     ;; call debugger if requested, otherwise just continue
+		     (if (and *debug-on-error*
+			      (fatal-warning-condition-p condition))
+			 (invoke-debugger condition)
+
+			 (muffle-warning condition)))))
+
+       ,@body)
+
+     ;; decide whether to bail out
+     (when (and *fail-on-load*
+		(> *errors* 0))
+       (when (> *warnings* 0)
+	 (format *error-output* "~s warnings~%" *warnings*))
+       (when (> *errors* 0)
+	 (format *error-output* "~s errors~%" *errors*))
+       (uiop:quit 1))))
+
+
+(defmacro with-ignore-file-with-errors (&body body)
+  "Run BODY in an environment offering an IGNORE-FILE-WITH-ERRORS restart.
+
+This rstart is used by the handlers establish by WITH-ERROR-HANDLING
+to skip files with errors."
+  `(restart-case
+       (progn
+	 ,@body)
+
+     (ignore-file-with-errors ()
+       :report "Ignore this file and continue"
+
+       (format *error-output* "Skipping the rest of ~a~%" fn)
+       nil)))
+
+
 ;; ---------- Main function ----------
 
 ;; Package used to hold loaded code
@@ -211,121 +401,79 @@ The header will need to be preceded by an appropriate comment string."
       (format *error-output* "No input files given~%")
       (uiop:quit 0))
 
-    (handler-bind
-	((vl-condition (lambda (c)
-			 (format *error-output* "~a~%" c)
-			 (incf *errors*)
-
-			 ;; continue compilation
-			 (invoke-restart 'vl::recover)))
-
-	 (error (lambda (c)
-		  (format *error-output* "~a~%" c)
-		  (incf *errors*)
-
-		  ;; continue to next file
-		  (invoke-restart 'ignore-file-with-errors))))
-
+    (with-error-handling
       ;; load all the source files in order
       (let ((*package* (find-package :verilisp/cli/compiling)))
 	(dolist (fn files)
-	  (restart-case
-	      (progn
-		;; use standard input if - appears as a filename
-		;; TBD
+	  (with-ignore-file-with-errors
+	      ;; use standard input if - appears as a filename
+	      ;; TBD
 
-		(info "Loading ~a~%" fn)
-		(load fn :if-does-not-exist t)
-		(record-new-modules fn))
+	      (info "Loading ~a~%" fn)
+	    (load fn :if-does-not-exist t)
+	    (record-new-modules fn)))))
 
-	    (ignore-file-with-errors ()
-	      :report "Ignore this file and continue"
-	      nil))))
+    (with-error-handling
+	;; generate elaborated Lisp if requested
+	(if *elaborated-file*
+	    (with-open-file (str *elaborated-file* :direction :output
+						   :if-exists :supersede)
+	      (format str ";; ")
+	      (format str (file-header))
+	      (format str "~%")
 
-      ;; check whether to bail out
-      (when (and *fail-on-load*
-		 (> *errors* 0))
-	(format *error-output* "~a errors~%" *errors*)
-	(format *error-output* "Not synthsising")
-	(uiop:quit 1))
+	      (info "Writing elaborated Lisp to ~a~%" *elaborated-file*)
+	      (let ((*print-case* :downcase)
+		    (*print-base* 10)
+		    (*package* (find-package :verilisp/cli/compiling)))
+		(dolist (mm (get-modules-for-synthesis))
+		  (with-ignore-file-with-errors
+		      (destructuring-bind (modname module)
+			  mm
+			(let ((fn (get-module-source-file-name modname)))
+			  (format str ";; ")
+			  (format str (filename-header fn)))
+			(pprint (elaborate-module module) str)
+			(format str "~%~%"))))))))
 
-      ;; generate elaborated Lisp if requested
-      (if *elaborated-file*
-	  (with-open-file (str *elaborated-file* :direction :output
-						 :if-exists :supersede)
-	    (format str ";; ")
-	    (format str (file-header))
-	    (format str "~%")
+    (with-error-handling
+	(if *output-file*
+	    ;; generate one file for all modules
+	    (with-open-file (str *output-file* :direction :output
+					       :if-exists :supersede)
+	      (format str "// ")
+	      (format str (file-header))
+	      (format str "~%")
 
-	    (info "Writing elaborated Lisp to ~a~%" *elaborated-file*)
-	    (let ((*print-case* :downcase)
-		  (*print-base* 10)
-		  (*package* (find-package :verilisp/cli/compiling)))
+	      (info "Compiling all modules to ~a~%" *output-file*)
 	      (dolist (mm (get-modules-for-synthesis))
-		(restart-case
+		(with-ignore-file-with-errors
 		    (destructuring-bind (modname module)
 			mm
+		      (info "Compiling ~a~%" modname)
 		      (let ((fn (get-module-source-file-name modname)))
-			(format str ";; ")
-			(format str (filename-header fn)))
-		      (pprint module str)
-		      (format str "~%~%"))
+			(format str "// ")
+			(format str (filename-header fn))
+			(format str "~%"))
 
-		  (ignore-file-with-errors ()
-		    :report "Abandon outputing this file and continue"
-		    nil))))))
+		      (synthesise-module (elaborate-module module) str)
+		      (format str "~%")))))
 
-      ;; generate output
-      (if *output-file*
-	  ;; generate one file for all modules
-	  (with-open-file (str *output-file* :direction :output
-					     :if-exists :supersede)
-	    (format str "// ")
-	    (format str (file-header))
-	    (format str "~%")
-
-	    (info "Compiling all modules to ~a~%" *output-file*)
+	    ;; generate the Verilog for each module
 	    (dolist (mm (get-modules-for-synthesis))
-	      (restart-case
+	      (with-ignore-file-with-errors
 		  (destructuring-bind (modname module)
 		      mm
-		    (info "Compiling ~a~%" modname)
-		    (let ((fn (get-module-source-file-name modname)))
-		      (format str "// ")
-		      (format str (filename-header fn))
-		      (format str "~%"))
-		    (synthesise-module module str)
-		    (format str "~%"))
+		    (let ((fn (filename-for-module modname)))
+		      (info "Compiling ~a to ~a~%" modname fn)
+		      (with-open-file (str fn :direction :output
+					      :if-exists :supersede)
+			(format str "// ")
+			(format str (file-header))
+			(format str (filename-header fn))
+			(format str "~%")
 
-		(ignore-file-with-errors ()
-		  :report "Abandon synthesising this file and continue"
-		  nil))))
+			(synthesise-module (elaborate-module module) str))))))))
 
-	  ;; generate the Verilog for each module
-	  (dolist (mm (get-modules-for-synthesis))
-	    (restart-case
-		(destructuring-bind (modname module)
-		    mm
-		  (let ((fn (filename-for-module modname)))
-		    (info "Compiling ~a to ~a~%" modname fn)
-		    (with-open-file (str fn :direction :output
-					    :if-exists :supersede)
-		      (format str "// ")
-		      (format str (file-header))
-		      (format str (filename-header fn))
-		      (format str "~%")
-
-		      (synthesise-module module str))))
-
-	      (ignore-file-with-errors ()
-		:report "Abandon synthesising this file and continue"
-		nil)))))
-
-    ;; report errors if there were any
-    (when (> *errors* 0)
-      (info "~a errors~%" *errors*))
-
-    ;; quit
-    (uiop:quit (if (> *errors* 0)
-		   1
-		   0))))
+    ;; if we get here we didn't bail-out earlier, so do a successful exit
+    (uiop:quit 0)))

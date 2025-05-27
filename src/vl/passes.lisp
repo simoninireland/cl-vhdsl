@@ -80,11 +80,34 @@ names to their new form. No checks are performed.")
 Note that /everything/ gets re-written by default, including FUN.
 (This is the only consistent way to deal with, for example, macros
 that haven't yet been expanded in the body of a macro that needs to
-re-write variables, wuch as WITH-BITFIELDS.) Override the default
+re-write variables, such as WITH-BITFIELDS.) Override the default
 method to change this behaviour.")
   (:method (fun args rewrite)
     (mapcar (rcurry #'rewrite-variables rewrite)
 	    `(,fun ,@args))))
+
+
+;; ---------- Legalise variables ----------
+
+(defgeneric legalise-variables (form rewrites)
+  (:documentation "Re-write any non-conformant variables in FORM to have legal names.
+
+REWRITES is an alist of old-to-new names.")
+  (:method ((form integer) rewrites)
+    form)
+  (:method ((form symbol) rewrites)
+    (rewrite-variables form rewrites))
+  (:method ((form list) rewrites)
+    (destructuring-bind (fun &rest args)
+	form
+      (legalise-variables-sexp fun args rewrites))))
+
+
+(defgeneric legalise-variables-sexp (fun args rewrites)
+  (:documentation "Legalise variables in FUN applied to ARGS using REWRITES.")
+  (:method (fun args rewrites)
+    `(,fun ,@(mapcar (rcurry #'legalise-variables rewrites) args))))
+
 
 
 ;; ---------- Constant folding ----------
