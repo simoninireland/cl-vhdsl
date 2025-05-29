@@ -202,6 +202,19 @@ one."
 
 ;; ---------- Variable re-writing ----------
 
+(defmethod free-variables-sexp ((fun (eql 'let)) args)
+  (declare (optimize debug))
+
+  (destructuring-bind (decls &rest body)
+      args
+    (with-new-frame
+      (typecheck-env decls)
+
+      (let ((lns (variables-declared-in-current-frame))
+	    (fvs (foldr #'union (mapcar #'free-variables body) '())))
+	(set-difference fvs lns)))))
+
+
 (defun rewrite-variables-keys (kvs rewrite)
   "Rewrite variables in the values of the key/value pairs KVS using REWRITE."
   (flet ((rewrite-key-value (l kv)
@@ -255,15 +268,16 @@ PRE can optionally include existing rewrites that are extended."
 	     (if (listp decl)
 		 (destructuring-bind (n v &rest rest)
 		     decl
-		   (if-let ((l (ensure-legal-identifier n)))
-		     ;; name changed, return new decl and rewrite
-		     (list (append newdecls (list `(,l ,v ,@rest)))
-			   (cons (list n l)
-				 rewrites))
+		   (let ((nv (legalise-variables v rewrites)))
+		     (if-let ((l (ensure-legal-identifier n)))
+		       ;; name changed, return new decl and rewrite
+		       (list (append newdecls (list `(,l ,nv ,@rest)))
+			     (cons (list n l)
+				   rewrites))
 
-		     ;; name was legal, return the decl and rewrites unchanged
-		     (list (append newdecls (list decl))
-			   rewrites)))
+		       ;; name was legal, return the decl and rewrites unchanged
+		       (list (append newdecls (list `(,n ,nv ,@rest)))
+			     rewrites))))
 
 		 (if-let ((l (ensure-legal-identifier decl)))
 		   ;; name changed, return new decl and rewrite

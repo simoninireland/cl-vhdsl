@@ -179,7 +179,7 @@ Return the name of the newly-defined module."
 
 (defun elaborate-module (m)
   "Elaborate the code of M entirely, ready for synthesis."
-  (funcall (compose #'legalise-variables
+  (funcall (compose (rcurry #'legalise-variables '())
 		    #'simplify-progn
 		    (compose #'car #'float-let-blocks))
 	     m))

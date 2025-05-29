@@ -49,6 +49,32 @@ This pass is used to disallow shadowing in all case.")
     t))
 
 
+;; ---------- Free variables ----------
+
+(defgeneric free-variables (form)
+  (:documentation "Return all free variables in FORM.
+
+A variable is free in a form if it hasn't appeared in a binder
+that binds that variable. Use REWRITE-VARIABLES to re-write
+free instances to new names.")
+  (:method ((form integer))
+    '())
+  (:method ((form symbol))
+    (if (variable-declared-p form)
+	'()
+	(list form)))
+  (:method ((form list))
+    (destructuring-bind (fun &rest args)
+	form
+      (free-variables-sexp fun args))))
+
+
+(defgeneric free-variables-sexp (fun args)
+  (:documentation "Return all variables free in FU applied to ARGS.")
+  (:method (fun args)
+    (foldr #'union (mapcar #'free-variables args) '())))
+
+
 ;; ---------- Variable re-writing ----------
 
 (defgeneric rewrite-variables (form rewrite)

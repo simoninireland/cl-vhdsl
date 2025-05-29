@@ -115,7 +115,7 @@
 		'(unsigned-byte 32))))
 
 
-(test test-test-binders-legalise
+(test test-binders-legalise
   "Test we can legalise variables within a binding."
   (is (tree-equal (vl::legalise-variables `(let ((a 12)
 						 (a-b-c 35)
@@ -123,7 +123,8 @@
 						 (d-e-f 77)
 						 d)
 					     (let (e)
-					       (setq a (+ d a-b-c d-e-f)))))
+					       (setq a (+ d a-b-c d-e-f))))
+					  '())
 		  '(let ((a 12)
 			 (a_b_c 35)
 			 (c 45)
@@ -131,7 +132,19 @@
 			 d)
 		    (progn
 		      (let (e)
-			(setq a (+ d a_b_c d_e_f))))))))
+			(progn
+			  (setq a (+ d a_b_c d_e_f)))))))))
+
+
+(test test-binders-free-variables
+  "Test we can extract free variables correctly"
+  (is (set-equal (vl:free-variables '(let ((a 10))
+				      (+ a b)))
+		 '(b)))
+  (is (set-equal (vl:free-variables '(let ((a 10)
+					   b)
+				      (+ a b)))
+		 '())))
 
 
 (test test-synthesise-binders

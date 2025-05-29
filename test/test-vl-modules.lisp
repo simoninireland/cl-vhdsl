@@ -86,11 +86,12 @@
 			      &key e (f 45) (a-b-c 67))
 	     (vl:@ (vl:posedge clk-in)
 	      (setf a (+ a a-b-c 1))))))
-    (vl::legalise-variables p '())
 
-    )
+    ;; this only checks the body, but since that uses most of the
+    ;; module arguments it should be sufficient
+    (is (every #'vl::legal-identifier-p
+	       (vl:free-variables (cadddr (vl::legalise-variables p '())))))))
 
-  )
 
 ;; ---------- Module instanciation ----------
 
@@ -166,21 +167,39 @@
 							 (setf ctrl 1))))))))))))
 
 
+(test test-module-instance-legalise
+  "Test we legalise keys and values in an instanciation."
+  (vl:clear-module-registry)
+
+  (vl:defmodule clock ((clk-in  :direction :in  :as :wire :type (unsigned-byte 1))
+		       (clk-out :direction :out :as :wire :type (unsigned-byte 1)))
+    (setq clk-out (+ 1 clk-in)))
+
+  (vl:defmodule soc ((clk-again :direction :in :as :wire :width 1))
+    (let (d)
+      (let ((c (make-instance 'clock :clk-in clk-again :clk-out d)))
+	(setq d 1))))
+
+  ;; this doesn't check that the result is correct, only that
+  ;; it succeeds
+  (is (vl::legalise-variables (vl::get-module 'soc) '())))
+
+
 (test test-synthesise-module-instanciation
   "Test we can synthesise a module instanciation."
   (vl:clear-module-registry)
 
   (vl:defmodule clock ((clk_in  :direction :in  :as :wire :type (unsigned-byte 1))
-			(clk_out :direction :out :as :wire :type (unsigned-byte 1))
-			&key (p 1) (q 2))
+		       (clk_out :direction :out :as :wire :type (unsigned-byte 1))
+		       &key (p 1) (q 2))
     (setq clk_out clk_in))
 
   (is (vl:synthesise '(let ((c 0 :as :wire :type (unsigned-byte 1))
-			     (d 0 :as :wire :type (unsigned-byte 1)))
-			(let ((a (make-instance 'clock :clk_in c :clk_out d)))))))
+			    (d 0 :as :wire :type (unsigned-byte 1)))
+		       (let ((a (make-instance 'clock :clk_in c :clk_out d)))))))
   (is (vl:synthesise '(let ((c 0 :as :wire :type (unsigned-byte 1))
-			     (d 0 :as :wire :type (unsigned-byte 1)))
-			(let ((a (make-instance 'clock :clk_in c :clk_out d :p 23))))))))
+			    (d 0 :as :wire :type (unsigned-byte 1)))
+		       (let ((a (make-instance 'clock :clk_in c :clk_out d :p 23))))))))
 
 
 ;; ---------- Larger and more complicated/contrived examples ----------

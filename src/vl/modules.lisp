@@ -468,12 +468,28 @@ and causes a NOT-IMPORTABLE error if not."
 	     (if (null l)
 		 l
 		 (append (list (car l)
-			     (rewrite-variables (cadr l) rewrites))
+			       (rewrite-variables (cadr l) rewrites))
 			 (rewrite-args (cddr l))))))
 
     (destructuring-bind (modname &rest initargs)
 	args
       `(,fun ,modname ,@(rewrite-args initargs)))))
+
+
+(defmethod legalise-variables-sexp ((fun (eql 'make-instance)) args rewrites)
+  (labels ((legalise-key (k)
+	     (let ((n (ensure-symbol (symbol-name k))))
+	       (make-keyword (ensure-legal-identifier n))))
+
+	   (legalise-arg (b)
+	     (destructuring-bind (k v)
+		 b
+	       (list (legalise-key k)
+		     (legalise-variables v rewrites)))))
+
+    (destructuring-bind (modname &rest initargs)
+	args
+      `(,fun ,modname ,@(flatten1 (mapcar #'legalise-arg (adjacent-pairs initargs)))))))
 
 
 (defun synthesise-param-binding (decl args)

@@ -88,6 +88,7 @@
    ;; DSL functions
    #:typecheck
    #:detect-shadowing
+   #:free-variables
    #:rewrite-variables
    #:legalise-variables
    #:float-let-blocks

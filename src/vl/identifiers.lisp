@@ -19,27 +19,27 @@
 
 (in-package :vl)
 
-
-(defparameter *identifier-legal-leading-character-regexp* (create-scanner "[A-Za-z_]")
-  "Regexp identifying the characters allowed as the first character of an identifier.")
-
-
-(defparameter *identifier-illegal-character-regexp* (create-scanner "[^A-Za-z0-9_]")
-  "Regexp identifying all chanaters that are illegal in an identifier.")
-
-
-(defparameter *identifier-illegal-character-replacement* "_"
-  "The character used to replace any illegal characters in identifiers.
-
-This is also added to the front of any identifiers that clash
-with *RESERVED-WORDS*.")
-
 ;; There are probably more reserved words
 (defvar *reserved-words* '("module" "input" "output" "inout"
 			   "always" "@"  "posedge" "negedge" "assign"
 			   "parameter" "localparam" "reg" "wire"
 			   "signed")
   "Reserved words in Verilog.")
+
+
+(defvar *identifier-legal-leading-character-regexp* (create-scanner "[A-Za-z_]")
+  "Regexp identifying the characters allowed as the first character of an identifier.")
+
+
+(defvar *identifier-illegal-character-regexp* (create-scanner "[^A-Za-z0-9_]")
+  "Regexp identifying all characters that are illegal in an identifier.")
+
+
+(defvar *identifier-illegal-character-replacement* "_"
+  "The character used to replace any illegal characters in identifiers.
+
+This is also added to the front of any identifiers that clash
+with *RESERVED-WORDS*.")
 
 
 (defun ensure-legal-identifier (n)
@@ -73,3 +73,8 @@ of *IDENTIFIER-ILLEGAL-CHARACTER-REPLACEMENT*."
     (if (string-equal n no-illegal)
 	nil
 	(ensure-symbol no-illegal))))
+
+
+(defun legal-identifier-p (n)
+  "Test whether N is a legal identifier."
+  (null (ensure-legal-identifier n)))

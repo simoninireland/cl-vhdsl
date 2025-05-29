@@ -37,11 +37,12 @@ should be handled correctly using WITH-NEW-FRAME. However...."
 (defmacro with-new-frame (&body body)
   "Run BODY in an environment extended from the current environment."
   `(unwind-protect
-`	(progn
-	  (push (add-environment-frame *global-environment*) *global-environment*)
+	(progn
+	  (setq *global-environment* (add-environment-frame *global-environment*))
+
 	  ,@body)
 
-     (pop *global-environment*)))
+     (setq *global-environment* (parent-frame *global-environment*))))
 
 
 (defun declare-variable (n props)
@@ -57,6 +58,11 @@ should be handled correctly using WITH-NEW-FRAME. However...."
 (defun variables-declared ()
   "Return the variables declared in the current global environment."
   (get-environment-names *global-environment*))
+
+
+(defun variables-declared-in-current-frame ()
+  "Return the variables declared in only the shallowest frame of the global environment."
+  (get-frame-names *global-environment*))
 
 
 (defun variable-properties (n)
