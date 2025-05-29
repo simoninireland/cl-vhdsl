@@ -62,6 +62,19 @@ next nil element of the end of the sequence."
   (mapcar #'car l))
 
 
+(defun flatten1 (l)
+  "Flatten one level of lists embededed in L.
+
+So (FLATTEN1 '((1 2) (3 (4)))) evaluates to (1 2 3 (4)), and
+(FLATTEN1 '((1 2) 3 (4 5))) evaluates to (1 2 3 4 5)."
+  (flet ((append1 (l1 l2)
+	   (append l1 (if (atom l2)
+			  (list l2)
+			  l2))))
+
+    (foldr #'append1 l '())))
+
+
 ;; ---------- Zipping in the presence of null ----------
 
 (defun zip-without-null (xs ys)

@@ -20,7 +20,7 @@
 (in-package :common-lisp-user)
 
 (defpackage verilisp/utils
-  (:use :cl :alexandria :serapeum)
+  (:use :cl :alexandria)
   (:export
    ;; list utilities
    #:index-non-nil
@@ -28,6 +28,7 @@
    #:uniquify
    #:listify
    #:delistify
+   #:flatten1
    #:zip-without-null
    #:remove-nulls
    #:foldl
