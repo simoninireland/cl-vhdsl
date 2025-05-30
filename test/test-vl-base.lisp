@@ -73,7 +73,7 @@
     (vl::declare-environment-variable 'a '((:a 1) (:b 2)) env1)
     (vl::declare-environment-variable 'b '((:a 1) (:b 2)) env1)
 
-    (let ((env2 (vl::add-environment-frame env1)))
+    (let ((env2 (vl::add-frame env1)))
       (vl::declare-environment-variable 'b '((:a 1) (:b 2)) env2)
 
       (equal (vl::get-frame-declaring 'b env2) env2)
@@ -110,20 +110,20 @@
   ;; empty environment has no names
   (is (null (vl:get-environment-names emptyenv)))
 
-  (let ((env1 (vl::add-environment-frame emptyenv)))
+  (let ((env1 (vl::add-frame emptyenv)))
     (vl::declare-environment-variable 'a '((:a 1 :b 2)) env1)
     (is (set-equal (vl::get-environment-names env1)
 		   '(a)))
 
     ;; nested frame
-    (let ((env2 (vl::add-environment-frame env1)))
+    (let ((env2 (vl::add-frame env1)))
       (vl::declare-environment-variable 'b '((:a 1 :b 2)) env2)
       (vl::declare-environment-variable 'c '((:a 1 :b 2)) env2)
       (is (set-equal (vl::get-environment-names env2)
 		     '(a b c)))
 
       ;; nested again
-      (let ((env3 (vl::add-environment-frame env2)))
+      (let ((env3 (vl::add-frame env2)))
 	(vl::declare-environment-variable 'b '((:a 4 :b 5)) env3)
 	(is (set-equal (vl::get-environment-names env3)
 		       '(a b c)))
@@ -159,7 +159,10 @@
 
   ;; legal identifiers
   (dolist (s '("a" "abc" "abc1" "a1Bc" "_a" "a_" "_123" "_camelCase" "_reg"))
-    (is (string-equal (vl::ensure-legal-identifier s) s)))
+    (is (null (vl::ensure-legal-identifier s)))
+
+    ;; this is really just a synonym, but check it anyway
+    (is (vl::legal-identifier-p s)))
 
   ;; illegal idenfiers (bad characters or arrangements)
   (dolist (from-to '(("0abc" "_0abc")
@@ -190,7 +193,7 @@
     (let ((env1 emptyenv))
       (is (null (vl::get-frame-names env1)))
 
-      (let ((env2 (vl::add-environment-frame env1)))
+      (let ((env2 (vl::add-frame env1)))
 	(is (vl::declare-environment-variable 'a '((:f 10)) env2))
 	(is (vl::declare-environment-variable 'b '((:f 30)) env2))
 	(set-equal (vl::get-frame-names (vl::filter-environment #'filter-by-f env2))
@@ -210,7 +213,7 @@
 	      (b ((:f 23) (:g 34)))
 	      (c ((:f 12)))))
 
-      (let ((env2 (vl::add-environment-frame env1)))
+      (let ((env2 (vl::add-frame env1)))
 	(mapc (lambda (decl)
 		(vl::declare-environment-variable (car decl) (cadr decl) env2))
 	      '((a ((:f 28)))
@@ -232,14 +235,14 @@
 
 (test test-map-env
   "Test we can map across environments."
-  (let ((env1 (vl::add-environment-frame (vl::empty-environment))))
+  (let ((env1 (vl::add-frame (vl::empty-environment))))
     (mapc (lambda (decl)
 	    (vl::declare-environment-variable (car decl) (cadr decl) env1))
 	  '((a ((:g 4)))
 	    (b ((:f 23) (:g 34)))
 	    (c ((:f 12)))))
 
-    (let ((env2 (vl::add-environment-frame env1)))
+    (let ((env2 (vl::add-frame env1)))
       (mapc (lambda (decl)
 	      (vl::declare-environment-variable (car decl) (cadr decl) env2))
 	    '((a ((:f 28)))
@@ -256,14 +259,14 @@
 
 (test test-env-get-property
   "Test we can get a property."
-  (let ((env1 (vl::add-environment-frame emptyenv)))
+  (let ((env1 (vl::add-frame emptyenv)))
     (vl::declare-environment-variable 'a '((:type (unsigned-byte 8))
 					    (:width 8))
 				       env1)
     (is (equal (vl::get-frame-property 'a :type env1)
 	       '(unsigned-byte 8)))
 
-    (let ((env2 (vl::add-environment-frame env1)))
+    (let ((env2 (vl::add-frame env1)))
       (vl::declare-environment-variable 'a '((:type (unsigned-byte 16))
 					     (:width 16))
 					env2)
@@ -277,7 +280,7 @@
 
 (test test-env-set-property-frame
   "Test we can set a property in the shallowest frame."
-  (let ((env1 (vl::add-environment-frame emptyenv)))
+  (let ((env1 (vl::add-frame emptyenv)))
     (vl::declare-environment-variable 'a '((:type (unsigned-byte 8)))
 				       env1)
     (vl::declare-environment-variable 'b '((:type (unsigned-byte 12)))
@@ -286,7 +289,7 @@
     (is (equal (vl::get-frame-property 'a :type env1)
 	       '(unsigned-byte 12)))
 
-    (let ((env2 (vl::add-environment-frame env1)))
+    (let ((env2 (vl::add-frame env1)))
       (vl::declare-environment-variable 'a '((:type (unsigned-byte 16)))
 					 env2)
 
@@ -301,13 +304,13 @@
 
 (test test-env-set-property-env
   "Test we can set a property in a deeper frame."
-  (let ((env1 (vl::add-environment-frame emptyenv)))
+  (let ((env1 (vl::add-frame emptyenv)))
     (vl::declare-environment-variable 'a '((:type (unsigned-byte 8)))
 				       env1)
     (vl::declare-environment-variable 'b '((:type (unsigned-byte 12)))
 				       env1)
 
-    (let ((env2 (vl::add-environment-frame env1)))
+    (let ((env2 (vl::add-frame env1)))
       (vl::declare-environment-variable 'a '((:type (unsigned-byte 16)))
 					 env2)
 

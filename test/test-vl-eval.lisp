@@ -25,14 +25,14 @@
 
 (test test-make-environment
   "Test we shadow variables correctly."
-  (let ((env1 (vl::add-environment-frame (vl::empty-environment))))
+  (let ((env1 (vl::add-frame (vl::empty-environment))))
     (mapc (lambda (decl)
 	    (vl::declare-environment-variable (car decl) (cadr decl) env1))
 	  '((a ((:initial-value 4)))
 	    (b ((:initial-value 23) (:g 34)))
 	    (c ((:initial-value 12)))))
 
-    (let ((env2 (vl::add-environment-frame env1)))
+    (let ((env2 (vl::add-frame env1)))
       (mapc (lambda (decl)
 	      (vl::declare-environment-variable (car decl) (cadr decl) env2))
 	    '((a ((:initial-value 5)))

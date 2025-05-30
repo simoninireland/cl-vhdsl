@@ -24,26 +24,32 @@
 (test test-detect-shadowed
   "Test we can detect a shadowed variable."
   (signals (vl:duplicate-variable)
-    (vl::detect-shadowing '(let ((a 12))
-			     (setq a (+ a 1))
-			     (let ((b 1)
-				   (a 34))
-			       (setq a (+ b a))))))
+    (let ((p (copy-tree '(let ((a 12))
+			  (setq a (+ a 1))
+			  (let ((b 1)
+				(a 34))
+			    (setq a (+ b a)))))))
+      (vl:typecheck p)
+      (vl::detect-shadowing p)))
 
   ;; no shadowing
-  (is (vl::detect-shadowing '(let ((a 12))
-			       (setq a (+ a 1))
-			       (let ((b 1)
-				     (c 34))
-				 (setq c (+ b a)))))))
+  (let ((p (copy-tree '(let ((a 12))
+			(setq a (+ a 1))
+			(let ((b 1)
+			      (c 34))
+			  (setq c (+ b a)))))))
+    (vl:typecheck p)
+    (is (vl::detect-shadowing p))))
 
 
 (test test-detect-shadowed-module
   "Test we can detect shadowing in the body of a module."
   (signals (vl:duplicate-variable)
-    (vl::detect-shadowing '(vl::module test ()
-			     (let ((a 12))
-			       (setq a (+ a 1))
-			       (let ((b 1)
-				     (a 34))
-				 (setq a (+ b a))))))))
+    (let ((p  (copy-tree '(vl::module test ((clk :direction :in))
+			   (let ((a 12))
+			     (setq a (+ a 1))
+			     (let ((b 1)
+				   (a 34))
+			       (setq a (+ b a))))))))
+      (vl:typecheck p)
+      (vl::detect-shadowing p))))

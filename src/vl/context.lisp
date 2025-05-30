@@ -34,15 +34,28 @@ should be handled correctly using WITH-NEW-FRAME. However...."
   (setf *global-environment* (empty-environment)))
 
 
+(defmacro with-frame (f &body body)
+  "Attach F to the current global environment for BODY."
+  (with-gensyms (oldenv)
+    `(let ((,oldenv *global-environment*))
+       (unwind-protect
+	    (progn
+	      ;; attach the new frame to the global environment
+	      (setq *global-environment* (attach-frame ,f ,oldenv))
+
+	      ;; run the body in the extended environment
+	      ,@body)
+
+	 ;; detach the attached frame and restore the environment
+	 (progn
+	   (detach-frame *global-environment*)
+	   (setq *global-environment* ,oldenv))))))
+
+
 (defmacro with-new-frame (&body body)
-  "Run BODY in an environment extended from the current environment."
-  `(unwind-protect
-	(progn
-	  (setq *global-environment* (add-environment-frame *global-environment*))
-
-	  ,@body)
-
-     (setq *global-environment* (parent-frame *global-environment*))))
+  "Run BODY in an environment extended with an empty frame onto the current environment."
+  `(with-frame (make-frame)
+     ,@body))
 
 
 (defun declare-variable (n props)
@@ -145,9 +158,27 @@ form."
   (car *current-form-queue*))
 
 
-(defun containing-form ()
-  "Return the form containing the current form."
-  (cadr *current-form-queue*))
+(defun containing-form (&optional form)
+  "Return the form containing the current form.
+
+If FORM is provided then return the shallowest containing form
+that is that form."
+  (labels ((find-form (l)
+	     (cond ((null l)
+		    nil)
+
+		   ((eql (caar l) form)
+		    (car l))
+
+		   (t
+		    (find-form (cdr l))))))
+
+    (if form
+	;; search for the shallowest containing form with the given tag
+	(find-form (cdr *current-form-queue*))
+
+	;; extract the immediately containing form
+	(cadr *current-form-queue*))))
 
 
 (defun in-top-level-context-p ()

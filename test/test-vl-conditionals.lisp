@@ -42,33 +42,33 @@ q
   "Test we can synthesise if forms."
   ;; as statements
   (dolist (x '((let ((a 0 :width 4))
-			(if (logand 1 1)
-			    (setf a (+ 1 2))
-			    (setf a (+ 1 3))))
+		 (if (logand 1 1)
+		     (setf a (+ 1 2))
+		     (setf a (+ 1 3))))
 	       (let ((a 0 :width 4))
-			(if (logand 1 1)
-			    (setf a (+ 1 2))
+		 (if (logand 1 1)
+		     (setf a (+ 1 2))
 
-			    ;; a two-form else branch
-			    (setf a (+ 1 3))
-			    (setf a 12)))
+		     ;; a two-form else branch
+		     (setf a (+ 1 3))
+		     (setf a 12)))
 	       (let ((a 0 :width 4))
-			(if (logand 1 1)
-			    (progn
-			      ;; a two-form else branch
-			      (setf a (+ 1 2))
-			      (setf a (+ 1 3)))
-			    (setf a 12)))))
+		 (if (logand 1 1)
+		     (progn
+		       ;; a two-form else branch
+		       (setf a (+ 1 2))
+		       (setf a (+ 1 3)))
+		     (setf a 12)))))
     (let ((p (copy-tree x)))
       (vl:typecheck p)
       (is (vl:synthesise p))))
 
   ;; no else branch
-  (let ((p (copy-tree ' (let ((a 0 :width 4))
-			  (if (logand 1 1)
+  (let ((p (copy-tree '(let ((a 0 :width 4))
+			(if (logand 1 1)
 			    (setf a (+ 1 2)))))))
-      (vl:typecheck p)
-      (is (vl:synthesise p))))
+    (vl:typecheck p)
+    (is (vl:synthesise p))))
 
 
 ;; ---------- Multi-armed value comparisons (CASE) ----------

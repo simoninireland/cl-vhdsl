@@ -66,6 +66,31 @@ Signal REPRESENTATION-MISMATCH as an error if not."
     (error 'representation-mismatch :expected (list :register :wire :constant) :got rep)))
 
 
+;; ---------- Frame caching ----------
+
+(defun ensure-let ()
+  "Ensure that we only call annotation operations from a LET form."
+  (unless (eql (car (current-form)) 'let)
+    (error "Anotating outside a LET form")))
+
+
+(defun cached-frame-decl-p (decl)
+  "Test wteher DECL holds a cached frame."
+  (and (listp decl)
+       (eql (car decl) 'frame)))
+
+
+(defun get-cached-frame (decls)
+  "Return the cached frame from DECLS."
+  (if-let ((a (find-if #'cached-frame-decl-p decls)))
+    (cadr a)))
+
+
+(defun decls-without-cached-frame (decls)
+  "Return all the DECLS tha are \"real\" and not a cached frame."
+  (remove-if #'cached-frame-decl-p decls))
+
+
 ;; ---------- Typechecking ----------
 
 (defun name-in-decl (decl)
@@ -140,25 +165,26 @@ The name is the first element, whether or not DECL is a list."
 
 (defun typecheck-env (decls)
   "Type-check the declarations DECLS to extend the current environment."
-  (mapc #'typecheck-decl decls))
+  (mapc #'typecheck-decl (decls-without-cached-frame decls)))
 
 
 (defun typecheck-constraints (constraints)
   "Return the type satifying CONSTRAINTS.
 
 Each constraint is a type needed by some operation in the scope of a
-variable. The inferred type is the widest type (least uppoer-bound)
+variable. The inferred type is the widest type (least upper-bound)
 that can accommodate all these constraints, assuming that there is
 one."
   (foldr #'lub constraints nil))
 
 
-(defun typecheck-infer-decl (n)
-  "Return a full declaration for N."
+(defun typecheck-infer-decl (decl)
+  "Return the name and properties entry for DECL"
   (declare (optimize debug))
 
   ;; resolve type constraints
-  (let* ((constraints (variable-property n :type-constraints))
+  (let* ((n (name-in-decl decl))
+	 (constraints (variable-property n :type-constraints))
 	 (inferred-type (typecheck-constraints constraints)))
 
     ;; check inferred type against any explicit type
@@ -173,31 +199,45 @@ one."
       (warn 'type-inferred :variable n
 			   :inferred inferred-type))
 
-    `(,n ,(get-initial-value n)
-	 :type ,inferred-type
-	 :as ,(get-representation n))))
+    `(,n ((:initial-value ,(get-initial-value n))
+	  (:type ,inferred-type)
+	  (:as ,(get-representation n))))))
 
 
 (defun typecheck-infer-decls (decls)
-  "Re-write declarations in DECLS to match the current frame."
-  (mapcar #'typecheck-infer-decl (mapcar #'name-in-decl decls)))
+  "Infer types on all DECLS.
+
+This updates the current environment with the new properties."
+  (let ((newdecls (mapcar #'typecheck-infer-decl (decls-without-cached-frame decls))))
+    (mapc (lambda (vp)
+	    (destructuring-bind (n props)
+		vp
+	      (mapc (lambda (prop)
+		      (destructuring-bind (k p)
+			  prop
+			(set-variable-property n k p)))
+		    props)))
+	  newdecls)))
 
 
 (defmethod typecheck-sexp ((fun (eql 'let)) args)
   (declare (optimize debug))
   (let ((decls (car args))
 	(body (cdr args)))
+
     (with-new-frame
       (typecheck-env decls)
 
-      ;; capture type of the last form
-      (let ((ty (typecheck `(progn ,@body))))
-	;; update declarations with any inferred types and other properties
-	(let ((newdecls (typecheck-infer-decls decls)))
-	  (setf (car args) newdecls))
+      ;; typecheck the body
+      (prog1
+	  (typecheck `(progn ,@body))
 
-	;; return the type
-	ty))))
+	;; infer any types based on constraints
+	(typecheck-infer-decls decls)
+
+	;; cache the shallowest frame for use in later passes
+	(setf (cdr (last decls))
+	      (list (list 'frame (detach-frame *global-environment*))))))))
 
 
 ;; ---------- Variable re-writing ----------
@@ -225,7 +265,7 @@ one."
 (defun rewrite-variables-decl (decl rewrite)
   "Re-write the values of DECL using REWRITE."
   (if (listp decl)
-      ;; full decl, recurse into key valu es
+      ;; full decl, recurse into key values
       (destructuring-bind (n v &rest keys)
 	  decl
 	(if keys
@@ -259,9 +299,7 @@ one."
 
 
 (defun legalise-decls (decls rewrites)
-  "Return a list consisting of the legalised DECLS and a rewrite alist.
-
-PRE can optionally include existing rewrites that are extended."
+  "Return a list consisting of the legalised DECLS and an update REWRITES alist."
   (flet ((legalise-decl (drs decl)
 	   (destructuring-bind (newdecls rewrites)
 	       drs
@@ -296,7 +334,7 @@ PRE can optionally include existing rewrites that are extended."
   (destructuring-bind (decls &rest body)
       args
     (destructuring-bind (legaldecls extrewrites)
-	(legalise-decls decls rewrites)
+	(legalise-decls (decls-without-cached-frame decls) rewrites)
       `(let ,legaldecls
 	 ,(legalise-variables `(progn ,@body) extrewrites)))))
 
@@ -335,19 +373,32 @@ PRE can optionally include existing rewrites that are extended."
 	 ,newbody))))
 
 
-;; ---------- Floating and simplification ----------
+;; ---------- Floating ----------
 
 (defmethod float-let-blocks-sexp ((fun (eql 'let)) args)
+  (declare (optimize debug))
+
   (destructuring-bind (decls &rest body)
       args
 
-    (destructuring-bind (newbody newdecls)
+    (destructuring-bind (newbody newenv)
 	(float-let-blocks `(progn ,@body))
 
-      ;; return the re-written body and decls
-      (list newbody
-	    (append decls newdecls)))))
+      ;; add our declarations to the environment
+      (when (null newenv)
+	(setq newenv (make-frame)))
+      (let ((f (get-cached-frame decls)))
+	(mapc (lambda (np)
+		(destructuring-bind (n &rest props)
+		    np
+		  (declare-environment-variable n props newenv)))
+	      (decls f))
 
+	;; return the re-written body and the new environment
+	(list newbody newenv)))))
+
+
+;; ---------- PROGN simplification ----------
 
 (defun simplify-implied-progn (body)
   "Simplify an implied PROGN represented by BODY.
@@ -374,19 +425,20 @@ by LET and MODULE forms."
 ;; ---------- Shadowing ----------
 
 (defmethod detect-shadowing-sexp ((fun (eql 'let)) args)
+  (declare (optimize debug))
+
   (destructuring-bind (decls &rest body)
       args
-    (let ((vars (mapcar #'car decls)))
-      (dolist (n vars)
-	(if (variable-declared-p n)
-	    (error 'duplicate-variable :variable n
-				       :hint "Variable shadows a previous definition"))))
+    (let* ((f (get-cached-frame decls))
+	   (fvars (get-frame-names f)))
+      (dolist (n fvars)
+	(when (variable-declared-p n)
+	  (error 'duplicate-variable :variable n
+				     :hint "Variable shadows a previous definition")))
 
-    (with-new-frame
-      (typecheck-env decls)
-
-      (mapc #'detect-shadowing body)
-      t)))
+      (with-frame f
+	(mapc #'detect-shadowing body)
+	t))))
 
 
 ;; ---------- Synthesis ----------
@@ -430,21 +482,17 @@ SPECIAL-VALUE-P. Specifically, normal values have a bit-width."
   (not (special-value-p form)))
 
 
-(defun synthesise-register (decl)
-  "Synthesise a register declaration within a LET block.
-
-The register has name N and initial value V, with the optional
-WIDTH defaulting to the system's global width."
-  (destructuring-bind  (n v &key type &allow-other-keys)
-      decl
-
+(defun synthesise-register (n)
+  "Synthesise a register N within a LET block."
+  (let ((v (get-initial-value n)))
     (as-literal "reg ")
-    (let ((width (if (array-type-p type)
-		     ;; width is the width of the element type
-		     (bitwidth (cadr type))
+    (let* ((type (get-type n))
+	   (width (if (array-type-p type)
+		      ;; width is the width of the element type
+		      (bitwidth (cadr type))
 
-		     ;; width is of the type itself
-		     (bitwidth type))))
+		      ;; width is of the type itself
+		      (bitwidth type))))
       (when (or (not (numberp width))
 		(> width 1))
 	;; we have a width (or a width expression)
@@ -463,21 +511,16 @@ WIDTH defaulting to the system's global width."
       (as-literal ";"))))
 
 
-(defun synthesise-wire (decl)
-  "Synthesise a wire declaration within a LET block.
+(defun synthesise-wire (n)
+  "Synthesise a wire N a LET block."
+  (let ((v (get-initial-value n)))
+    (let* ((type (get-type n))
+	   (width (if (array-type-p type)
+		      ;; width is the width of the element type
+		      (bitwidth (cadr type))
 
-The wire has name N and initial value V, with the optional WIDTH
-defaulting to the system's global width. If the initial value is zero
-the wire is left un-driven."
-  (destructuring-bind  (n v &key type &allow-other-keys)
-      decl
-
-    (let ((width (if (array-type-p type)
-		     ;; width is the width of the element type
-		     (bitwidth (cadr type))
-
-		     ;; width is of the type itself
-		     (bitwidth type))))
+		      ;; width is of the type itself
+		      (bitwidth type))))
       (as-literal "wire ")
       (when (or (not (numberp width))
 		(> width 1))
@@ -496,22 +539,20 @@ the wire is left un-driven."
 		(unless (= iv 0)
 		  ;; initial value isn't statially zero, synthesise
 		  (as-literal " = ")
-		  (synthesise v))
-		(as-literal";"))
+		  (synthesise v)))
 
 	      ;; initial value is an expression, synthesise
 	      (progn
 		(as-literal " = ")
-		(synthesise v)
-		(as-literal";")))))))
+		(synthesise v))))
+      (as-literal";"))))
 
 
-(defun synthesise-constant (decl)
-  "Synthesise a constant declaration DECL within a LET block.
+(defun synthesise-constant (n)
+  "Synthesise a constant N within a LET block.
 
 Constants turn into local parameters."
-  (destructuring-bind (n v &key &allow-other-keys)
-      decl
+  (let ((v (get-initial-value n)))
     (as-literal "localparam ")
     (synthesise n)
     (as-literal " = ")
@@ -519,10 +560,9 @@ Constants turn into local parameters."
     (as-literal ";")))
 
 
-(defun synthesise-module-instanciation (decl)
-  "Synthesise DECL as a module instanciation."
-  (destructuring-bind (n v &key &allow-other-keys)
-      decl
+(defun synthesise-module-instanciation (n)
+  "Synthesise N as a module instanciation."
+  (let ((v (get-initial-value n)))
     (destructuring-bind (modname &rest initargs)
 	(cdr v)
       (synthesise-module-instance n modname initargs))))
@@ -530,35 +570,39 @@ Constants turn into local parameters."
 
 (defun synthesise-decl (decl)
   "Synthesise DECL."
-  (destructuring-bind (n v &key type as)
-      decl
+  (declare (optimize debug))
+
+  (let* ((n (name-in-decl decl))
+	 (v (get-initial-value n)))
     (if (module-value-p v)
 	;; instanciating a module
-	(synthesise-module-instanciation decl)
+	(synthesise-module-instanciation n)
 
 	;; otherwise, creating a variable
-	(case as
+	(case (get-representation n)
 	  (:constant
-	   (synthesise-constant decl))
+	   (synthesise-constant n))
 	  (:register
-	   (synthesise-register decl))
+	   (synthesise-register n))
 	  (:wire
-	   (synthesise-wire decl))
+	   (synthesise-wire n))
 	  (t
-	   (synthesise-register decl))))))
+	   (synthesise-register n))))))
 
 
 (defmethod synthesise-sexp ((fun (eql 'let)) args)
+  (declare (optimize debug))
+
   (let ((decls (car args))
 	(body (cdr args)))
 
-    (with-new-frame
-      (typecheck-env decls)
+    (with-frame (get-cached-frame decls)
+      (let ((real-decls (decls-without-cached-frame decls)))
+	;; synthesise the constants and registers
+	(as-block-forms real-decls :process #'synthesise-decl
+			)
+	(if (> (length real-decls) 0)
+	    (as-blank-line))
 
-      ;; synthesise the constants and registers
-      (as-block-forms decls :process #'synthesise-decl)
-      (if (> (length decls) 0)
-	  (as-blank-line))
-
-      ;; synthesise the body
-      (as-block-forms body))))
+	;; synthesise the body
+	(as-block-forms body)))))

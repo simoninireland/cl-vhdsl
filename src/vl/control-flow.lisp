@@ -36,6 +36,8 @@
 		   ;; otherwise proceed to the next forms
 		   (typecheck-forms (cdr forms))))))
 
+    (when (= (length args) 0)
+      (error 'not-synthesisable :hint "Make sure body is not empty"))
     (typecheck-forms args)))
 
 

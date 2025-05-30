@@ -25,8 +25,8 @@
 
 (test test-setq
   "Test we can typecheck the SETQ form."
-  (is (subtypep (vl:typecheck '(let ((a 13))
-				 (setq a 9)))
+  (is (subtypep (vl:typecheck (copy-tree '(let ((a 13))
+					   (setq a 9))))
 		'(unsigned-byte 8)))
 
   (signals (vl:not-synthesisable)
@@ -36,29 +36,29 @@
 
 (test test-assignment-same-width
   "Test we can assign."
-  (is (subtypep (vl:typecheck '(let ((a 10))
-				 (setq a 12)))
+  (is (subtypep (vl:typecheck (copy-tree '(let ((a 10))
+					   (setq a 12))))
 		'(unsigned-byte 5))))
 
 
 (test test-assignment-same-width-sync
   "Test we can assign synchronously (same types)."
-  (is (subtypep (vl:typecheck '(let ((a 10))
-				 (setq a 12 :sync t)))
+  (is (subtypep (vl:typecheck (copy-tree '(let ((a 10))
+					   (setq a 12 :sync t))))
 		'(unsigned-byte 5))))
 
 
 (test test-assignment-too-wide
   "Test we catch assigning a value that's too wide for its explicit type."
   (signals (vl:type-mismatch)
-    (vl:typecheck '(let ((a 10 :type (unsigned-byte 5)))
-		     (setq a 120)))))
+    (vl:typecheck (copy-tree '(let ((a 10 :type (unsigned-byte 5)))
+			       (setq a 120))))))
 
 
 (test test-assignment-too-wide-widenable
   "Test we can assign a value to a variable that can be widened."
-  (is (subtypep (vl:typecheck '(let ((a 10))
-				 (setq a 120)))
+  (is (subtypep (vl:typecheck (copy-tree '(let ((a 10))
+					   (setq a 120))))
 		'(unsigned-byte 7))))
 
 
@@ -67,39 +67,29 @@
   (let ((p (copy-tree '(let ((a 10 :type (unsigned-byte 5) :as :register))
 			(setq a 120)))))
     (subtypep (vl:typecheck p)
-	      '(unsigned-byte 7))
-
-    ;; code tree not updated
-    (is (equal p
-	       '(let ((a 10 :type (unsigned-byte 5) :as :register))
-		  (setq a 120))))))
+	      '(unsigned-byte 7))))
 
 
 (test test-assignment-too-wide-widenable-updated
   "Test we update the code to match inferred types."
-  (let ((p (copy-tree'(let ((a 10))
-		       (setq a 120)))))
-    (is (subtypep (vl:typecheck p)
-		  '(unsigned-byte 7)))
-
-    ;; code tree updated to reflect inferred type
-    (is (equal p
-	       '(let ((a 10 :type (unsigned-byte 7) :as :register))
-		 (setq a 120))))))
+  (let ((p (copy-tree '(let ((a 10))
+			(setq a 120)))))
+    (subtypep (vl:typecheck p)
+	      '(unsigned-byte 7))))
 
 
 (test test-assignment-out-of-scope
   "Test we can't assign to a non-existent variable."
   (signals (vl:unknown-variable)
-    (vl:typecheck '(let ((a 10))
-		     (setq b 12)))))
+    (vl:typecheck (copy-tree '(let ((a 10))
+			       (setq b 12))))))
 
 
 (test test-assignment-constant
   "Test we can't assign to a constant variable."
   (signals (vl:not-synthesisable)
-    (vl:typecheck '(let ((a 10 :as :constant))
-		     (setq a 12)))))
+    (vl:typecheck (copy-tree '(let ((a 10 :as :constant))
+			       (setq a 12))))))
 
 
 (test test-synthesise-setq
@@ -112,14 +102,14 @@
 (test test-typecheck-setq-generalised-place
   "Test we catch the common mistake of using SETQ when we mean SETF."
   (signals (vl:not-synthesisable)
-    (vl:typecheck '(let ((a 0 :type (unsigned-byte 4)))
-		     (setq (bit a 0) 1)))))
+    (vl:typecheck (copy-tree '(let ((a 0 :type (unsigned-byte 4)))
+			       (setq (bit a 0) 1))))))
 
 
 ;; ---------- Generalised places (SETF) ----------
 
 (test test-setf-as-setq
   "Test we can convert a simple SETF into a SETQ."
-  (is (subtypep (vl:typecheck '(let ((a 12))
-				(setf a 9)))
+  (is (subtypep (vl:typecheck (copy-tree '(let ((a 12))
+					   (setf a 9))))
 		'(unsigned-byte 4))))

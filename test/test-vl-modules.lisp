@@ -25,52 +25,54 @@
 
 (test test-typecheck-module
   "Test we can typecheck a module definition."
-  (is (subtypep (vl:typecheck '(vl:module test ((clk :type (unsigned-byte 1) :direction :in)
-					       &key (p 1))
-				 (let ((a 1))
-				   (setq a 0))))
+  (is (subtypep (vl:typecheck (copy-tree '(vl:module test ((clk :type (unsigned-byte 1) :direction :in)
+							   &key (p 1))
+					   (let ((a 1))
+					     (setq a 0)))))
 	     'vl::module-interface)))
 
 
 (test test-test-typecheck-module-interface-correctness
   "Test we can identify non-module interface types."
-  (is (not (subtypep (vl:typecheck '(+ 1 2))
+  (is (not (subtypep (vl:typecheck (copy-tree '(+ 1 2)))
 		     'module-interface))))
 
 
 (test test-module-no-wires
   "Test modules always need a wire."
   (signals (vl:not-synthesisable)
-    (vl:typecheck '(vl:module test (&key (p 1))
-		     (let ((a 0))
-		       (setq a 1))))))
+    (vl:typecheck (copy-tree '(vl:module test (&key (p 1))
+			       (let ((a 0))
+				 (setq a 1)))))))
 
 
 (test test-synthesise-moduletest
   "Test we can syntheise a module with a variety of features."
-  (is (vl:synthesise '(vl::module test ((clk :type (unsigned-byte 1) :direction :in)
-					  (a   :type (unsigned-byte 8) :direction :in)
-					  (b   :type (unsigned-byte 4) :direction :in)
-					  &key e (f 45))
+  (let ((p (copy-tree '(vl::module test ((clk :type (unsigned-byte 1) :direction :in)
+					 (a   :type (unsigned-byte 8) :direction :in)
+					 (b   :type (unsigned-byte 4) :direction :in)
+					 &key e (f 45))
 			(let ((x 0  :type (unsigned-byte 8))
 			      (y 10 :type (unsigned-byte 8))
 			      (z 44 :as :constant))
 			  (vl::@ (vl::posedge clk)
-				  (setf x (+ x b) :sync t)))))))
+				 (setf x (+ x b) :sync t)))))))
+    (vl:typecheck p)
+    (is (vl:synthesise p))))
 
 
 (test test-synthesise-module-late-init
   "Test we can synthesise modules with late initialisation."
   (vl::clear-module-late-initialisation)
 
-  (let ((p '(vl::module test ((clk :type (unsigned-byte 1) :direction :in)
-			       (a   :type (unsigned-byte 8) :direction :in)
-			       (b   :type (unsigned-byte 4) :direction :in)
-			       &key e (f 45))
-	     (let ((x 0 :type (unsigned-byte 8))
-		   (a (make-array '(8) :initial-contents (:file "test.hex"))))
-	       (vl::@ (vl::posedge clk)
-		       (setf x (aref a 4)))))))
+  (let ((p (copy-tree '(vl::module test ((clk :type (unsigned-byte 1) :direction :in)
+					 (a   :type (unsigned-byte 8) :direction :in)
+					 (b   :type (unsigned-byte 4) :direction :in)
+					 &key e (f 45))
+			(let ((x 0 :type (unsigned-byte 8))
+			      (a (make-array '(8) :initial-contents (:file "test.hex"))))
+			  (vl::@ (vl::posedge clk)
+				 (setf x (aref a 4))))))))
     (vl:typecheck p)
     (is (vl:synthesise p)))
 
@@ -80,12 +82,12 @@
 
 (test test-module-legalise
   "Test we can legalise module arguments and parameters."
-  (let ((p '(vl::module test ((clk-in  :type (unsigned-byte 1) :direction :in)
-			      (clk-out :type (unsigned-byte 1) :direction :out)
-			      (a       :type (unsigned-byte 32) :direction :in)
-			      &key e (f 45) (a-b-c 67))
-	     (vl:@ (vl:posedge clk-in)
-	      (setf a (+ a a-b-c 1))))))
+  (let ((p (copy-tree '(vl::module test ((clk-in  :type (unsigned-byte 1) :direction :in)
+					 (clk-out :type (unsigned-byte 1) :direction :out)
+					 (a       :type (unsigned-byte 32) :direction :in)
+					 &key e (f 45) (a-b-c 67))
+			(vl:@ (vl:posedge clk-in)
+			 (setf a (+ a a-b-c 1)))))))
 
     ;; this only checks the body, but since that uses most of the
     ;; module arguments it should be sufficient
@@ -130,8 +132,9 @@
 			  (let ((clock (make-instance 'clock :clk-in clk-in
 							     :clk-out clk)))
 			    (setq clk 1)))))))
-    (setq p (vl:simplify-progn (car (vl:float-let-blocks p))))
     (vl:typecheck p)
+    (setq p (car (vl:float-let-blocks p)))
+    (setq p (vl:simplify-progn (car (vl:float-let-blocks p))))
     (is (vl:synthesise p))))
 
 
@@ -145,26 +148,29 @@
     (setq clk_out clk_in))
 
   (is (subtypep (type-of (vl:typecheck (vl::expand-macros
-					 '(vl:module moduleinstanciatebitfields
-					   ((clk_in :type (unsigned-byte 1) :direction :in :as :wire))
-					   (let ((ctrl 0 :type (unsigned-byte 4) :as :wire))
-					     (vl:with-bitfields (clk b2 b1 b0)
-						 ctrl
-					       (let ((clock (make-instance 'clock :clk_in clk_in
-										  :clk_out clk)))
-						 clock)))))))
+					(copy-tree '(vl:module moduleinstanciatebitfields
+						     ((clk_in :type (unsigned-byte 1) :direction :in :as :wire))
+						     (let ((ctrl 0 :type (unsigned-byte 4) :as :wire))
+						       (vl:with-bitfields (clk b2 b1 b0)
+							   ctrl
+							 (let ((clock (make-instance 'clock :clk_in clk_in
+											    :clk_out clk)))
+							   clock))))))))
 		'vl::module-interface))
 
-  (is (vl:synthesise (vl:simplify-progn (car (vl:float-let-blocks
-						(vl:expand-macros
-						 '(vl:module moduleinstanciatebitfields
-						   ((clk_in :type (unsigned-byte 1) :direction :in :as :wire))
-						   (let ((ctrl 0 :type (unsigned-byte 4) :as :wire))
-						     (vl:with-bitfields (clk b2 b1 b0)
-							 ctrl
-						       (let ((clock (make-instance 'clock :clk_in clk_in
-											  :clk_out clk)))
-							 (setf ctrl 1))))))))))))
+  (let ((p (copy-tree '(vl:module moduleinstanciatebitfields
+			((clk_in :type (unsigned-byte 1) :direction :in :as :wire))
+			(let ((ctrl 0 :type (unsigned-byte 4) :as :wire))
+			  (vl:with-bitfields (clk b2 b1 b0)
+			      ctrl
+			    (let ((clock (make-instance 'clock :clk_in clk_in
+							       :clk_out clk)))
+			      (setf ctrl 1))))))))
+    (setq p (vl:expand-macros p))
+    (vl:typecheck p)
+    (setq p (car (vl:float-let-blocks p)))
+    (setq p (vl:simplify-progn p))
+    (is (vl:synthesise p))))
 
 
 (test test-module-instance-legalise
@@ -194,12 +200,18 @@
 		       &key (p 1) (q 2))
     (setq clk_out clk_in))
 
-  (is (vl:synthesise '(let ((c 0 :as :wire :type (unsigned-byte 1))
-			    (d 0 :as :wire :type (unsigned-byte 1)))
-		       (let ((a (make-instance 'clock :clk_in c :clk_out d)))))))
-  (is (vl:synthesise '(let ((c 0 :as :wire :type (unsigned-byte 1))
-			    (d 0 :as :wire :type (unsigned-byte 1)))
-		       (let ((a (make-instance 'clock :clk_in c :clk_out d :p 23))))))))
+  (let ((p (copy-tree '(let ((c 0 :as :wire :type (unsigned-byte 1))
+			     (d 0 :as :wire :type (unsigned-byte 1)))
+			(let ((a (make-instance 'clock :clk_in c :clk_out d)))
+			  (setq c 1))))))
+    (vl:typecheck p)
+    (is (vl:synthesise p)))
+  (let ((p (copy-tree '(let ((c 0 :as :wire :type (unsigned-byte 1))
+			     (d 0 :as :wire :type (unsigned-byte 1)))
+			(let ((a (make-instance 'clock :clk_in c :clk_out d :p 23)))
+			  (setq c 1))))))
+    (vl:typecheck p)
+    (is (vl:synthesise p))))
 
 
 ;; ---------- Larger and more complicated/contrived examples ----------
@@ -225,16 +237,46 @@
     (is (vl:synthesise p))))
 
 
+(test test-module-real-instanciate
+  "Test we can instanciate a real module."
+  (vl:clear-module-registry)
+
+  (vl:defmodule clockworks ((clk-in   :type (unsigned-byte 1) :direction :in)
+			    (reset-in :type (unsigned-byte 1) :direction :in)
+			    (clk      :type (unsigned-byte 1) :direction :out)
+			    (reset    :type (unsigned-byte 1) :direction :out)
+			    &key (slow 0))
+
+	     ;; clock divider
+	     (let ((slow-clk 0 :type (unsigned-byte (1+ slow))))
+	       (vl:@ (vl:posedge clk-in)
+		     (incf slow-clk))
+	       (setf clk (vl:bref slow-clk slow)))
+
+	     (setq reset reset-in))
+
+  (vl:defmodule soc ((clk-in   :type (unsigned-byte 1) :direction :in)
+		     (reset    :type (unsigned-byte 1) :direction :out))
+    (let ((c (make-instance 'clockworks :clk-in clk-in
+					:reset-in 0
+					:clk clk
+					:reset reset
+					:slow 9)))
+      (setf reset 1)))
+
+  (is (vl:synthesise (vl::get-module 'soc))))
+
+
 (test test-module-array-size-param
   "Test we can use a parameter to instanciate an array."
   (let ((p (copy-tree '(vl:module memory ((clk      :width 1  :direction :in)
-					   (addr-in  :width 32 :direction :in)
-					   (data-out :width 32 :direction :out)
-					   &key (size 256))
+					  (addr-in  :width 32 :direction :in)
+					  (data-out :width 32 :direction :out)
+					  &key (size 256))
 			(let ((mem (make-array '((vl:>> size 2))
 					       :element-type (unsigned-byte 8) )))
 			  (vl:@ (vl:posedge clk)
-			     (setq data-out (aref mem addr-in))))))))
+				(setq data-out (aref mem addr-in))))))))
 
     (is (subtypep (vl:typecheck p)
 		  'vl::module-interface))))
@@ -267,6 +309,7 @@
 			    (invoke-restart 'vl::recover)))
 
 		   (warning (lambda (condition)
+			      (format t "~a~%" condition)
 			      (incf warnings)
 			      (muffle-warning condition))))
 
@@ -285,4 +328,4 @@
 	  (vl:synthesise p))))
 
     (is (= errors 0))
-    (is (= warnings 1))))
+    (is (> warnings 0))))

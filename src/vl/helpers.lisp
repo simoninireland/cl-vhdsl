@@ -87,5 +87,12 @@ still synthesise code."
        (progn
 	 ,@body)
      (recover ()
-       :report "Continue after recovering"
+       :report "Perform recovery action and continue"
        ,recovery)))
+
+
+(defmacro recover ()
+  "Run the recovery action.
+
+A RECOVER restart must be available."
+  `(invoke-restart 'recover))

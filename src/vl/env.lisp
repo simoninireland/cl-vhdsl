@@ -30,16 +30,17 @@ generally reflect the word size of the desired circuit, for
 example 8, 16, 32, or 64 bits.")
 
 
-;; ---------- Environments ----------
+;; ---------- Frames----------
 
 (defclass frame ()
   ((parent-frame
     :documentation "The frame containing this one."
     :initarg :parent
     :initform nil
-    :reader parent-frame)
+    :accessor parent-frame)
    (decls
     :documentation "An alist mapping names to plists of properties."
+    :initarg :decls
     :initform nil
     :accessor decls))
   (:documentation "A frame in an environment.
@@ -53,16 +54,45 @@ There are functions that operate on the shallowest frame, and corresponding
 one that operate on the complete environment."))
 
 
-(defun empty-environment ()
-  "Return a new empty environment."
+(defun make-frame ()
+  "Return a new, empty, detached, frame."
   (make-instance 'frame))
 
 
-(defun add-environment-frame (env)
+(defun empty-environment ()
+  "Return a new empty environment."
+  (make-frame))
+
+
+(defun add-frame (env)
   "Return a new environment consisting of ENV with a new empty frame.
 
 ENV is unchanged by this operation."
   (make-instance 'frame :parent env))
+
+
+(defun detach-frame (env)
+  "Detach the shallowest frame in ENV.
+
+Return the now-detached frame."
+  (setf (parent-frame env) nil)
+  env)
+
+
+(defun detached-frame-p (env)
+  "Test whether ENV is a detached frame."
+  (null (parent-frame env)))
+
+
+(defun attach-frame (f env)
+  "Attach the detached frame F to ENV as its new shallowest frame.
+
+Returns the extended version of ENV (which is actually just F)."
+  (unless (detached-frame-p f)
+      (error "Attaching a frame that's already attached"))
+
+  (setf (parent-frame f) env)
+  f)
 
 
 (defun get-frame-properties (n env)
@@ -144,6 +174,8 @@ An UNKNOWN-VARIABLE error is signalled if N is undefined."
 	;; we ran out of frames to search
 	(error 'unknown-variable :variable n))))
 
+
+;; ---------- Environments ----------
 
 (defun get-environment-properties (n env)
   "Return the key/value list for N in ENV.

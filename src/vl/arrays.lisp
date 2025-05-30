@@ -37,8 +37,7 @@ whose values are statically determinable."
 (defun ensure-valid-array-shape (shape)
   "Ensure SHAPE is a valid array shape."
   (unless (valid-array-shape-p shape)
-    (warn 'type-mismatch :expected "constant" :got "something else"
-			 :hint "Make sure shape is valid for an array")))
+    (error 'not-synthesisable :hint "Arrays must be 1d with dimensions known statically")))
 
 
 (defun data-has-shape-p (data shape)
@@ -50,8 +49,8 @@ whose values are statically determinable."
 (defun ensure-data-has-shape (data shape)
   "Ensure DATA has the given SHAPE."
   (unless (data-has-shape-p data shape)
-    (warn 'shape-mismatch :expected shape
-			  :hint "Ensure initial contents have the right shape")))
+    (error 'shape-mismatch :expected shape
+			   :hint "Ensure initial contents have the right shape")))
 
 
 ;; ---------- Array construction ----------
@@ -99,6 +98,7 @@ Verilisp, but don't /require/ it."
 			       initial-contents
 			       element-type)
       args
+
     ;; skip an initial quotes, allowed for Lisp compatability
     (unquote shape)
     (unquote element-type)
@@ -129,6 +129,58 @@ Verilisp, but don't /require/ it."
 		     (ensure-subtype (typecheck c) element-type))))))
 
     `(array ,element-type ,shape)))
+
+
+(defun rebuild-options (ns vs)
+  "Build an options list from NS where the correspondiong value in VS is non-null."
+  (flet ((key-value (opts nv)
+	   (destructuring-bind (n v)
+	       nv
+	     (if (null v)
+		 opts
+		 (append opts (list n v))))))
+
+    (foldr #'key-value (zip ns vs) '())))
+
+
+(defmethod legalise-variables-sexp ((fun (eql 'make-array)) args rewrites)
+  (destructuring-bind (shape &key
+			       (initial-element 0)
+			       initial-contents
+			       element-type)
+      args
+
+    ;; skip an initial quotes, allowed for Lisp compatability
+    (unquote shape)
+    (unquote element-type)
+    (unquote initial-contents)
+
+    (let ((new-shape (mapcar (rcurry #'legalise-variables rewrites) shape))
+	  (new-initial-element (if initial-element
+				   (legalise-variables initial-element rewrites)))
+	  (new-element-type (if element-type
+				(mapcar (rcurry #'legalise-variables rewrites) element-type)))
+	  (new-initial-contents (if initial-contents
+				    (if (listp initial-contents)
+					(cond ((eql (car initial-contents) :file)
+					       ;; legalise the filename (in case it's a
+					       ;; module parameter)
+					       (list :file
+						     (let ((fn (cadr initial-contents)))
+						       (if (symbolp fn)
+							   (legalise-variables fn rewrites)
+							   fn))))
+
+					      (t
+					       ;; legalise the contents
+					       (mapcar (rcurry #'legalise-variables rewrites)
+						       initial-contents)))))))
+
+      (let ((options (rebuild-options '(:initial-element :initial-contents :element-type)
+				      (list new-initial-element
+					    new-initial-contents
+					    new-element-type))))
+	`(,fun ,new-shape ,@options)))))
 
 
 ;; Only works for one-dimensional arrays at the moment

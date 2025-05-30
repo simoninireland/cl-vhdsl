@@ -23,26 +23,29 @@
 
 (test test-let-float
   "Test that nested LETs float."
-  (destructuring-bind (form decls)
-      (vl:float-let-blocks '(let ((a 1 :width 8))
-			      (setq a 12)
-			      (let ((b (+ a 1)))
-				(setq a (* a b)))))
-    (is (equal (mapcar #'car decls)
-	       '(a b)))
+  (let ((p (copy-tree '(let ((a 1 :width 8))
+			     (setq a 12)
+			     (let ((b (+ a 1)))
+			       (setq a (+ a b)))))))
+    (vl:typecheck p)
+    (destructuring-bind (form env)
+	(vl:float-let-blocks p)
+      (is (set-equal (vl::get-environment-names env)
+		     '(a b)))
 
-    ;; this may change when we float constant initial values
-    (is (equal (mapcar #'cadr decls)
-	       '(1 (+ a 1))))))
+      ;; this may change when we float constant initial values
+      (is (equal (vl::get-environment-property 'a :initial-value env) 1))
+      (is (equal (vl::get-environment-property 'b :initial-value env) '(+ a 1))))))
 
 
 (test test-let-float-markers
   "Test we retain constant (and other) markers when floating."
-  (destructuring-bind (form decls)
-      (vl::float-let-blocks '(let ((a 1 :width 10))
-			       (setq a 10)
-			       (let ((b 12 :as :constant))
-				 (setq a (* b a)))))
-    (is (equal (mapcar #'cddr decls)
-	       '((:width 10)
-		 (:as :constant))))))
+  (let ((p (copy-tree '(let ((a 1 :width 10))
+			      (setq a 10)
+			      (let ((b 12 :as :constant))
+				(setq a (+ b a)))))))
+    (vl:typecheck p)
+    (destructuring-bind (form env)
+	(vl::float-let-blocks p)
+      (is (eql (vl::get-environment-property 'b :as env) :constant))
+      (is (not (eql (vl::get-environment-property 'a :as env) :constant))))))

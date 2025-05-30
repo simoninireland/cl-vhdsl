@@ -35,8 +35,8 @@
   ;; passes the unknown variable condition
   (signals (vl::unknown-variable)
     (vl::with-vl-errors-not-synthesisable
-      (vl:typecheck '(let (a)
-		       (setq b (+ 12 2)))))))
+      (vl:typecheck (copy-tree '(let (a)
+				 (setq b (+ 12 2))))))))
 
 
 ;; ---------- with-unknown-form ----------
@@ -44,8 +44,8 @@
 (test test-unknown-form
   "Test we can trap unknown forms."
   (signals (vl::unknown-form)
-    (vl:typecheck '(let (a)
-		     (blig 34)))))
+    (vl:typecheck (copy-tree '(let (a)
+			       (blig 34))))))
 
 
 ;; ---------- with-recover-on-error ----------
@@ -62,7 +62,7 @@
 		  (incf errors)
 
 		  ;; jump back in for the next element
-		  (invoke-restart 'continue))))
+		  (vl:recover))))
 
       (dolist (i (list 1 2 3 4))
 	(vl::with-recover-on-error
@@ -91,13 +91,13 @@
 				  (incf errors)
 
 				  ;; jump back in for the next element
-				  (invoke-restart 'continue))))
+				  (vl:recover))))
 
-      (let ((ty (vl:typecheck '(let ((a 45)
-				      (b 0)
-				      (c 2))
-				 (setq d 12)
-				 8))))
+      (let ((ty (vl:typecheck (copy-tree '(let ((a 45)
+						(b 0)
+						(c 2))
+					   (setq d 12)
+					   8)))))
 
 	;; the type should be that of 8, where we re-started
 	(is (subtypep ty '(unsigned-byte 4)))))

@@ -150,15 +150,16 @@ type-checked, macro-expanded, and possibly had other passes applied."
 (defmacro defmodule (modname decls &body body)
   "Declare a module MODNAME with given DECLS and BODY.
 
-The module is loaded, macro-expanded, and type-checked, meaning that
-it will be at least minimally syntactically correct after definition.
+The module is loaded, annotated, macro-expanded, and type-checked,
+meaning that it will be at least minimally syntactically correct
+afterwards -- although possibly still not finally synthesisable.
 
 The module is added to the *MODULE-LIST* list for synthesis. Its
 type is added to *MODULE-INTERFACES* for importing. Duplicate
 module names will cause a DUPLICATE-MODULE error.
 
 Return the name of the newly-defined module."
-  (with-gensyms (module expanded)
+  (with-gensyms (module annotated expanded)
     (let* ((code `(module ,modname ,decls
 			  ,@body)))
       `(let* ((,module ',code)
@@ -182,7 +183,7 @@ Return the name of the newly-defined module."
   (funcall (compose (rcurry #'legalise-variables '())
 		    #'simplify-progn
 		    (compose #'car #'float-let-blocks))
-	     m))
+	   m))
 
 
 (defun synthesise-module (m str)

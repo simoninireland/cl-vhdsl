@@ -235,18 +235,28 @@ of other parameter values."
 (defmethod float-let-blocks-sexp ((fun (eql 'module)) args)
   (destructuring-bind (modname decls &rest body)
       args
-    (destructuring-bind (newbody newdecls)
+    (destructuring-bind (newbody newenv)
 	(float-let-blocks `(progn ,@body))
       (list
        `(module ,modname ,decls
-		,(if newdecls
-		     ;; declare the floated declarations
-		     `(let ,newdecls
-			,newbody)
+		,(if newenv
+		     ;; declare the floated declarations around the body
+		     (let ((newdecls (mapcar (lambda (np)
+					       (destructuring-bind (n &rest props)
+						   np
+						 (list n
+						       (get-environment-property n :initial-value newenv))))
+					     (decls newenv))))
 
-		     ;; no declarations, just return the new body
+		       ;; cache the environment in the decls
+		       (appendf newdecls (list (list 'frame newenv)))
+
+		       `(let ,newdecls
+			  ,newbody))
+
+		     ;; no declarations, just use the new body
 		     newbody))
-       '()))))
+       (make-frame)))))
 
 
 (defmethod simplify-progn-sexp ((fun (eql 'module)) args)

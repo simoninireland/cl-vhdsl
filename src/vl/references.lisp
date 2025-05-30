@@ -38,7 +38,9 @@
 
 
 (defmethod synthesise ((form symbol))
-  (as-literal (format nil "~(~a~)" (ensure-legal-identifier (symbol-name form)))))
+  (let ((n (or (ensure-legal-identifier (symbol-name form))
+	       form)))
+    (as-literal (format nil "~(~a~)" n))))
 
 
 (defmethod lispify ((form symbol))

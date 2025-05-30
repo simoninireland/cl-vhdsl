@@ -23,11 +23,43 @@
 
 ;; ---------- PROGN ----------
 
+(test test-progn-type
+  "Test we can typecheck a PROGN correctly."
+  (is (subtypep (vl:typecheck (copy-tree '(let ((a 12)
+						(b 34))
+					   (+ a b))))
+		'(unsigned-byte 8)))
+
+  (is (subtypep (vl:typecheck (copy-tree '(let ((a 12)
+						(b 34))
+					   (+ a b)
+					   (- 8))))
+		'(signed-byte 8)))
+
+  ;; the larger of the two arms
+  (is (subtypep (vl:typecheck (copy-tree '(let ((a 7)
+						(b 34))
+					   (if a
+					       (progn
+						 256
+						 (+ a 1))
+					       (progn
+						 512
+						 (+ a 8))))))
+		'(unsigned-byte 5))))
+
+
 (test test-synthesise-progn
   "Test we can synthesise PROGN forms."
   (is (vl:synthesise '(progn
-			(setf a 5)
-			(setf b 34)))))
+		       (setf a 5)
+		       (setf b 34)))))
+
+
+(test test-progn-empty-body
+  "Test we can detect an empty-bodied PROGN."
+  (signals (not-synthesisable)
+    (vl:typecheck (copy-tree '(let ((a 12)))))))
 
 
 ;; ---------- @ ----------
@@ -36,17 +68,17 @@
   "Test we can type-check triggered blocks."
   ;; single wire sensitivity
   (is (subtypep (vl:typecheck '(let ((clk 0 :as :wire)
-				      (a 0))
-				 (vl::@ ((vl::posedge clk))
-				  (setf a 1))))
+				     (a 0))
+				(vl::@ ((vl::posedge clk))
+				 (setf a 1))))
 		'(unsigned-byte 1)))
 
   ;; multiple wires sensitivity
   (is (subtypep (vl:typecheck '(let ((clk 0 :as :wire)
-				      (rst 0 :as :wire)
-				      (a 0))
-				 (vl::@ ((vl::posedge clk) (vl::negedge rst))
-				  (setf a 1))))
+				     (rst 0 :as :wire)
+				     (a 0))
+				(vl::@ ((vl::posedge clk) (vl::negedge rst))
+				 (setf a 1))))
 		'(unsigned-byte 1))))
 
 

@@ -45,7 +45,7 @@ This only changes the printed length: the entire fragment is retained.")
 
 
 (defmethod format-condition-context (detail (c vl-condition) str)
-  (format str detail)
+  (call-next-method)
 
   ;; add context if known
   (if-let ((code (fragment c)))

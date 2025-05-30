@@ -25,19 +25,19 @@
 
 (test test-array-decl
   "Test we can declare arrays."
-  (is (subtypep (vl:typecheck '(make-array '(16)
-				 :element-type (unsigned-byte 8)))
+  (is (subtypep (vl:typecheck (copy-tree '(make-array '(16)
+					   :element-type (unsigned-byte 8))))
 		'(array (unsigned-byte 8) (16))))
 
   ;; version without the Lisp-compatible quote on the shape
-  (is (subtypep (vl:typecheck '(make-array (16)
-				 :element-type (unsigned-byte 8)))
+  (is (subtypep (vl:typecheck (copy-tree '(make-array (16)
+					   :element-type (unsigned-byte 8))))
 		'(array (unsigned-byte 8) (16))))
 
   ;; at the moment we only allow one dimension
-  (signals (vl:type-mismatch)
-    (vl:typecheck '(make-array '(16 16)
-		     :element-type (unsigned-byte 8)))))
+  (signals (vl:not-synthesisable)
+    (vl:typecheck (copy-tree '(make-array '(16 16)
+			       :element-type (unsigned-byte 8))))))
 
 
 (test test-array-bind
@@ -67,13 +67,13 @@
 
 (test test-synthesise-array-decl-type-inferred
   "Test we can synthesise array declarations when we infer the type of the array."
-  (let ((p '(let ((a (make-array '(16)
-		      :element-type (unsigned-byte 8)))
-		  (b (make-array '(8)
-		      :element-type (unsigned-byte 8))
-		   :as :wire)
-		  (c 10))
-	     (setf c 100))))
+  (let ((p (copy-tree '(let ((a (make-array '(16)
+				 :element-type (unsigned-byte 8)))
+			     (b (make-array '(8)
+				 :element-type (unsigned-byte 8))
+			      :as :wire)
+			     (c 10))
+			(setf c 100)))))
     (vl:typecheck p)
     (is (vl:synthesise p))))
 
@@ -103,6 +103,26 @@
     (vl:typecheck p)
     (vl:synthesise p)
     (is (vl::module-late-initialisation-p))))
+
+
+(test test-test-array-legalise
+  "Test we can legalise variables in an array declaration."
+  (let ((p (copy-tree '(let ((b (make-array '(4)
+				 :element-type (unsigned-byte 8)
+				 :initial-contents '(:file "ttt.hex"))
+			      :as :register)
+			     (c 10))
+			(setf c (aref b 1))))))
+    (is (vl:legalise-variables p '())))
+
+  (let ((p (copy-tree '(let ((c-d-e 45 :as :constant))
+			(let ((b (make-array '(4)
+					     :element-type (unsigned-byte 8)
+					     :initial-contents '(1 2 3 c-d-e))
+				 :as :register)
+			      (c 10))
+			  (setf c (aref b 1)))))))
+    (is (vl:legalise-variables p '()))))
 
 
 ;; ---------- Array accesses ----------
@@ -153,7 +173,7 @@
 
 (test test-typecheck-array-initialiser-bad-value
   "Test we can detect a badly-typed value in an array initialiaser."
-  (signals (vl:type-mismatch)
+  (signals (vl:shape-mismatch)
     (vl:typecheck '(let ((a (make-array (5)
 			      :element-type '(unsigned-byte 4)
 			      :initial-contents (1 2 35))))

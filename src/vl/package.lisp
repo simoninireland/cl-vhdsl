@@ -86,6 +86,7 @@
    #:exit
 
    ;; DSL functions
+   #:annotate
    #:typecheck
    #:detect-shadowing
    #:free-variables
