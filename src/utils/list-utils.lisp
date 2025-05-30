@@ -77,6 +77,23 @@ So (FLATTEN1 '((1 2) (3 (4)))) evaluates to (1 2 3 (4)), and
 
 ;; ---------- Zipping in the presence of null ----------
 
+(defun zip (l1 l2)
+  "Zip corresponding elements of L1 and L2.
+
+The lists must have equal lengths."
+  (cond ((null l1)
+	 (if (null l2)
+	     '()
+	     (error "Lists have unequal lengths whe zipping (~a and ~a)" l1 l2)))
+
+	((null l2)
+	 (error "Lists have unequal lengths whe zipping (~a and ~a)" l1 l2))
+
+	(t
+	 (cons (list (car l1) (car l2))
+	       (zip (cdr l1) (cdr l2))))))
+
+
 (defun zip-without-null (xs ys)
   "Zip lists XS and YS when elements are not null.
 
@@ -278,7 +295,7 @@ The list (a b c d) transforms to the list ((a b) (c d))."
 	(pairup l))))
 
 
-;; ---------- Alist merging ----------
+;; ---------- Alist access, updating, and merging ----------
 
 (defun alist-keys (al)
   "Return the keys in alist AL."
