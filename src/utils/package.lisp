@@ -29,6 +29,7 @@
    #:listify
    #:delistify
    #:flatten1
+   #:zip
    #:zip-without-null
    #:remove-nulls
    #:foldl
