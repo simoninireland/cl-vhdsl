@@ -40,7 +40,7 @@ DOCKER = docker
 RM = rm -fr
 
 # Tool options
-VERILISPC_OPTS = -e elaborated.lisp
+VERILISPC_OPTS = -e elaborated.lisp --debug
 SYNTH_OPTS = -q
 PNR_OPTS = -q
 PROGRAM_OPTS =
