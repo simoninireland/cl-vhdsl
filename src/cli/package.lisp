@@ -20,7 +20,7 @@
 (in-package :common-lisp-user)
 
 (defpackage verilisp/cli
-  (:use :cl :alexandria :verilisp :verilisp/utils :verilisp/core :local-time)
+  (:use :cl :alexandria :local-time :verilisp/utils :verilisp/core)
 
   (:export
    main))

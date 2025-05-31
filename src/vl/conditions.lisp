@@ -23,8 +23,21 @@
 
 ;; ---------- Language base condition ----------
 
-(define-condition vl-condition (verilisp-condition)
-  ((fragment
+(define-condition vl-condition ()
+  ((hint
+    :documentation "A hint as to how to fix the condition."
+    :initarg :hint
+    :initform nil
+    :reader hint)
+   (underlying-condition
+    :documentation "Any underlying condition that was converted to this.
+
+This allows VL-BASE-CONDITION to be used to mask other, typically
+implementation-specific, conditions encountered during processing."
+    :initform nil
+    :initarg :underlying-condition
+    :reader underlying-condition)
+   (fragment
     :documentation "The code giving rise to the condition.
 
 This is extracted automatically from the current function
@@ -34,8 +47,15 @@ form queue, or can be provided explicitly using the :FRAGMENT key."
     :reader fragment))
   (:documentation "Mixin for Verilisp language conditions.
 
-The fragment is the code that gave rise to the condition, and is
-used to add contxt to the report."))
+The fragment is the code that gave rise to the condition, and is used
+to add contxt to the report. A hint can be given to suggest how to fix
+the issue."))
+
+
+(defgeneric format-condition-context (detail c str)
+  (:documentation "Format the DETAIL and other information of a condition C.
+
+The text is written to stream STR."))
 
 
 (defvar *maximum-code-fragment-length* 60
@@ -45,7 +65,11 @@ This only changes the printed length: the entire fragment is retained.")
 
 
 (defmethod format-condition-context (detail (c vl-condition) str)
-  (call-next-method)
+  (format str "~a" detail)
+
+  ;; add hint if present
+  (if-let ((hint (hint c)))
+    (format str " (~a)" hint))
 
   ;; add context if known
   (if-let ((code (fragment c)))

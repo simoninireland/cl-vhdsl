@@ -19,10 +19,6 @@
 
 (in-package :common-lisp-user)
 
+;; Currently dummy
 (defpackage verilisp
-  (:use :cl :alexandria :serapeum)
-
-  (:export
-   #:verilisp-condition
-   #:underlying-condition
-   #:format-condition-context))
+  (:use :cl :alexandria))

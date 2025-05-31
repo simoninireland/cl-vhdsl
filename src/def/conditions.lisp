@@ -22,7 +22,7 @@
 
 ;; ---------- Instructions ----------
 
-(define-condition slot-type-mismatch (verilisp-condition)
+(define-condition slot-type-mismatch (vl-condition)
   ((slot
     :documentation "The sub-component slot name."
     :initarg :slot

@@ -20,7 +20,7 @@
 (in-package :common-lisp-user)
 
 (defpackage verilisp/def
-  (:use :cl :alexandria :verilisp :verilisp/utils :verilisp/core)
+  (:use :cl :alexandria :verilisp/utils :verilisp/core)
   (:import-from :slot-extra-options
 		#:def-extra-options-metaclass
 		#:slot-exists-and-bound-p)

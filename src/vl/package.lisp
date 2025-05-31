@@ -22,7 +22,7 @@
 (defpackage verilisp/core
   (:documentation "The verilisp core language")
   (:nicknames :vl)
-  (:use :cl :alexandria :verilisp :verilisp/utils)
+  (:use :cl :alexandria :verilisp/utils)
   (:import-from :cl-ppcre
 		#:create-scanner
 		#:scan
