@@ -105,26 +105,6 @@
     (is (vl::module-late-initialisation-p))))
 
 
-(test test-test-array-legalise
-  "Test we can legalise variables in an array declaration."
-  (let ((p (copy-tree '(let ((b (make-array '(4)
-				 :element-type (unsigned-byte 8)
-				 :initial-contents '(:file "ttt.hex"))
-			      :as :register)
-			     (c 10))
-			(setf c (aref b 1))))))
-    (is (vl:legalise-variables p '())))
-
-  (let ((p (copy-tree '(let ((c-d-e 45 :as :constant))
-			(let ((b (make-array '(4)
-					     :element-type (unsigned-byte 8)
-					     :initial-contents '(1 2 3 c-d-e))
-				 :as :register)
-			      (c 10))
-			  (setf c (aref b 1)))))))
-    (is (vl:legalise-variables p '()))))
-
-
 ;; ---------- Array accesses ----------
 
 (test test-aref-simple

@@ -266,28 +266,6 @@ of other parameter values."
       `(module ,modname ,decls ,@(simplify-implied-progn newbody)))))
 
 
-(defmethod legalise-variables-sexp ((fun (eql 'module)) args rewrites)
-  (declare (optimize debug))
-
-  (destructuring-bind (modname decls &rest body)
-      args
-    (destructuring-bind (modargs modparams)
-	(split-args-params decls)
-      (destructuring-bind (legalargs argrewrites)
-	  (legalise-decls modargs rewrites)
-	(destructuring-bind (legalparams paramrewrites)
-	    (legalise-decls modparams argrewrites)
-	  `(module ,modname ,(join-args-params legalargs legalparams)
-		   ,@(mapcar (rcurry #'legalise-variables paramrewrites ) body)))))))
-
-
-(defmethod detect-shadowing-sexp ((fun (eql 'module)) args)
-  (destructuring-bind (modname decls &rest body)
-      args
-    (mapc #'detect-shadowing body)
-    t))
-
-
 (defun synthesise-param (decl)
   "Return the code for parameter DECL."
   (if (listp decl)
@@ -364,7 +342,7 @@ of other parameter values."
 
     (as-blank-line)
     (as-literal "endmodule // ")
-    (as-literal (format nil "~(~a~)" modname) :newline t)
+    (as-literal (format nil "~(~a~)" (ensure-legal-identifier modname)) :newline t)
     (as-blank-line)))
 
 
@@ -484,22 +462,6 @@ and causes a NOT-IMPORTABLE error if not."
     (destructuring-bind (modname &rest initargs)
 	args
       `(,fun ,modname ,@(rewrite-args initargs)))))
-
-
-(defmethod legalise-variables-sexp ((fun (eql 'make-instance)) args rewrites)
-  (labels ((legalise-key (k)
-	     (let ((n (ensure-symbol (symbol-name k))))
-	       (make-keyword (ensure-legal-identifier n))))
-
-	   (legalise-arg (b)
-	     (destructuring-bind (k v)
-		 b
-	       (list (legalise-key k)
-		     (legalise-variables v rewrites)))))
-
-    (destructuring-bind (modname &rest initargs)
-	args
-      `(,fun ,modname ,@(flatten1 (mapcar #'legalise-arg (adjacent-pairs initargs)))))))
 
 
 (defun synthesise-param-binding (decl args)

@@ -159,7 +159,7 @@
 
   ;; legal identifiers
   (dolist (s '("a" "abc" "abc1" "a1Bc" "_a" "a_" "_123" "_camelCase" "_reg"))
-    (is (null (vl::ensure-legal-identifier s)))
+    (is (null (vl::make-legal-identifier s)))
 
     ;; this is really just a synonym, but check it anyway
     (is (vl::legal-identifier-p s)))
@@ -171,18 +171,29 @@
 		     ("1test-me" "_1test_me")))
     (destructuring-bind (from to)
 	from-to
-      (is (string-equal (vl::ensure-legal-identifier from) to))))
+      (is (string-equal (vl::make-legal-identifier from) to))))
 
   ;; illegal identifiers (keywords)
   (dolist (from-to '(("reg" "_reg")
 		     ("inout" "_inout")))
     (destructuring-bind (from to)
 	from-to
+      (is (string-equal (vl::make-legal-identifier from) to))))
+
+  ;; legalisation of legal and illegal identifiers
+  (dolist (s '("a" "abc" "abc1" "a1Bc" "_a" "a_" "_123" "_camelCase" "_reg"))
+    (string-equal s (vl::ensure-legal-identifier s)))
+  (dolist (from-to '(("0abc" "_0abc")
+		     ("01" "_01")
+		     ("test-me" "test_me")
+		     ("1test-me" "_1test_me")))
+    (destructuring-bind (from to)
+	from-to
       (is (string-equal (vl::ensure-legal-identifier from) to))))
 
   ;; check signalling of really bad variable name choice
   (signals (vl:not-synthesisable)
-    (vl::ensure-legal-identifier "_")))
+    (vl::make-legal-identifier "_")))
 
 
 (test test-test-filter-frame

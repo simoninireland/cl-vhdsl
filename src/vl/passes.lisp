@@ -21,34 +21,6 @@
 (declaim (optimize debug))
 
 
-;; ---------- Variable shadowing ----------
-
-;; For now we disallow shadowing variables in nested scopes
-;; We should actually disallow shadowing in parallel scopes as well,
-;; since the float-let-blocks pass will place them all at the same level
-;; (Don't want to leave detection till then because of macro-expansion.)
-
-(defgeneric detect-shadowing (form)
-  (:documentation "Check whether FORM shadows variables declared previously.
-
-This pass is used to disallow shadowing in all case.")
-  (:method ((form integer))
-    '())
-  (:method ((form symbol))
-    '())
-  (:method ((form list))
-    (destructuring-bind (fun &rest args)
-	form
-      (detect-shadowing-sexp fun args))))
-
-
-(defgeneric detect-shadowing-sexp (fun args)
-  (:documentation "Check whether FUN called on ARGS in ENV shadows any variables.")
-  (:method (fun args)
-    (mapc #'detect-shadowing args)
-    t))
-
-
 ;; ---------- Free variables ----------
 
 (defgeneric free-variables (form)
@@ -113,29 +85,6 @@ method to change this behaviour.")
 	    `(,fun ,@args))))
 
 
-;; ---------- Legalise variables ----------
-
-(defgeneric legalise-variables (form rewrites)
-  (:documentation "Re-write any non-conformant variables in FORM to have legal names.
-
-REWRITES is an alist of old-to-new names.")
-  (:method ((form integer) rewrites)
-    form)
-  (:method ((form symbol) rewrites)
-    (rewrite-variables form rewrites))
-  (:method ((form list) rewrites)
-    (destructuring-bind (fun &rest args)
-	form
-      (legalise-variables-sexp fun args rewrites))))
-
-
-(defgeneric legalise-variables-sexp (fun args rewrites)
-  (:documentation "Legalise variables in FUN applied to ARGS using REWRITES.")
-  (:method (fun args rewrites)
-    `(,fun ,@(mapcar (rcurry #'legalise-variables rewrites) args))))
-
-
-
 ;; ---------- Constant folding ----------
 
 (defgeneric fold-constant-expressions (form)
@@ -155,7 +104,6 @@ calculations that can be done early.")
   (:documentation "Fold constant expressions in FUN applied to ARGS.")
   (:method (fun args)
     (cons fun (mapcar #'fold-constant-expressions args))))
-
 
 
 ;; ---------- Type and width checking and inference ----------

@@ -42,8 +42,8 @@ This is also added to the front of any identifiers that clash
 with *RESERVED-WORDS*.")
 
 
-(defun ensure-legal-identifier (n)
-  "Ensure that N is a legal identifier.
+(defun make-legal-identifier (n)
+  "Make a legal identifier from N.
 
 Any non-permitted characters (identifiers by *IDENTIFIER-ILLEGAL-CHARACTER-REGEXP*)
 are replaced with instances of *IDENTIFIER-ILLEGAL-CHARACTER-REPLACEMENT*. If
@@ -75,6 +75,15 @@ of *IDENTIFIER-ILLEGAL-CHARACTER-REPLACEMENT*."
 	(ensure-symbol no-illegal))))
 
 
+(defun ensure-legal-identifier (n)
+  "Return a legal version of N.
+
+This will either be N itself or the legalised version
+constructed by MAKE-LEGAL-IDENTIFIER."
+  (or (make-legal-identifier n)
+      n))
+
+
 (defun legal-identifier-p (n)
   "Test whether N is a legal identifier."
-  (null (ensure-legal-identifier n)))
+  (null (make-legal-identifier n)))

@@ -88,10 +88,8 @@
    ;; DSL functions
    #:annotate
    #:typecheck
-   #:detect-shadowing
    #:free-variables
    #:rewrite-variables
-   #:legalise-variables
    #:float-let-blocks
    #:simplify-progn
    #:expand-macros

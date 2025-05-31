@@ -52,7 +52,7 @@ to *INDENTATION-LEVEL*.")
 
 (defmacro with-synthesis-to-stream (str &body body)
   "Send all code synthesised in the BODY forms to STR."
-  `(let ((*synthesis-stream* str))
+  `(let ((*synthesis-stream* ,str))
      ,@body))
 
 

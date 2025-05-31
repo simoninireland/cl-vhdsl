@@ -96,8 +96,6 @@ available for import.")
 
 (defun add-module-interface (modname intf)
   "Add module MODNAME with given INTF."
-  (ensure-legal-identifier modname)
-
   (when (known-module-interface-p modname)
     (error 'duplicate-module :module modname))
 
@@ -120,8 +118,6 @@ available for import.")
 
 (defun add-module-for-synthesis (modname module)
   "Queue the module MODNAME with code MODULE for synthesis."
-  (ensure-legal-identifier modname)
-
   (when (synthesising-module-p modname)
     (error 'duplicate-module :module modname))
 
@@ -180,8 +176,7 @@ Return the name of the newly-defined module."
 
 (defun elaborate-module (m)
   "Elaborate the code of M entirely, ready for synthesis."
-  (funcall (compose (rcurry #'legalise-variables '())
-		    #'simplify-progn
+  (funcall (compose #'simplify-progn
 		    (compose #'car #'float-let-blocks))
 	   m))
 

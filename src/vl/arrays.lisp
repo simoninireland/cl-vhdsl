@@ -143,46 +143,6 @@ Verilisp, but don't /require/ it."
     (foldr #'key-value (zip ns vs) '())))
 
 
-(defmethod legalise-variables-sexp ((fun (eql 'make-array)) args rewrites)
-  (destructuring-bind (shape &key
-			       (initial-element 0)
-			       initial-contents
-			       element-type)
-      args
-
-    ;; skip an initial quotes, allowed for Lisp compatability
-    (unquote shape)
-    (unquote element-type)
-    (unquote initial-contents)
-
-    (let ((new-shape (mapcar (rcurry #'legalise-variables rewrites) shape))
-	  (new-initial-element (if initial-element
-				   (legalise-variables initial-element rewrites)))
-	  (new-element-type (if element-type
-				(mapcar (rcurry #'legalise-variables rewrites) element-type)))
-	  (new-initial-contents (if initial-contents
-				    (if (listp initial-contents)
-					(cond ((eql (car initial-contents) :file)
-					       ;; legalise the filename (in case it's a
-					       ;; module parameter)
-					       (list :file
-						     (let ((fn (cadr initial-contents)))
-						       (if (symbolp fn)
-							   (legalise-variables fn rewrites)
-							   fn))))
-
-					      (t
-					       ;; legalise the contents
-					       (mapcar (rcurry #'legalise-variables rewrites)
-						       initial-contents)))))))
-
-      (let ((options (rebuild-options '(:initial-element :initial-contents :element-type)
-				      (list new-initial-element
-					    new-initial-contents
-					    new-element-type))))
-	`(,fun ,new-shape ,@options)))))
-
-
 ;; Only works for one-dimensional arrays at the moment
 ;; Should expand constants
 

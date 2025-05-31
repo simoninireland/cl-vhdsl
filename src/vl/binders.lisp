@@ -298,47 +298,6 @@ This updates the current environment with the new properties."
 	 ,@rwbody))))
 
 
-(defun legalise-decls (decls rewrites)
-  "Return a list consisting of the legalised DECLS and an update REWRITES alist."
-  (flet ((legalise-decl (drs decl)
-	   (destructuring-bind (newdecls rewrites)
-	       drs
-	     (if (listp decl)
-		 (destructuring-bind (n v &rest rest)
-		     decl
-		   (let ((nv (legalise-variables v rewrites)))
-		     (if-let ((l (ensure-legal-identifier n)))
-		       ;; name changed, return new decl and rewrite
-		       (list (append newdecls (list `(,l ,nv ,@rest)))
-			     (cons (list n l)
-				   rewrites))
-
-		       ;; name was legal, return the decl and rewrites unchanged
-		       (list (append newdecls (list `(,n ,nv ,@rest)))
-			     rewrites))))
-
-		 (if-let ((l (ensure-legal-identifier decl)))
-		   ;; name changed, return new decl and rewrite
-		   (list (append newdecls (list l))
-			 (cons (list decl l)
-			       rewrites))
-
-		   ;; name was legal, return the decl and rewrites unchanged
-		   (list (append newdecls (list decl))
-			 rewrites))))))
-
-    (foldr #'legalise-decl decls (list '() rewrites))))
-
-
-(defmethod legalise-variables-sexp ((fun (eql 'let)) args rewrites)
-  (destructuring-bind (decls &rest body)
-      args
-    (destructuring-bind (legaldecls extrewrites)
-	(legalise-decls (decls-without-cached-frame decls) rewrites)
-      `(let ,legaldecls
-	 ,(legalise-variables `(progn ,@body) extrewrites)))))
-
-
 ;; ---------- Macro expansion ----------
 
 (defun expand-macros-key (l kv)
@@ -420,25 +379,6 @@ by LET and MODULE forms."
       args
     (let ((newbody (mapcar #'simplify-progn body)))
       `(let ,decls ,@(simplify-implied-progn newbody)))))
-
-
-;; ---------- Shadowing ----------
-
-(defmethod detect-shadowing-sexp ((fun (eql 'let)) args)
-  (declare (optimize debug))
-
-  (destructuring-bind (decls &rest body)
-      args
-    (let* ((f (get-cached-frame decls))
-	   (fvars (get-frame-names f)))
-      (dolist (n fvars)
-	(when (variable-declared-p n)
-	  (error 'duplicate-variable :variable n
-				     :hint "Variable shadows a previous definition")))
-
-      (with-frame f
-	(mapc #'detect-shadowing body)
-	t))))
 
 
 ;; ---------- Synthesis ----------

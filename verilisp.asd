@@ -119,7 +119,6 @@
 	       (:file "test-vl-eval")
 	       (:file "test-vl-macros")
 	       (:file "test-vl-float-let")
-	       (:file "test-vl-shadowing")
 	       (:file "test-vl-rewriting")
 	       (:file "test-vl-cond")
 	       (:file "test-vl-with-bitfields")
