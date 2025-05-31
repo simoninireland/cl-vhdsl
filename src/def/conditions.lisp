@@ -22,7 +22,7 @@
 
 ;; ---------- Instructions ----------
 
-(define-condition slot-type-mismatch (vl-condition)
+(define-condition slot-type-mismatch (vl-error)
   ((slot
     :documentation "The sub-component slot name."
     :initarg :slot
@@ -43,7 +43,7 @@ Slots need to be given fixed width types.")))
 
 ;; ---------- Components and sub-components ----------
 
-(define-condition subcomponent-mismatch (verilisp-condition)
+(define-condition subcomponent-mismatch (vl-error)
   ((component
     :documentation "The component."
     :initarg :component
