@@ -205,4 +205,5 @@ that is that form."
        (member (car (containing-form)) '(+ - *
 					 = /= > >= < <=
 					 logand logior logxor
-					 setq setf))))
+					 setq setf
+					 let))))
