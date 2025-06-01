@@ -347,11 +347,7 @@ This updates the current environment with the new properties."
       (when (null newenv)
 	(setq newenv (make-frame)))
       (let ((f (get-cached-frame decls)))
-	(mapc (lambda (np)
-		(destructuring-bind (n &rest props)
-		    np
-		  (declare-environment-variable n props newenv)))
-	      (decls f))
+	(add-environment-to-environment newenv f)
 
 	;; return the re-written body and the new environment
 	(list newbody newenv)))))
@@ -512,22 +508,23 @@ Constants turn into local parameters."
   "Synthesise DECL."
   (declare (optimize debug))
 
-  (let* ((n (name-in-decl decl))
-	 (v (get-initial-value n)))
-    (if (module-value-p v)
-	;; instanciating a module
-	(synthesise-module-instanciation n)
+  (with-current-form decl
+    (let* ((n (name-in-decl decl))
+	   (v (get-initial-value n)))
+      (if (module-value-p v)
+	  ;; instanciating a module
+	  (synthesise-module-instanciation n)
 
-	;; otherwise, creating a variable
-	(case (get-representation n)
-	  (:constant
-	   (synthesise-constant n))
-	  (:register
-	   (synthesise-register n))
-	  (:wire
-	   (synthesise-wire n))
-	  (t
-	   (synthesise-register n))))))
+	  ;; otherwise, creating a variable
+	  (case (get-representation n)
+	    (:constant
+	     (synthesise-constant n))
+	    (:register
+	     (synthesise-register n))
+	    (:wire
+	     (synthesise-wire n))
+	    (t
+	     (synthesise-register n)))))))
 
 
 (defmethod synthesise-sexp ((fun (eql 'let)) args)
@@ -539,8 +536,8 @@ Constants turn into local parameters."
     (with-frame (get-cached-frame decls)
       (let ((real-decls (decls-without-cached-frame decls)))
 	;; synthesise the constants and registers
-	(as-block-forms real-decls :process #'synthesise-decl
-			)
+	(as-block-forms real-decls :process #'synthesise-decl)
+
 	(if (> (length real-decls) 0)
 	    (as-blank-line))
 

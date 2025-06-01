@@ -23,7 +23,7 @@
 
 ;; ---------- Macros we allow in Verilisp ----------
 
-(defparameter *macros* nil
+(defvar *macros* nil
   "List of macros expanded within Verilisp forms.")
 
 
@@ -68,13 +68,13 @@ NAME is assuemd to be the \"real\" name of the macro."
 
 ;; ---------- Module registry ----------
 
-(defparameter *module-list* nil
+(defvar *module-list* nil
   "The module registry.
 
 Modules added here are queued for synthesis.")
 
 
-(defparameter *module-interfaces* '()
+(defvar *module-interfaces* '()
   "Mapping of known modules to their interface types.
 
 This variable contains all the modules that can be imported. It will
@@ -146,44 +146,46 @@ type-checked, macro-expanded, and possibly had other passes applied."
 (defmacro defmodule (modname decls &body body)
   "Declare a module MODNAME with given DECLS and BODY.
 
-The module is loaded, annotated, macro-expanded, and type-checked,
-meaning that it will be at least minimally syntactically correct
-afterwards -- although possibly still not finally synthesisable.
+The module is loaded, annotated, macro-expanded, type-checked
+(meaning that it will be at least minimally syntactically correct
+afterwards -- although possibly still not finally synthesisable),
+and then be processed ready for synthesis (which might cause further
+warnings or errors).
 
-The module is added to the *MODULE-LIST* list for synthesis. Its
-type is added to *MODULE-INTERFACES* for importing. Duplicate
-module names will cause a DUPLICATE-MODULE error.
+The resulting fully-elaborated module is added to *MODULE-LIST* for
+synthesis. Its type is added to *MODULE-INTERFACES* for importing.
+Duplicate module names will cause a DUPLICATE-MODULE error.
 
 Return the name of the newly-defined module."
-  (with-gensyms (module annotated expanded)
-    (let* ((code `(module ,modname ,decls
-			  ,@body)))
+  (with-gensyms (module intf annotated expanded floated simplified)
+    (let ((code `(module ,modname ,decls
+			 ,@body)))
       `(let* ((,module ',code)
 	      (,expanded (expand-macros ,module)))
-	 ;; typecheck the expanded module
-	 (let ((intf (typecheck ,expanded)))
+
+	 ;; typecheck and elaborate the expanded module
+	 (let* ((,intf  (typecheck ,expanded))
+		(,floated (car (float-let-blocks ,expanded)))
+		(,simplified (simplify-progn ,floated)))
 
 	   ;; add type to interfaces available for import
-	   (add-module-interface ',modname intf)
+	   (add-module-interface ',modname ,intf)
 
 	   ;; add expanded code to modules for synthesis
-	   (add-module-for-synthesis ',modname ,expanded)
+	   (add-module-for-synthesis ',modname ,simplified)
 
 	   ',modname)))))
 
 
 ;; ---------- Module synthesis ----------
 
-(defun elaborate-module (m)
-  "Elaborate the code of M entirely, ready for synthesis."
-  (funcall (compose #'simplify-progn
-		    (compose #'car #'float-let-blocks))
-	   m))
-
-
 (defun synthesise-module (m str)
   "Synthesise module M to STR.
 
-M needs to be fully elaborated."
+M can be a list of Verilisp code or a symbol identifying
+a loaded module."
   (with-synthesis-to-stream str
-    (synthesise m)))
+    (let ((vl (if (symbolp m)
+		  (get-module m)
+		  m)))
+      (synthesise vl))))

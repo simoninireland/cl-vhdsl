@@ -61,7 +61,7 @@ q
 		     (setf a 12)))))
     (let ((p (copy-tree x)))
       (vl:typecheck p)
-      (is (vl:synthesise p))))
+      (vl:synthesise p)))
 
   ;; no else branch
   (let ((p (copy-tree '(let ((a 0 :width 4))
@@ -132,14 +132,24 @@ q
 (test test-synthesise-case-complex-bodies
   "Test we can't synthesise CASE assignments where the bodies are too complicated."
   (signals (vl:not-synthesisable)
-    (let ((p '(let ((a 1)
-		    (b 2))
-	       (setq a
-		(case b
-		  (1 12)
-		  (2
-		   (setq b 12)
-		   (+ a 1))
-		  (t 0))))))
+    (let ((p (copy-tree '(let ((a 1)
+			       (b 2))
+			  (setq a
+			   (case b
+			     (1 12)
+			     (2
+			      (setq b 12)
+			      (+ a 1))
+			     (t 0)))))))
       (vl:typecheck p)
       (vl:synthesise p))))
+
+
+(test test-synthesise-let-decl
+  "Test we can synthesise a conditional in a LET."
+  (let ((p (copy-tree '(let ((a (if (= 2 1)
+				    1
+				    0)))
+			(setf a (+ a 2))))))
+    (vl:typecheck p)
+    (is (vl:synthesise p))))

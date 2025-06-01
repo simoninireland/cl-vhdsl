@@ -30,7 +30,7 @@
 
 
 (defmethod float-let-blocks ((form symbol))
-  `(,form ()))
+  (list form '()))
 
 
 (defmethod simplify-progn ((form symbol))

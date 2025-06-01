@@ -239,6 +239,17 @@ Signals a DUPLICATE-VARIABLE error if the variable already exists in this frame.
   env)
 
 
+(defun add-environment-to-environment (env1 env2)
+  "Add all entries from ENV2 to ENV1.
+
+Return ENV1."
+  (mapc (lambda (n)
+	  (let ((props (get-environment-properties n env2)))
+	    (declare-environment-variable n props env1)))
+	(get-environment-names env2))
+  env1)
+
+
 (defun filter-environment (pred env)
   "Return an environment containing all the entries of ENV matching PRED.
 

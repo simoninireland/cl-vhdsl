@@ -38,7 +38,7 @@
 
 
 (defmethod float-let-blocks ((form integer))
-  `(,form ()))
+  (list form '()))
 
 
 (defmethod simplify-progn ((form integer))

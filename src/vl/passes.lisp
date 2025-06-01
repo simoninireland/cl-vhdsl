@@ -152,18 +152,20 @@ the form with re-written versions of ARGS.
 Return a list consisting of the new form and any declarations floated.")
   (:method (fun args)
     (flet ((pairwise-append (old form)
-	     (destructuring-bind (oldbody olddecls)
+	     (destructuring-bind (oldbody oldenv)
 		 old
-	       (destructuring-bind (newbody newdecls)
+	       (destructuring-bind (newbody newenv)
 		   (float-let-blocks form)
-		 (list (append oldbody (if (atom newbody)
-					   (list newbody)
-					   (list newbody)))
-		       (append olddecls newdecls))))))
+		 (list (if (null oldbody)
+			   (list newbody)
+			   (append oldbody (list newbody)))
+		       (if (null newenv)
+			   oldenv
+			   (add-environment-to-environment oldenv newenv)))))))
 
-      (destructuring-bind (fargs fdecls)
-	  (foldr #'pairwise-append args '(() ()))
-	`((,fun ,@fargs) ,fdecls)))))
+      (destructuring-bind (fargs fenv)
+	  (foldr #'pairwise-append args (list '() (make-frame)))
+	`((,fun ,@fargs) ,fenv)))))
 
 
 ;; ---------- PROGN coalescence ----------

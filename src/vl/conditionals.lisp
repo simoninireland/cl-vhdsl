@@ -38,8 +38,32 @@
 	  (lub tythen tyelse)
 	  tythen))))
 
+(defun synthesise-if-expression (form)
+  "Synthesise FORM as a continued expansion of conditions."
+  (declare (optimize debug))
+  (if (listp form)
+      (destructuring-bind (fun &rest args)
+	  form
+	(if (eql fun 'if)
+	    (destructuring-bind (condition then &rest else)
+		args
+	      (as-literal "(")
+	      (synthesise-if-expression condition)
+	      (as-literal " ? ")
+	      (synthesise-if-expression then)
+	      (as-literal " : ")
+	      (synthesise-if-expression (car else))
+	      (as-literal ")"))
+
+	    (synthesise-sexp fun args)))
+
+      (synthesise form)))
+
+
 
 (defmethod synthesise-sexp ((fun (eql 'if)) args)
+  (declare (optimize debug))
+
   (destructuring-bind (condition then &rest else)
       args
 
@@ -49,7 +73,7 @@
 	  (as-literal "(")
 	  (synthesise condition)
 	  (as-literal " ? ")
-	  (synthesise then)
+	  (synthesise  then)
 	  (as-literal " : ")
 	  (synthesise (car else))
 	  (as-literal ")"))
@@ -69,6 +93,7 @@
 	  ;; else arm
 	  (when else
 	    (if (and (listp else)
+		     (listp (car else))
 		     (eql (caar else) 'if))
 		;; else arm is another if, don't indent
 		(progn
@@ -123,9 +148,8 @@ The type is the lub of the clause types."
 	(as-literal "default")
 	(synthesise val))
     (as-literal ":" :newline t)
-
     (as-block body :before "begin"
-	      :after "end")))
+		   :after "end")))
 
 
 (defun synthesise-nested-if (condition clauses)
@@ -144,19 +168,24 @@ The type is the lub of the clause types."
 
 	     ,(synthesise-nested-if condition (cdr clauses)))
 
-	;; if we're the last clause, last alternative is 0
-	`(if (= ,condition ,val)
-	     ,(car body)
+	;; if we're the last clause
+	(if (eql val 't)
+	    ;; unconditional result
+	    (car body)
 
-	     0))))
+	    ;; otherwise add 0 as the final result
+	    `(if (= ,condition ,val)
+		 ,(car body)
+		 0)))))
 
 
 (defmethod synthesise-sexp ((fun (eql 'case)) args)
+  (declare (optimize debug))
   (destructuring-bind (condition &rest clauses)
       args
     (if (in-expression-context-p)
 	;; within an expression, expand as nested conditional expressions
-	(synthesise-nested-if condition clauses)
+	(synthesise (synthesise-nested-if condition clauses))
 
 	;; elsewhere, synthesise as case
 	(progn

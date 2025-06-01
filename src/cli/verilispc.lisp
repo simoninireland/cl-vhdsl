@@ -300,10 +300,10 @@ The header will need to be preceded by an appropriate comment string."
 ;; ---------- Errors and progress reporting ----------
 
 (defun info (format &rest args)
-  "Generate a info  message when we're in verbose mode."
+  "Generate an info message when we're in verbose mode."
   (when (> *verbosity* 0)
-    (let ((line (format nil "~a~%" format)))
-      (apply #'format `(*standard-output* ,line ,@args)))))
+    (let ((line (format nil "~a" format)))
+      (apply #'format `(,*error-output* ,line ,@args)))))
 
 
 (defmacro with-error-handling (&body body)
@@ -341,7 +341,7 @@ explicitly disabled."
 		       ;; skip the rest of the file (don't try to recover)
 		       (invoke-restart 'ignore-file-with-errors))))
 
-	  (warning (lambda (condition)
+	  (vl-warning (lambda (condition)
 		     (cond ((fatal-warning-condition-p condition)
 			    (format *error-output* "ERROR: ~a~%" condition)
 			    (incf *errors*))
@@ -432,7 +432,7 @@ to skip files with errors."
 			(let ((fn (get-module-source-file-name modname)))
 			  (format str ";; ")
 			  (format str (filename-header fn)))
-			(pprint (elaborate-module module) str)
+			(pprint module str)
 			(format str "~%~%"))))))))
 
     (with-error-handling
@@ -455,7 +455,7 @@ to skip files with errors."
 			(format str (filename-header fn))
 			(format str "~%"))
 
-		      (synthesise-module (elaborate-module module) str)
+		      (synthesise-module module str)
 		      (format str "~%")))))
 
 	    ;; generate the Verilog for each module
@@ -472,7 +472,7 @@ to skip files with errors."
 			(format str (filename-header fn))
 			(format str "~%")
 
-			(synthesise-module (elaborate-module module) str))))))))
+			(synthesise-module module str))))))))
 
     ;; if we get here we didn't bail-out earlier, so do a successful exit
     (uiop:quit 0)))

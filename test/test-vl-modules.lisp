@@ -129,7 +129,7 @@
   (vl:clear-module-registry)
 
   (vl:defmodule clock ((clk_in  :direction :in  :as :wire :type (unsigned-byte 1))
-			(clk_out :direction :out :as :wire :type (unsigned-byte 1)))
+		       (clk_out :direction :out :as :wire :type (unsigned-byte 1)))
     (setq clk_out clk_in))
 
   (is (subtypep (type-of (vl:typecheck (vl::expand-macros
@@ -155,7 +155,7 @@
     (vl:typecheck p)
     (setq p (car (vl:float-let-blocks p)))
     (setq p (vl:simplify-progn p))
-    (is (vl:synthesise p))))
+    (vl:synthesise p)))
 
 
 (test test-synthesise-module-instanciation

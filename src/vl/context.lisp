@@ -22,12 +22,12 @@
 
 ;; ---------- Environment ----------
 
-(defparameter *global-environment* (empty-environment)
+(defvar *global-environment* (empty-environment)
   "The global environment for the compiler.")
 
 
-(defun reset-global-environment ()
-  "Reset the global environment.
+(defun clear-global-environment ()
+  "Clear the global environment.
 
 This should, in principle, never be needed because the environment
 should be handled correctly using WITH-NEW-FRAME. However...."
@@ -181,6 +181,12 @@ that is that form."
 	(cadr *current-form-queue*))))
 
 
+(defun containing-containing-form ()
+  "Return the form containing the containing form."
+  (if (> (length *current-form-queue*) 2)
+      (caddr *current-form-queue*)))
+
+
 (defun in-top-level-context-p ()
   "Test whether the current context is top-level."
   (and (= (length *current-form-queue*) 1)
@@ -199,11 +205,30 @@ that is that form."
   (not (in-block-context-p)))
 
 
+(defun in-setf-context-p ()
+  "Test if we're ina  SETF or SETQ context."
+  (some (lambda (form)
+	  (member (car form) '(setq setf)))
+	*current-form-queue*))
+
+
+(defun in-non-expression-context-p ()
+  "Test whether we're in a non-expression context."
+  (or (in-block-context-p)
+      (in-module-context-p)
+      (and (>= (length *current-form-queue*) 1)
+	   (eql (car (containing-form)) 'progn))))
+
+
+(defun in-let-decl-context-p ()
+  "Test whether we're in a LET decl context."
+  (some (lambda (form)
+	  (variable-declared-p (car form)))
+	*current-form-queue*))
+
+
 (defun in-expression-context-p ()
-  "Test whether the current context is within an expression."
-  (and (>= (length *current-form-queue*) 2)
-       (member (car (containing-form)) '(+ - *
-					 = /= > >= < <=
-					 logand logior logxor
-					 setq setf
-					 let))))
+  "Test whether we're in an expression context."
+  (or (in-setf-context-p)
+      (in-let-decl-context-p)
+      (not (in-non-expression-context-p))))
