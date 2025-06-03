@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'VHDSL'
+project = 'verilisp'
 copyright = '2024--2025, Simon Dobson'
 author = 'Simon Dobson'
 release = '0.1'
@@ -35,11 +35,13 @@ highlight_language = 'common-lisp'
 cl_debug = False
 todo_include_todos = False
 
-cl_systems = [{"name": "cl-vhdsl",
+cl_systems = [{"name": "verilisp",
+               "path": join(dirname(realpath(__file__)), "../")},
+              {"name": "verilisp/cli",
                "path": join(dirname(realpath(__file__)), "../")}]
 
 # Packages to grab symbols from (in the core image)
-cl_packages = ["cl-vhdsl", "cl-vhdsl/rtl", "cl-vhdsl/dsl"]
+cl_packages = ["verilisp/utils", "verilisp/core", "verilisp/cli"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
