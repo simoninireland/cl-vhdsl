@@ -95,18 +95,25 @@ Returns the extended version of ENV (which is actually just F)."
   f)
 
 
+(defun get-frame-properties-assoc (n env)
+  "Return the alist association of N to properties in ENV.
+
+Return nil if there is no such association."
+  (if (symbolp n)
+      (assoc n (decls env))
+      (assoc n (decls env)
+	     :key #'symbol-name
+	     :test #'string-equal)))
+
+
 (defun get-frame-properties (n env)
   "Return the properties of N in the top frame of ENV.
 N can be a symbol (usually) or a string. In the latter case the
 variable is checked by string equality aginst the symbol name.
 
 An UNKNOWN-VARIABLE error is signalled if N is undefined."
-  (if-let ((kv (if (symbolp n)
-		   (assoc n (decls env))
-		   (assoc n (decls env)
-			  :key #'symbol-name
-			  :test #'string-equal))))
-    (cdr kv)
+  (if-let ((kv (get-frame-properties-assoc n env)))
+    (cadr kv)
 
     (error 'unknown-variable :variable n
 			     :hint "Make sure the variable is in scope in the current frame")))
@@ -144,6 +151,13 @@ undefined."
 
       ;; no property defined, return the default
       default)))
+
+
+(defun set-frame-properties (n props env)
+  "Replace the properties of N with ENV with PROPS."
+  (if-let ((kv (get-frame-properties-assoc n env)))
+    ;; overwrite the old properties
+    (setf (cdr kv) (list props))))
 
 
 (defun set-frame-property (n prop v env)
@@ -211,6 +225,11 @@ returned: this can be changed by defining the :DEFAULT argument."
     default))
 
 
+(defun set-environment-properties (n props env)
+  "Replace the properties of N in ENV with PROPS."
+  (set-frame-properties n props (get-frame-declaring n env)))
+
+
 (defun set-environment-property (n prop v env)
   "Set the value of PROP of N in ENV to V.
 
@@ -223,8 +242,11 @@ This affects the shallowest declaration of N."
   (not (null (member n (get-environment-names env)))))
 
 
-(defun declare-environment-variable (n props env)
+(defun declare-environment-variable (n props env &optional at-start)
   "Declare a variable N with properties PROPS in the shallowest frame of ENV.
+
+If AT-START is non-nil, add the variable to the start of the environment;
+otherwise (by default) add it to the emd.
 
 Return the updated environment.
 
@@ -233,21 +255,37 @@ Signals a DUPLICATE-VARIABLE error if the variable already exists in this frame.
     (error 'duplicate-variable :variable n))
 
   ;; copy properties to avoid re-writing the original
-  (setf (decls env) (cons (cons n (copy-tree props)) (decls env)))
+  (if (null (decls env))
+      (setf (decls env) (list (list n (copy-tree props))))
+
+      (if at-start
+	  ;; add to the start
+	  (setf (decls env) (cons (list n (copy-tree props)) (decls env)))
+
+	  ;; add to the end
+	  (setf (cdr (last (decls env))) (list (list n (copy-tree props))))))
 
   ;; return the updated environment
   env)
 
 
-(defun add-environment-to-environment (env1 env2)
-  "Add all entries from ENV2 to ENV1.
+(defun add-frame-to-environment (f env &optional at-start)
+  "Add all entries from F to ENV.
 
-Return ENV1."
-  (mapc (lambda (n)
-	  (let ((props (get-environment-properties n env2)))
-	    (declare-environment-variable n props env1)))
-	(get-environment-names env2))
-  env1)
+If AT-START is non-nil, add the entrues to the start of ENV; otherwise
+(by default) add them to the end. In either case the entries appear in
+ENV in the same order as they appear in F.
+
+Return ENV."
+  (let ((ns (if at-start
+		(reverse (get-frame-names f))
+		(get-frame-names f))))
+
+    (dolist (n ns)
+      (let ((props (get-environment-properties n f)))
+	(declare-environment-variable n props env at-start))))
+
+  env)
 
 
 (defun filter-environment (pred env)
@@ -275,16 +313,17 @@ will return the correct value for that variable at that depth)."
 (defun map-environment (f env)
   "Map F across each declaration in ENV.
 
-F should be a function taking a name and an environment. The
-result is a list of the values returned from F. The list will be
-flat, regardless of the frame structure of ENV."
+F should be a function taking a name and an environment. The result is
+a list of the values returned from F, from deepest to shallowest. The
+list will be flat, regardless of the frame structure of ENV."
   (labels ((descend-env (l)
 	     (if (null l)
 		 nil
 
-		 (append (mapcar (lambda (n)
-				   (funcall f n l))
-				 (get-frame-names l))
-			 (descend-env (parent-frame l))))))
+		 (append (descend-env (parent-frame l))
+			 (list (mapcar (lambda (n)
+					 (funcall f n l))
+				       (get-frame-names l)))
+			 ))))
 
-    (descend-env env)))
+    (flatten1 (remove-nulls (descend-env env)))))

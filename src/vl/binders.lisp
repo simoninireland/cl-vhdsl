@@ -192,8 +192,11 @@ one."
     ;; pass, to allow for systems that don't care about precision
     ;; TODO: Should we allow this, or be tighter?
     (if-let ((ty (variable-property n :type :default nil)))
-      ;; the type we use is the one supplied
-      (setq inferred-type ty)
+      (progn
+	(ensure-subtype inferred-type ty)
+
+	;; the type we use is the one supplied
+	(setq inferred-type ty))
 
       ;; no type provided, note that we inferred it
       (warn 'type-inferred :variable n
@@ -212,11 +215,7 @@ This updates the current environment with the new properties."
     (mapc (lambda (vp)
 	    (destructuring-bind (n props)
 		vp
-	      (mapc (lambda (prop)
-		      (destructuring-bind (k p)
-			  prop
-			(set-variable-property n k p)))
-		    props)))
+	      (set-environment-properties n props *global-environment*)))
 	  newdecls)))
 
 
@@ -347,7 +346,8 @@ This updates the current environment with the new properties."
       (when (null newenv)
 	(setq newenv (make-frame)))
       (let ((f (get-cached-frame decls)))
-	(add-environment-to-environment newenv f)
+	;; add the new declaratiosn to the front of NEWENV
+	(add-frame-to-environment f newenv t)
 
 	;; return the re-written body and the new environment
 	(list newbody newenv)))))

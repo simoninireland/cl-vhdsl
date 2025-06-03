@@ -25,6 +25,8 @@
 
 (test test-make-environment
   "Test we shadow variables correctly."
+  (declare (optimize debug))
+
   (let ((env1 (vl::add-frame (vl::empty-environment))))
     (mapc (lambda (decl)
 	    (vl::declare-environment-variable (car decl) (cadr decl) env1))
@@ -41,7 +43,7 @@
       ;; a should be shadowed and appear only once
       (let ((decls (vl::make-environment-alist env2)))
 	(is (equal (mapcar #'car decls)
-		   '(d a c b)))
+		   '(b c a d)))
 	(is (= (cadr (assoc 'a decls)) 5))))))
 
 

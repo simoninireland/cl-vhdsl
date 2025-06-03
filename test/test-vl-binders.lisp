@@ -149,3 +149,22 @@
   (is (subtypep (vl:typecheck (copy-tree '(let ((a 0 :width 12))
 					   a)))
 		'(unsigned-byte 12))))
+
+
+(test test-let-float-order
+  "Test we maintain the order of declarations when we float LET blocks."
+  (let ((p (copy-tree '(let ((a 1)
+			     (b 2)
+			     c)
+			(setf c (+ a b))
+			(let ((d 4)
+			      e
+			      (f 6)
+			      g)
+			  (setf e 5))))))
+    (vl:typecheck p)
+    (let* ((q-env (vl:float-let-blocks p))
+	   (q (car q-env))
+	   (env (cadr q-env)))
+      (is (equal (vl::get-frame-names env)
+		 '(a b c d e f g))))))

@@ -70,15 +70,24 @@ Each variable appears only once, with shallower declarations
 shadowing deeper ones.
 
 The pairs can be used in LET blocks, or as an alist."
-  (let ((seen '()))
-    (flet ((make-decl (n env)
-	     (if (member n seen)
-		 '()
-		 (progn
-		   (appendf seen (list n))
-		   `(,n ,(get-frame-property n :initial-value env))))))
+  (labels ((remove-seen (seen l)
+	   (if (null l)
+	       (list seen '())
 
-      (remove-nulls (map-environment #'make-decl env)))))
+	       (destructuring-bind (rseen rl)
+		   (remove-seen seen (cdr l))
+		 (destructuring-bind (n v)
+		     (car l)
+		   (if (member n rseen)
+		       (list rseen rl)
+
+		       (list (cons n rseen)
+			     (cons (list n v) rl))))))))
+
+    (let ((decls (map-environment (lambda (n env)
+				    (list n (get-frame-property n :initial-value env :default 0)))
+				  env)))
+      (cadr (remove-seen '() decls)))))
 
 
 (defun close-form-in-environment (form env)

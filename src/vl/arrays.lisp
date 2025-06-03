@@ -231,6 +231,8 @@ probably should, for those that are statically determined."
 
 
 (defmethod typecheck-sexp ((fun (eql 'aref)) args)
+  (declare (optimize debug))
+
   (destructuring-bind (var &rest indices)
       args
     (let ((ty (typecheck var)))

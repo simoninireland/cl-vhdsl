@@ -60,8 +60,9 @@ q
 		       (setf a (+ 1 3)))
 		     (setf a 12)))))
     (let ((p (copy-tree x)))
-      (vl:typecheck p)
-      (vl:synthesise p)))
+      (vl:with-new-frame
+	(vl:typecheck p)
+	(is (vl:synthesise p)))))
 
   ;; no else branch
   (let ((p (copy-tree '(let ((a 0 :width 4))
@@ -112,8 +113,9 @@ q
 		(setf a 0))
 	       (t
 		(setf b 0))))))
-    (vl:typecheck p)
-    (is (vl:synthesise p))))
+    (vl:with-new-frame
+      (vl:typecheck p)
+      (is (vl:synthesise p)))))
 
 
 (test test-synthesise-case-assignment
@@ -125,8 +127,9 @@ q
 		(1 12)
 		(2 (+ a 1))
 		(t 0))))))
-    (vl:typecheck p)
-    (is (vl:synthesise p))))
+    (vl:with-new-frame
+      (vl:typecheck p)
+      (is (vl:synthesise p)))))
 
 
 (test test-synthesise-case-complex-bodies

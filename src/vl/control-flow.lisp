@@ -26,7 +26,7 @@
 (defmethod typecheck-sexp ((fun (eql 'progn)) args)
   (labels ((typecheck-forms (forms)
 	     (let ((ty (with-recover-on-error
-			   nil
+			   t
 			 (typecheck (car forms)))))
 
 	       (if (null (cdr forms))

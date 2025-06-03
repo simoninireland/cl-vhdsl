@@ -214,7 +214,7 @@ of other parameter values."
 (defun make-module-interface-type (decls)
   "Return the module interface type of the DECLS of a module."
   (destructuring-bind (modargs modparams)
-      (split-args-params decls)
+      (split-args-params (decls-without-cached-frame decls))
     `(module-interface ,modparams ,modargs)))
 
 
@@ -227,6 +227,10 @@ of other parameter values."
 
       ;; typecheck the body of the module in its environment
       (typecheck (cons 'progn body))
+
+      ;; cache the shallowest frame for use in later passes
+      (setf (cdr (last decls))
+	    (list (list 'frame (detach-frame *global-environment*))))
 
       ;; return the interface type
       (make-module-interface-type decls))))
@@ -267,15 +271,15 @@ of other parameter values."
 
 
 (defun synthesise-param (decl)
-  "Return the code for parameter DECL."
+  "Return the code for parameter N."
   (if (listp decl)
       ;; parameter with an initial value
-      (destructuring-bind (n v)
+      (destructuring-bind (n &rest rest)
 	  decl
 	(as-literal "parameter ")
 	(synthesise n)
 	(as-literal " = ")
-	(synthesise v))
+	(synthesise (get-initial-value n)))
 
       ;; naked parameter
       (progn
@@ -284,7 +288,7 @@ of other parameter values."
 
 
 (defun synthesise-arg (decl)
-  "Return the code for argument DECL."
+  "Return the code for argument N."
   (declare (optimize debug))
 
   (destructuring-bind (n &key direction type (as :wire))
@@ -308,42 +312,41 @@ of other parameter values."
 
   (destructuring-bind (modname decls &rest body)
       args
-    (as-literal "module ")
-    (synthesise modname)
 
-    (destructuring-bind (args params)
-	(split-args-params decls)
-      ;; parameters
-      (if params
-	  (as-argument-list params :before " #(" :after ")"
-				   :sep ", "
-				   :process #'synthesise-param))
+    (with-frame (get-cached-frame decls)
+      (as-literal "module ")
+      (synthesise modname)
 
-      ;; arguments
-      (as-argument-list args :before "(" :after ");"
-			     :sep ", "
-			     :process #'synthesise-arg))
-    (as-blank-line)
+      (destructuring-bind (args params)
+	  (split-args-params (decls-without-cached-frame decls))
+	;; parameters
+	(if params
+	    (as-argument-list params :before " #(" :after ")"
+				     :sep ", "
+				     :process #'synthesise-param))
 
-    ;; body
-    (with-new-frame
-      (make-module-environment decls)
-
-      (with-indentation
-	(synthesise `(progn ,@body))))
-
-    ;; late initialisationn (if any)
-    (when (module-late-initialisation-p)
+	;; arguments
+	(as-argument-list args :before "(" :after ");"
+			       :sep ", "
+			       :process #'synthesise-arg))
       (as-blank-line)
-      (as-literal "initial begin" :newline t)
-      (with-indentation
-	(run-module-late-initialisation))
-      (as-literal "end" :newline t))
 
-    (as-blank-line)
-    (as-literal "endmodule // ")
-    (as-literal (format nil "~(~a~)" (ensure-legal-identifier modname)) :newline t)
-    (as-blank-line)))
+      ;; body
+      (with-indentation
+	(synthesise `(progn ,@body)))
+
+      ;; late initialisation (if any)
+      (when (module-late-initialisation-p)
+	(as-blank-line)
+	(as-literal "initial begin" :newline t)
+	(with-indentation
+	  (run-module-late-initialisation))
+	(as-literal "end" :newline t))
+
+      (as-blank-line)
+      (as-literal "endmodule // ")
+      (as-literal (format nil "~(~a~)" (ensure-legal-identifier modname)) :newline t)
+      (as-blank-line))))
 
 
 ;; ---------- Module instanciation ----------

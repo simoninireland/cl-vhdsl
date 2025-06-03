@@ -199,9 +199,10 @@
 
 			(setq reset reset-in)))))
 
-    (setq p (vl:expand-macros p))
-    (vl:typecheck p)
-    (is (vl:synthesise p))))
+    (vl:with-new-frame
+      (setq p (vl:expand-macros p))
+      (vl:typecheck p)
+      (is (vl:synthesise p)))))
 
 
 (test test-module-real-instanciate

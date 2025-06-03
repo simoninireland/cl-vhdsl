@@ -153,6 +153,8 @@ form."
      (pop *current-form-queue*)))
 
 
+;; form accessors
+
 (defun current-form ()
   "Return the current form."
   (car *current-form-queue*))
@@ -187,48 +189,80 @@ that is that form."
       (caddr *current-form-queue*)))
 
 
+;; form classifiers
+;; We pass in a queue (list) of forms because we ma need more context than
+;; just the form we're interested in.
+
+(defun operator-form-p (&optional (formq *current-form-queue*))
+  "Test whether the head of FORMQ is an operator."
+  (member (caar formq) '(+ - *
+			 << >>
+			 = /= < <= > >=
+			 aref bref)))
+
+
+(defun assignment-form-p (&optional (formq *current-form-queue*))
+  "Test wheterthe head of FORMQ is an assignment."
+  (member (caar formq) '(setq setf)))
+
+
+(defun conditional-form-p (&optional (formq *current-form-queue*))
+  "Test wheter the head of FORMQ is a conditional form."
+  (member (caar formq) '(if case)))
+
+
+(defun let-form-p (&optional (formq *current-form-queue*))
+  "Test whether the head of FORMQ is a LET block."
+  (eql (caar formq) 'let))
+
+
+(defun block-form-p (&optional (formq *current-form-queue*))
+  "Test whether the head of FORMQ is a block-introducing form."
+  (eql (caar formq) '@))
+
+
+(defun decl-form-p (&optional (formq *current-form-queue*))
+  "Test whether the head of FORMQ is a declaration of a LET block.
+
+A decl consists of a symbol representing a declared variable, and
+occurs immediately within a LET form."
+  (and (symbolp (caar formq))
+       (variable-declared-p (caar formq))
+       (let-form-p (cdr formq))))
+
+
+(defun module-form-p (&optional (formq *current-form-queue*))
+  "Test whether the head of FORMQ is a module form."
+  (eql (caar formq) 'module))
+
+
+;; context classifiers
+
 (defun in-top-level-context-p ()
   "Test whether the current context is top-level."
-  (and (= (length *current-form-queue*) 1)
-       (eql (car (current-form)) 'module)))
+  (null (containing-form)))
+
+
+(defun in-module-context-p ()
+  "Test whether the current context is the body of a module."
+  (not (in-block-context-p)))
 
 
 (defun in-block-context-p ()
   "Test whether the current context is within an @-block."
-  (some (lambda (form)
-	  (eql (car form) '@))
-	*current-form-queue*))
-
-
-(defun in-module-context-p ()
-  "Test whether the current context is directly within a module."
-  (not (in-block-context-p)))
+  (find-if-list #'block-form-p (cdr *current-form-queue*)))
 
 
 (defun in-setf-context-p ()
-  "Test if we're ina  SETF or SETQ context."
-  (some (lambda (form)
-	  (member (car form) '(setq setf)))
-	*current-form-queue*))
-
-
-(defun in-non-expression-context-p ()
-  "Test whether we're in a non-expression context."
-  (or (in-block-context-p)
-      (in-module-context-p)
-      (and (>= (length *current-form-queue*) 1)
-	   (eql (car (containing-form)) 'progn))))
-
-
-(defun in-let-decl-context-p ()
-  "Test whether we're in a LET decl context."
-  (some (lambda (form)
-	  (variable-declared-p (car form)))
-	*current-form-queue*))
+  "Test if we're in a SETF or SETQ context."
+  (find-if-list #'assignment-form-p *current-form-queue*))
 
 
 (defun in-expression-context-p ()
-  "Test whether we're in an expression context."
-  (or (in-setf-context-p)
-      (in-let-decl-context-p)
-      (not (in-non-expression-context-p))))
+  "Test if we're in an expression context."
+  (and (or (operator-form-p)
+	   (conditional-form-p))
+       (find-if-list (lambda (formq)
+		       (or (assignment-form-p formq)
+			   (decl-form-p formq)))
+		     (cdr *current-form-queue*))))

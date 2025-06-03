@@ -161,7 +161,7 @@ Return a list consisting of the new form and any declarations floated.")
 			   (append oldbody (list newbody)))
 		       (if (null newenv)
 			   oldenv
-			   (add-environment-to-environment oldenv newenv)))))))
+			   (add-frame-to-environment newenv oldenv)))))))
 
       (destructuring-bind (fargs fenv)
 	  (foldr #'pairwise-append args (list '() (make-frame)))

@@ -25,28 +25,29 @@
 
 (test test-progn-type
   "Test we can typecheck a PROGN correctly."
-  (is (subtypep (vl:typecheck (copy-tree '(let ((a 12)
-						(b 34))
-					   (+ a b))))
-		'(unsigned-byte 8)))
+  (vl:with-new-frame
+    (is (subtypep (vl:typecheck (copy-tree '(let ((a 12)
+						  (b 34))
+					     (+ a b))))
+		  '(unsigned-byte 8)))
 
-  (is (subtypep (vl:typecheck (copy-tree '(let ((a 12)
-						(b 34))
-					   (+ a b)
-					   (- 8))))
-		'(signed-byte 8)))
+    (is (subtypep (vl:typecheck (copy-tree '(let ((a 12)
+						  (b 34))
+					     (+ a b)
+					     (- 8))))
+		  '(signed-byte 8)))
 
-  ;; the larger of the two arms
-  (is (subtypep (vl:typecheck (copy-tree '(let ((a 7)
-						(b 34))
-					   (if a
-					       (progn
-						 256
-						 (+ a 1))
-					       (progn
-						 512
-						 (+ a 8))))))
-		'(unsigned-byte 5))))
+    ;; the larger of the two arms
+    (is (subtypep (vl:typecheck (copy-tree '(let ((a 7)
+						  (b 34))
+					     (if a
+						 (progn
+						   256
+						   (+ a 1))
+						 (progn
+						   512
+						   (+ a 8))))))
+		  '(unsigned-byte 5)))))
 
 
 (test test-synthesise-progn
@@ -59,7 +60,8 @@
 (test test-progn-empty-body
   "Test we can detect an empty-bodied PROGN."
   (signals (not-synthesisable)
-    (vl:typecheck (copy-tree '(let ((a 12)))))))
+    (vl:with-new-frame
+      (vl:typecheck (copy-tree '(let ((a 12))))))))
 
 
 ;; ---------- @ ----------
@@ -115,8 +117,9 @@
 		  (a 0))
 	     (vl::@ ((vl::posedge clk) a)
 	      (setq a clk)))))
-    (vl:typecheck p)
-    (is (vl:synthesise p))))
+    (vl:with-new-frame
+      (vl:typecheck p)
+      (is (vl:synthesise p)))))
 
 
 (test test-synthesise-wire-singleton
@@ -125,8 +128,9 @@
 		   (a 0))
 	      (vl::@ clk
 	       (setq a clk)))))
-    (vl:typecheck p)
-    (is (vl:synthesise p))))
+    (vl:with-new-frame
+      (vl:typecheck p)
+      (is (vl:synthesise p)))))
 
 
 (test test-synthesise-wire-trigger
@@ -135,5 +139,6 @@
 		   (a 0))
 	      (vl::@ (vl:posedge clk)
 	       (setq a clk)))))
-    (vl:typecheck p)
-    (is (vl:synthesise p))))
+    (vl:with-new-frame
+      (vl:typecheck p)
+      (is (vl:synthesise p)))))

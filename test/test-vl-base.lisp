@@ -263,7 +263,7 @@
 					 (or (vl::get-environment-property n :f env)
 					     0))
 				       env2)
-		 '(0 28 12 23 0))))))
+		 '(0 23 12 28 0))))))
 
 
 ;; ---------- Property access and update ----------
@@ -332,3 +332,14 @@
       ;; same declaration, not a new one
       (is (equal (vl::get-frame-property 'b :type env1)
 		 '(unsigned-byte 32))))))
+
+
+;; ---------- Ordering ----------
+
+(test test-test-env-ordered
+  "Test that declarations land in a frame in the same order as they're declared."
+  (let ((env (vl::make-frame)))
+    (vl::declare-environment-variable 'a '((:type (unsigned-byte 8))) env)
+    (vl::declare-environment-variable 'b '((:type (unsigned-byte 8))) env)
+    (vl::declare-environment-variable 'c '((:type (unsigned-byte 8))) env)
+    (is (equal (vl::get-frame-names env) '(a b c)))))
