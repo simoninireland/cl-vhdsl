@@ -2,22 +2,22 @@
 ;;
 ;; Copyright (C) 2024--2025 Simon Dobson
 ;;
-;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
+;; This file is part of verilisp, a very Lisp approach to hardware synthesis
 ;;
-;; cl-vhdsl is free software: you can redistribute it and/or modify
+;; verilisp is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 ;;
-;; cl-vhdsl is distributed in the hope that it will be useful,
+;; verilisp is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 ;;
 ;; You should have received a copy of the GNU General Public License
-;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
+;; along with verilisp. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
-(in-package :cl-vhdsl/def)
+(in-package :verilisp/def)
 
 
 ;; ---------- Synthesisable types (should be moved to rtl) ----------
@@ -303,26 +303,28 @@ The word is compiled little-endian."
 
 ;; ---------- Evaluating in restricted environments ----------
 
-(defun assembler-constant-p (n env)
-  "Test whether N is an assembler constant in ENV.
+(defun assembler-constant-p (n)
+  "Test whether N is an assembler constant.
 
 Assembler constants are named constants or labels
 for memory addresses within assembler programs."
-  (and (variable-declared-p n env)
-       (member (get-representation n env) '(:constant))))
+  (and (variable-declared-p n)
+       (member (get-representation n) '(:constant))))
 
 
-(defun close-form-in-assembler-environment (form env)
-  "Close th Lisp FORM in the assembler part of ENV.
+(defun close-form-in-assembler-environment (form)
+  "Close th Lisp FORM in the assembler part of the current enviroment.
 
 ENV is filtered to include only constants."
-  (let ((assenv (filter-environment #'assembler-constant-p env)))
+  (let ((assenv (filter-environment (lambda (n env)
+				      (assembler-constant-p n))
+				    *global-environment*)))
     (close-form-in-environment form assenv)))
 
 
-(defun eval-in-assembler-environment (form env)
-  "Evaluate Lisp FORM in the assembler environment of ENV."
-  (let ((cf (close-form-in-assembler-environment form env)))
+(defun eval-in-assembler-environment (form)
+  "Evaluate Lisp FORM in the assembler environment."
+  (let ((cf (close-form-in-assembler-environment form)))
     (eval cf)))
 
 
@@ -369,7 +371,7 @@ The list includes both the general-purpose and ABI register names.")
 An UNRECOGNISED-REGISTER is signalled if FORM doesn't name
 a recognised register."
   (if-let ((sym (symbolp form))
-	   ((m (member form *registers*))))
+	   (m (member form *registers*)))
     (cadr m)
 
     (error 'unrecognised-register :register form)))
@@ -403,11 +405,11 @@ plist consisting of the keys linked to the updated values."
     (process pl)))
 
 
-(defun assemble-instruction (ins env)
-  "Assemble INS in ENV."
+(defun assemble-instruction (ins)
+  "Assemble INS."
   (destructuring-bind (cn &rest args)
       ins
-    (let* ((vs (mapcar-plist (rcurry #'eval-in-assembler-environment env)
+    (let* ((vs (mapcar-plist #'eval-in-assembler-environment
 			     args))
 	   (mc (apply #'make-instance (cons cn vs))))
 
@@ -426,11 +428,10 @@ plist consisting of the keys linked to the updated values."
 		 (ebreak)))
 
 
-(let ((env (add-frame (empty-environment))))
+(with-new-frame
   (dolist (reg *registers*)
     (declare-variable (car reg) `((:as :constant)
-				  (:initial-value ,(cadr reg)))
-		      env))
-  (assemble-instruction (cadr *test*) env)
+				  (:initial-value ,(cadr reg)))))
+  (assemble-instruction (cadr *test*))
 
   )

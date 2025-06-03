@@ -2,22 +2,22 @@
 ;;
 ;; Copyright (C) 2024--2025 Simon Dobson
 ;;
-;; This file is part of cl-vhdsl, a Common Lisp DSL for hardware design
+;; This file is part of verilisp, a Common Lisp DSL for hardware design
 ;;
-;; cl-vhdsl is free software: you can redistribute it and/or modify
+;; verilisp is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 ;;
-;; cl-vhdsl is distributed in the hope that it will be useful,
+;; verilisp is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 ;;
 ;; You should have received a copy of the GNU General Public License
-;; along with cl-vhdsl. If not, see <http://www.gnu.org/licenses/gpl.html>.
+;; along with verilisp. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
-;; This is a transliteration into RTLisp of the "Documented Verilog UART" from
+;; This is a transliteration into Verilisp of the "Documented Verilog UART" from
 ;; https://github.com/cyrozap/osdvu/blob/master/uart.v
 ;;
 ;; Copyright (C) 2010 Timothy Goddard (tim@goddard.net.nz)
@@ -41,7 +41,7 @@
 ;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 ;; THE SOFTWARE.
 
-(in-package :cl-vhdsl/examples/uart)
+(in-package :verilisp/examples/uart)
 
 
 (defmodule uart ((clk             :width 1 :direction :in)

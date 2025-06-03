@@ -1,19 +1,21 @@
 # Makefile includes for IceStick FPGA programming with the icestorm toolchain
 #
-# Copyright (C) 2024--2025, Simon Dobson
+# Copyright (C) 2023--2025 Simon Dobson
 #
-# This is free software: you can redistribute it and/or modify
+# This file is part of verilisp, a very Lisp approach to hardware synthesis
+#
+# verilisp is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# This software is distributed in the hope that it will be useful,
+# verilisp is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this software. If not, see <http://www.gnu.org/licenses/gpl.html>.
+# along with verilisp. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 # ---------- Device ----------
 
@@ -29,7 +31,7 @@ CONTAINER_TAG = icestorm
 # ---------- Tools ----------
 
 # Tools
-VHDSLC = ../../../bin/vhdslc
+VERILISPC = ../../../bin/verilispc
 SYNTH = yosys
 PNR = nextpnr-ice40
 PACK = icepack
@@ -38,7 +40,7 @@ DOCKER = docker
 RM = rm -fr
 
 # Tool options
-VHDSLC_OPTS =
+VERILISPC_OPTS = -e elaborated.lisp --debug -W all --verbose
 SYNTH_OPTS = -q
 PNR_OPTS = -q
 PROGRAM_OPTS =
@@ -64,7 +66,7 @@ endif
 .SUFFIXES: .v .pcf .json .asc .bin
 
 %.v: $(SOURCES) $(CONFIG)
-	$(VHDSLC) $(VHDSLC_OPTS) -o $*.v $(SOURCES)
+	$(VERILISPC) $(VERILISPC_OPTS) -o $*.v $(SOURCES)
 
 .v.json:
 	$(IN_CONTAINER) $(SYNTH) $(SYNTH_OPTS) -p "synth_ice40 -top $(TOPMODULE) -json $*.json" $<

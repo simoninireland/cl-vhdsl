@@ -1,0 +1,8 @@
+* RISC-V 32-bit integer core in emulation
+
+  This file is an emulator for the RV32I core written in idiomatic
+  Lisp. This gives us a reference implementation of how the core
+  should behave, lets us run RV32I assembler from Lisp, and provides a
+  model for how a Lisp programmer might code-up such a core when
+  thinking independently of synthesis. This in turn provides a
+  starting point for turning idiomatic Lisp into Verilisp.

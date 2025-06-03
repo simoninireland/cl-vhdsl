@@ -16,6 +16,7 @@
 # along with this software. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 include ../../icestick.mk
+include ../risc-v.mk
 
 
 # ---------- Target code ----------
@@ -31,7 +32,6 @@ OBJECT = core.v
 
 # Assembly code
 ASM_SOURCES = firmware.s
-ASM_OBJECT = firmware.hex
 
 
 # ---------- Tools ----------
@@ -40,13 +40,21 @@ ASM_OBJECT = firmware.hex
 RM = rm -fr
 
 
+# ---------- Derived filenames ----------
+
+ASM_STEMS = $(foreach fn,$(ASM_SOURCES), $(shell basename $(fn) .s))
+ASM_GENERATED = $(foreach stem,$(ASM_STEMS),$(stem).o $(stem).hex)
+ASM_OBJECTS = $(foreach stem,$(ASM_STEMS),$(stem).o)
+ASM_HEXES = $(foreach stem,$(ASM_STEMS),$(stem).hex)
+
+
 # ---------- Top-level targets ----------
 
 # Build the target bitstream
 $(TARGET): $(OBJECT) $(CONFIG)
 
 
-$(OBJECT): $(ASM_OBJECT) $(SOURCES)
+$(OBJECT): $(ASM_HEXES) $(SOURCES)
 
 
 # Upload the target bitstream to the device
@@ -62,38 +70,6 @@ clean:
 # Print a help message
 help:
 	@make usage
-
-
-# ---------- Assembler rules ----------
-
-AS = riscv64-linux-gnu-as
-LD = riscv64-linux-gnu-ld
-OBJDUMP = riscv64-linux-gnu-objdump
-GREP = grep
-BASH = bash
-SED = sed
-AWK = awk
-DD = dd
-OD = od
-
-AS_OPTS = -march=rv32i -mabi=ilp32 -mno-relax
-LD_OPTS = -T bram.ld -m elf32lriscv -nostdlib
-
-ASM_STEMS = $(foreach fn,$(ASM_SOURCES), $(shell basename $(fn) .s))
-ASM_GENERATED += $(foreach stem,$(ASM_STEMS),$(stem).o $(stem).hex)
-
-.SUFFIXES: .s .o .hex
-
-.s.o:
-	$(AS) $(AS_OPTS) $*.s -o $*.o
-
-.o.hex:
-	$(OBJDUMP) -h $*.o | \
-	$(GREP) .text |\
-	$(SED) -e 's|\s\+|\t|g' -e 's|^\s\+||g'| \
-	$(AWK) '{print "$(DD) if=$*.o bs=1 count=$$((0x"$$3")) skip=$$((0x"$$6")) status=none";}' | \
-	$(BASH) | \
-	$(OD) -Anone -tx4 >$*.hex
 
 
 # ----- Usage -----

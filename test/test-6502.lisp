@@ -12,7 +12,7 @@
   (BNZ :mode (relative :offset (.FROM COPY))))
 
 
-(in-package :cl-vhdsl/systems/6502)
+(in-package :verilisp/systems/6502)
 
 (assemble (:origin #16r1000)
   (lda :addressing-mode (immediate :value 12))
