@@ -41,6 +41,7 @@
    #:n-copies
    #:filter-by-predicates
    #:sublist
+   #:find-if-list
    #:alist-keys
    #:successive-pairs
    #:adjacent-pairs

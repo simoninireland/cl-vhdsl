@@ -295,6 +295,29 @@ The list (a b c d) transforms to the list ((a b) (c d))."
 	(pairup l))))
 
 
+(defun find-if-list (pred l)
+  "Find the first element of L matching PRED.
+
+PRED should be a function accepting a list argument. Return the
+sub-list whose head is the first match.
+
+This function is like FIND-IF, but works with only one list and allows
+PRED access to each sub-list rather than each element for making its
+decision.
+"
+  (labels ((fil (l)
+	     (cond ((null l)
+		    nil)
+
+		   ((funcall pred l)
+		    l)
+
+		   (t
+		    (fil (cdr l))))))
+
+    (fil l)))
+
+
 ;; ---------- Alist access, updating, and merging ----------
 
 (defun alist-keys (al)
