@@ -154,7 +154,8 @@
 								  (+ rs1 Iimm))
 								 (t
 								  (+ pc 4)))
-							   :type (unsigned-byte 32)))
+							   :type (unsigned-byte 32)
+							   :as :wire))
 
 					       (setq writeBackData (if (or isJAL isJALR)
 								       (+ pc 4)
