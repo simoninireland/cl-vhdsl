@@ -67,10 +67,6 @@
 			     (:file "loader")
 			     (:file "embedding")
 			     (:file "conditions")))
-	       ;; (:module "dsl"
-	       ;;	:components ((:file "package")
-	       ;;		     (:file "dsl")
-	       ;;		     (:file "conditions")))
 
 	       (:module "def"
 		:components ((:file "package")
@@ -91,17 +87,6 @@
   :serial t
   :components ((:file "package")
 	       (:file "test-utils")
-	       ;;(:file "test-debugging")
-	       ;;(:file "test-mop")
-	       ;;(:file "test-assembler")
-	       ;;(:file "test-wires")
-	       ;;(:file "test-wiring")
-	       ;;(:file "test-registers")
-	       ;;(:file "test-alu")
-	       ;;(:file "test-datapath")
-	       ;;(:file "test-ring-counters")
-	       ;;(:file "test-microinstructions")
-	       ;;(:file "test-dsl")
 	       (:file "test-vl-base")
 	       (:file "test-vl-types")
 	       (:file "test-vl-assignment")

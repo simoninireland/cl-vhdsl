@@ -18,8 +18,7 @@
 ;; along with verilisp. If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 (defpackage verilisp/test
-  (:use :cl :alexandria :fiveam :verilisp :verilisp/utils
-	)
+  (:use :cl :alexandria :fiveam :verilisp/utils)
   (:local-nicknames
    (:def :verilisp/def))
   (:import-from :fiveam #:is #:test))

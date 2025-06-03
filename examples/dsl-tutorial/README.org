@@ -1,5 +1,0 @@
-* DSL definition tutorial
-
-  This directory contains the code for the DSL tutorial, defining a
-  DSL for a trivial language that can define variables and assign to
-  them.
