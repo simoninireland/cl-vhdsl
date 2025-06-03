@@ -1,9 +1,9 @@
-.. _rtl-rep-spec-binders:
+.. _core-rep-spec-binders:
 
 Representation-specific binders
 ===============================
 
-The general-purpose :ref:`rtl-binders` provide for the selection of
+The general-purpose :ref:`vl-binders` provide for the selection of
 representations (as wires, registers, and constants) for bindings.
 However, sometimes a block of bindings with the *same* representation
 is needed, and these can be declared using the representation-specific

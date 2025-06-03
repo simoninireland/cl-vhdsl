@@ -1,4 +1,4 @@
-.. _rtl-cond:
+.. _core-cond:
 
 ``cond``
 ========

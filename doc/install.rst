@@ -11,7 +11,7 @@ should work on any standards-compliant Common Lisp.
 
 **License**: `GNU General Public License v3 or later (GPLv3) <http://www.gnu.org/licenses/gpl.html>`_
 
-**Repository**: https://github.com/simoninireland/cl-vhdsl
+**Repository**: https://github.com/simoninireland/verilisp
 
 **Maintainer**: `Simon Dobson <mailto:simoninireland@gmail.com>`_
 
@@ -19,11 +19,11 @@ should work on any standards-compliant Common Lisp.
 Installation with ASDF and QuickLisp
 ------------------------------------
 
-At the moment ``CL-VHDSL`` requires manual installation.
+At the moment ``Verilisp`` requires manual installation.
 
-All the dependencies of ``CL-VHDSL`` are in QuickLisp. Start your Lisp
+All the dependencies of ``Verilisp`` are in QuickLisp. Start your Lisp
 and run:
 
 .. code-block:: lisp
 
-   (ql:quickload "cl-vhdsl")
+   (ql:quickload "verilisp")

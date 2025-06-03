@@ -1,11 +1,11 @@
-.. _rtl-with-bitfields:
+.. _core-with-bitfields:
 
 Extracting bitfields into variables
 ===================================
 
 In defining hardware, and especially machine instructions, it is
 common to split a single wide register into fixed-width fields. This
-is so common that RTLisp provides a macro to perform the
+is so common that Verilisp provides a macro to perform the
 decomposition.
 
 

@@ -1,4 +1,4 @@
-.. _rtl-control-flow:
+.. _core-control-flow:
 
 Control flow
 ============
@@ -14,7 +14,7 @@ must be made from a single form.
 ``@``
 -----
 
-The ``@`` form is specific to RTLisp.
+The ``@`` form is specific to Verilisp.
 
 Chip logic often needs to be "sensitised" by changes in a specific set
 of wires or values: a classic example is for synchronous components

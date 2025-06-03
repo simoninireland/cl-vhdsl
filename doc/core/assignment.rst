@@ -1,4 +1,4 @@
-.. _rtl-assignment:
+.. _core-assignment:
 
 Assignment
 ==========

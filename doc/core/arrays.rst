@@ -1,4 +1,4 @@
-.. _rtl-arrays:
+.. _core-arrays:
 
 Arrays
 ======
@@ -64,7 +64,7 @@ are interpreted using the given radix. They can be split on different
 lines is desired: any such formatting is ignored.
 
 
-.. _rtl-arrays-element-access:
+.. _core-arrays-element-access:
 
 Element access
 --------------
@@ -77,7 +77,7 @@ To access an element of an array use the ``aref`` form:
 	 (b 0))
       (setq b (aref a 0)))
 
-The same form works as a generalised place for :ref:`rtl-assignment`:
+The same form works as a generalised place for :ref:`vl-assignment`:
 
 .. code-block:: lisp
 

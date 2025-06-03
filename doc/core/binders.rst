@@ -1,9 +1,9 @@
-.. _rtl-binders:
+.. _core-binders:
 
 Binders
 =======
 
-RTLisp's main binding form is ``let``. This behaves as it does in
+Verilisp's main binding form is ``let``. This behaves as it does in
 Lisp, but also accepts additional keyword arguments in each assignment
 clause the help code generation.
 
@@ -40,5 +40,5 @@ Keyword arguments
 
 .. note::
 
-   RTLisp also has :ref:`rtl-rep-spec-binders` to save entering
+   Verilisp also has :ref:`core-rep-spec-binders` to save entering
    representations for all variables.

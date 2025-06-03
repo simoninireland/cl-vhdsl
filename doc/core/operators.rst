@@ -1,9 +1,9 @@
-.. _rtl-operators:
+.. _core-operators:
 
 Operators
 =========
 
-RTLisp includes a wide range of mathematical and logical operators. In
+Verilisp includes a wide range of mathematical and logical operators. In
 general these are the same as those in Lisp, and behave identically.
 
 
@@ -31,7 +31,7 @@ Lisp operators
 +---------------+------------------------------+--------------------+
 
 
-RTLisp-specific operators
+Verilisp-specific operators
 -------------------------
 
 Bitwise shifts in Lisp use the ``ash`` ("arithmetic shift") function
