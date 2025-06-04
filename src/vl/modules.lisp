@@ -236,6 +236,16 @@ of other parameter values."
       (make-module-interface-type decls))))
 
 
+(defmethod dependencies-sexp ((fun (eql 'module)) args)
+  (destructuring-bind (modname decls &rest body)
+      args
+    (with-frame (get-cached-frame decls)
+
+      ;; no need to check decls or parameters as they're never dependent
+      ;; (or are they?...)
+      (mapc #'dependencies body))))
+
+
 (defmethod float-let-blocks-sexp ((fun (eql 'module)) args)
   (destructuring-bind (modname decls &rest body)
       args
