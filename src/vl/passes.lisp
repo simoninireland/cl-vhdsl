@@ -32,9 +32,7 @@ free instances to new names.")
   (:method ((form integer))
     '())
   (:method ((form symbol))
-    (if (variable-declared-p form)
-	'()
-	(list form)))
+    (list form))
   (:method ((form list))
     (destructuring-bind (fun &rest args)
 	form
@@ -42,9 +40,21 @@ free instances to new names.")
 
 
 (defgeneric free-variables-sexp (fun args)
-  (:documentation "Return all variables free in FU applied to ARGS.")
+  (:documentation "Return all variables free in FUN applied to ARGS.")
   (:method (fun args)
     (foldr #'union (mapcar #'free-variables args) '())))
+
+
+(defun traverse-dependencies (ns)
+  "Traverse the dependencies for the variables NS.
+
+This returns the dependencies of the NS, and all the dependencies of those
+dependencies, and so on recursively."
+  (foldr #'union (mapcar (lambda (n)
+			   (append (list n)
+				   (variable-property n :dependencies :default nil)))
+			 ns)
+	 '()))
 
 
 ;; ---------- Variable re-writing ----------
@@ -128,6 +138,22 @@ calculations that can be done early.")
 
 This matches a form (SETF (SELECTOR SELECTORARGS) VAL) and allows
 different selectors to be used as generalised places."))
+
+
+;; ---------- Dependencies ----------
+
+(defgeneric dependencies (form)
+  (:documentation "Find all the depenencies in FORM.")
+  (:method ((form list))
+    (destructuring-bind (fun &rest args)
+	form
+      (dependencies-sexp fun args))))
+
+
+(defgeneric dependencies-sexp (fun args)
+  (:documentation "Find the dependencies of FUN applied to ARGS.")
+  (:method (fun args)
+    (mapc #'dependencies args)))
 
 
 ;; ---------- Let block coalescence ----------
