@@ -49,10 +49,13 @@ free instances to new names.")
   "Traverse the dependencies for the variables NS.
 
 This returns the dependencies of the NS, and all the dependencies of those
-dependencies, and so on recursively."
+dependencies, and so on recursively. Constants do not count as dependencies
+as they can't be updated."
   (foldr #'union (mapcar (lambda (n)
-			   (append (list n)
-				   (variable-property n :dependencies :default nil)))
+			   (if (static-constant-p n)
+			       nil
+			       (append (list n)
+				       (variable-property n :dependencies :default nil))))
 			 ns)
 	 '()))
 
@@ -71,8 +74,7 @@ names to their new form. No checks are performed.")
 		       :key #'symbol-name
 		       :test #'string-equal)))
       ;; reference to rewriteable variable, re-write it
-      (let ((w (cadr a)))
-	w)
+      (cadr a)
 
       ;; leave alone
       form))
