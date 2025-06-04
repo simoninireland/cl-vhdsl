@@ -149,12 +149,19 @@ type-checked, macro-expanded, and possibly had other passes applied."
 This runs all the relevant compiler nanopasses, returning a list
 consisting of the module interface type and the fully-elaborated
 module ready for synthesis."
-  (let* ((expanded (expand-macros form))
-	 (intf  (typecheck expanded))
-	 (floated (car (float-let-blocks expanded)))
-	 (simplified (simplify-progn floated)))
+  ;; expand macrs
+  (let ((expanded (expand-macros form)))
 
-    (list intf simplified)))
+    ;; typecheck
+    (let ((intf (typecheck expanded)))
+      ;; add dependencies
+      (dependencies expanded)
+
+      ;; simplify
+      (let* ((floated (car (float-let-blocks expanded)))
+	     (simplified (simplify-progn floated)))
+
+	(list intf simplified)))))
 
 
 (defmacro defmodule (modname decls &body body)
