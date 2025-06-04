@@ -29,10 +29,6 @@
 A variable is free in a form if it hasn't appeared in a binder
 that binds that variable. Use REWRITE-VARIABLES to re-write
 free instances to new names.")
-  (:method ((form integer))
-    '())
-  (:method ((form symbol))
-    (list form))
   (:method ((form list))
     (destructuring-bind (fun &rest args)
 	form
@@ -43,21 +39,6 @@ free instances to new names.")
   (:documentation "Return all variables free in FUN applied to ARGS.")
   (:method (fun args)
     (foldr #'union (mapcar #'free-variables args) '())))
-
-
-(defun traverse-dependencies (ns)
-  "Traverse the dependencies for the variables NS.
-
-This returns the dependencies of the NS, and all the dependencies of those
-dependencies, and so on recursively. Constants do not count as dependencies
-as they can't be updated."
-  (foldr #'union (mapcar (lambda (n)
-			   (if (static-constant-p n)
-			       nil
-			       (append (list n)
-				       (variable-property n :dependencies :default nil))))
-			 ns)
-	 '()))
 
 
 ;; ---------- Variable re-writing ----------
@@ -156,6 +137,22 @@ different selectors to be used as generalised places."))
   (:documentation "Find the dependencies of FUN applied to ARGS.")
   (:method (fun args)
     (mapc #'dependencies args)))
+
+
+(defun traverse-dependencies (ns)
+  "Traverse the dependencies for the variables NS.
+
+This returns the dependencies of the NS, and all the dependencies of those
+dependencies, and so on recursively. Constants do not count as dependencies
+as they can't be updated."
+  (foldr #'union (mapcar (lambda (n)
+			   (if (static-constant-p n)
+			       nil
+			       (append (list n)
+				       (and (not (static-constant-p n))
+					    (variable-property n :dependencies :default nil)))))
+			 ns)
+	 '()))
 
 
 ;; ---------- Let block coalescence ----------

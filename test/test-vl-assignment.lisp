@@ -125,7 +125,7 @@
     (vl::declare-variable 'd '((:type (unsigned-byte 8))))
 
     (vl::dependencies '(setq a (+ b c 23)))
-    (is (set-equal (vl::variable-property 'a :dependencies)
+     (is (set-equal (vl::variable-property 'a :dependencies)
 		   '(b c)))
 
     ;; assigning a to d should traverse into a's dependencies

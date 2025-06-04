@@ -63,8 +63,8 @@ isn't declared."
       tyval)))
 
 
-(defmethod dependencies-sexp ((fun (eql 'setf)) args)
-  (dependencies-sexp `(setf ,@args)))
+(defmethod dependencies-sexp ((fun (eql 'setq)) args)
+  (dependencies `(setf ,@args)))
 
 
 (defmethod synthesise-sexp ((fun (eql 'setq)) args)
