@@ -227,9 +227,8 @@
 			(setq reset reset-in)))))
 
     (vl:with-new-frame
-      (setq p (vl:expand-macros p))
-      (vl:typecheck p)
-      (is (vl:synthesise p)))))
+      (let ((m (vl:elaborate-module p)))
+	(is (vl:synthesise (cadr m)))))))
 
 
 (test test-module-real-instanciate

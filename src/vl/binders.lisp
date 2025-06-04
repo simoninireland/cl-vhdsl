@@ -267,7 +267,7 @@ right-hand side of an assignment."
       (mapc #'dependencies-decl (decls-without-cached-frame decls))
 
       ;; process the body in this frame, with these dependencies
-      (mapc #'dependencies body))))
+      (dependencies `(progn ,@body)))))
 
 
 

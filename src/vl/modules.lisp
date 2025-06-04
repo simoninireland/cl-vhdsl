@@ -243,7 +243,7 @@ of other parameter values."
 
       ;; no need to check decls or parameters as they're never dependent
       ;; (or are they?...)
-      (mapc #'dependencies body))))
+      (dependencies `(progn body)))))
 
 
 (defmethod float-let-blocks-sexp ((fun (eql 'module)) args)
@@ -482,28 +482,20 @@ and causes a NOT-IMPORTABLE error if not."
 
 
 (defmethod dependencies-sexp ((fun (eql 'make-instance)) args)
-  (destructuring-bind (modname &rest initargs)
-      args
-
-    ;; skip (because everything has to be an expression)
-    t))
+  ;; skip (because everything has to be an expression)
+  nil)
 
 
 (defmethod free-variables-sexp ((fun (eql 'make-instance)) args)
   (destructuring-bind (modname &rest initargs)
-      args1
+      args
 
     ;; for compatability with Common Lisp usage
     (unquote modname)
 
     (let ((modargs (values-to-arguments modname initargs)))
-      (foldr #'union (mapcar #'free-variables modargs) '())
+      (foldr #'union (mapcar #'free-variables modargs) '()))))
 
-      )
-
-)
-
-  )
 
 (defmethod rewrite-variables-sexp ((fun (eql 'make-instance)) args rewrites)
   (labels ((rewrite-args (l)

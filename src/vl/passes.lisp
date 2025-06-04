@@ -126,7 +126,9 @@ different selectors to be used as generalised places."))
 ;; ---------- Dependencies ----------
 
 (defgeneric dependencies (form)
-  (:documentation "Find all the depenencies in FORM.")
+  (:documentation "Find all the depenencies in FORM.
+
+Return a list of variables whose dependencies have been changed.")
   (:method ((form list))
     (destructuring-bind (fun &rest args)
 	form
@@ -134,9 +136,11 @@ different selectors to be used as generalised places."))
 
 
 (defgeneric dependencies-sexp (fun args)
-  (:documentation "Find the dependencies of FUN applied to ARGS.")
+  (:documentation "Find the dependencies of FUN applied to ARGS.
+
+Return a list of variables whose dependencies have been changed.")
   (:method (fun args)
-    (mapc #'dependencies args)))
+    (foldr #'union (mapcar #'dependencies args) '())))
 
 
 (defun traverse-dependencies (ns)
@@ -148,9 +152,8 @@ as they can't be updated."
   (foldr #'union (mapcar (lambda (n)
 			   (if (static-constant-p n)
 			       nil
-			       (append (list n)
-				       (and (not (static-constant-p n))
-					    (variable-property n :dependencies :default nil)))))
+			       (union (list n)
+				      (variable-property n :dependencies :default nil))))
 			 ns)
 	 '()))
 

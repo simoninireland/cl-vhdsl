@@ -140,7 +140,9 @@ The default is for a form /not/ to be a generalised place.")
     (let* ((fvs (free-variables v))
 	   (all-fvs (traverse-dependencies fvs))
 	   (deps (variable-property n :dependencies :default nil)))
-      (set-variable-property n :dependencies (union deps all-fvs)))))
+      (set-variable-property n :dependencies (union deps all-fvs))
+
+      (list n))))
 
 
 (defmethod synthesise-sexp ((fun (eql 'setf)) args)
