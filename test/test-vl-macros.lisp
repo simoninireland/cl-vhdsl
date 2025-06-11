@@ -139,3 +139,18 @@
   (signals (vl:representation-mismatch)
      (vl::expand-macros-in-environment '(vl:let-wires ((a 10 :as :constant))
 				   (setq a 12)))))
+
+
+(test test-no-macro-synthesis
+  "Test we can't synthesise if there are macros left enexpanded."
+
+  ;; should catch an unknown form if we typecheck without expanding
+  (let ((p (copy-tree '(let ((a 1))
+			(incf a)))))
+    (signals (vl:unknown-form)
+      (vl:typecheck p)))
+
+  ;; should fail if we try to synthesise
+  (let ((p (copy-tree '(when 1 (+ 1 2)))))
+    (signals (vl:not-synthesisable)
+      (vl:synthesise p))))
