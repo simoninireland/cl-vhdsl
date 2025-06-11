@@ -26,7 +26,7 @@
 
 (test test-state-machine-jumps
   "Test we can jump within a state machine."
-  (is (vl:expand-macros '(vl:state-machine
+  (is (vl:expand-macros-in-environment '(vl:state-machine
 			   (test-even
 			    (incf a)
 			    (vl::next test-odd))
@@ -40,7 +40,7 @@
 
 (test test-state-machine-nested
   "Test we can expand a nested pair of a state machines."
-  (is (vl:expand-macros '(vl:state-machine
+  (is (vl:expand-macros-in-environment '(vl:state-machine
 			(test-even
 			 (incf a)
 			 (vl::next test-odd))
@@ -59,7 +59,7 @@
 
 (test test-state-machine-reenter
   "Test we can re-enter a nested machine."
-  (is (vl:expand-macros '(vl:state-machine
+  (is (vl:expand-macros-in-environment '(vl:state-machine
 			    (test-even
 			     (incf a)
 			     (vl::next test-odd))
@@ -78,7 +78,7 @@
 
 (test test-state-machine-before-after
   "Test we include state machine before and after code."
-  (is (vl:expand-macros '(vl:state-machine
+  (is (vl:expand-macros-in-environment '(vl:state-machine
 			   (:before
 			    (setf a 0))
 			   (:after
@@ -87,7 +87,7 @@
 			    (incf a)
 			    (vl::next test-odd))
 			   (test-odd
-			    (incf a)
+			    (incf  a)
 			    (if (> a 10)
 				(vl::next test-odd)
 				(vl::next test-even)))))))
@@ -96,7 +96,7 @@
 (test test-state-machine-not-state
   "Test we detect jumping to an undefined state."
   (signals (vl:state-machine-mismatch)
-    (vl:expand-macros '(vl:state-machine
+    (vl:expand-macros-in-environment '(vl:state-machine
 			 (test-even
 			  (incf a)
 			  (vl::next test-ttt))
@@ -107,7 +107,7 @@
 (test test-state-machine-not-before
   "Test we detect jumping to a special state."
   (signals (vl:state-machine-mismatch)
-    (vl:expand-macros '(vl:state-machine
+    (vl:expand-macros-in-environment '(vl:state-machine
 			 (test-even
 			  (incf a)
 			  (vl::next test-ttt))
@@ -121,7 +121,7 @@
 (test test-state-machine-not-surrounding-state
   "Test we detect exiting to an undefined state in the surrounding machine."
   (signals (vl:state-machine-mismatch)
-    (vl:expand-macros '(vl:state-machine
+    (vl:expand-macros-in-environment '(vl:state-machine
 			 (test-even
 			  (incf a)
 			  (vl::next test-odd))
@@ -138,7 +138,7 @@
 (test test-state-machine-not-next-state
   "Test we detect trying to jump (rather than exit) to a state in the surrounding machine."
   (signals (vl:state-machine-mismatch)
-    (vl:expand-macros '(vl:state-machine
+    (vl:expand-macros-in-environment '(vl:state-machine
 			 (test-even
 			  (incf a)
 			  (vl::next test-odd))
