@@ -27,8 +27,8 @@
   "The frame containing all the macros available in Verilisp.
 
 The frame is initially detatched. It should be attached to the global
-environment before calling EXPAND-MACROS (and can be detatched again
-afterwards).")
+environment before calling EXPAND-MACROS-IN-ENVIRONMENT (and can be
+detached again afterwards).")
 
 
 ;; declare all macros available by default
