@@ -75,6 +75,11 @@ actual way these forms are captured is unfortunately implementation-specific."
 
 ;; ---------- Continuing compilation after an error ----------
 
+(defun recover-on-error-report (str)
+  "Report the restart to STR with context"
+  (format str "Recover from ~a" (current-form)))
+
+
 (defmacro with-recover-on-error (recovery &body body)
   "Run the BODY forms, offering a restart that runs the RECOVERY form on error.
 
@@ -87,7 +92,7 @@ still synthesise code."
        (progn
 	 ,@body)
      (recover ()
-       :report "Perform recovery action and continue"
+       :report recover-on-error-report
        ,recovery)))
 
 
