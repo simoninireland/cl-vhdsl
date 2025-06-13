@@ -117,15 +117,15 @@
 	(flet ((aluIn1 ()
 		 rs1)
 	       (aluIn2 ()
-		 (if isALUreg
+		 (if (isALUreg)
 		     rs2
-		     Iimm))
+		     (Iimm)))
 	       (shamt ()
-		 (if isALUreg
+		 (if (isALUreg)
 		     (bref rs2 4 :end 0)
 		     (bref instr 24 :end 20))))
 
-	  (let-registers ((aluOut 0 :type (unsigned-byte 32)))
+	  (let ((aluOut 0 :type (unsigned-byte 32)))
 
 	    (@ (*)
 	       (case (funct3)
@@ -165,21 +165,21 @@
 		  (state       0 :type (unsigned-byte 3)))
 
 	      (flet ((nextpc ()
-		       (cond (isJAL
-			      (+ pc Jimm))
-			     (isJALR
-			      (+ rs1 Iimm))
+		       (cond ((isJAL)
+			      (+ pc (Jimm)))
+			     ((isJALR)
+			      (+ rs1 (Iimm)))
 			     (t
 			      (+ pc 4)))))
 
-		(setq writeBackData (if (or isJAL isJALR)
+		(setq writeBackData (if (or (isJAL) (isJALR))
 					(+ pc 4)
 					aluOut))
 		(setq writeBackEn (and (= state EXECUTE)
-				       (or isALUReg
-					   isALUImm
-					   isJAL
-					   isJALR)))
+				       (or (isALUReg)
+					   (isALUImm)
+					   (isJAL)
+					   (isJALR))))
 
 		(@ (posedge clk)
 		   (if reset
