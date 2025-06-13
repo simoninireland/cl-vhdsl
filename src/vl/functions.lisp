@@ -65,10 +65,10 @@ single-expression bodies."
 
       ;; check arguments and body
       (unless (null arglist)
-	(error 'type-mismatch :expected "no arguments" :got arglist
+	(warn 'type-mismatch :expected "no arguments" :got arglist
 			      :hint "Currently Verlisp only allows functions of no arguments"))
       (unless (= (length body) 1)
-	(error 'type-mismatch :expected "expression" :got body
+	(warn 'type-mismatch :expected "expression" :got body
 			      :hint "Currently Verilisp only allows single-expression bodies in functions"))
 
       (let ((ty (typecheck `(progn ,@body))))
@@ -113,7 +113,7 @@ single-expression bodies."
 
       ;; only no-argument functions for now
       (unless (null args)
-	(error 'type-mismatch :expected "no arguments" :got args
+	(warn 'type-mismatch :expected "no arguments" :got args
 			      :hint "Currently Verlisp only allows functions of no arguments"))
 
       ;; type of call is the return type
