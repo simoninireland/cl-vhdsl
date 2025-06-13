@@ -366,7 +366,7 @@ right-hand side of an assignment."
 
 ;; ---------- Floating ----------
 
-;; This is the same as for FLET, and should be refatored.
+;; This is the same as for FLET, and should be refactored.
 
 (defmethod float-let-blocks-sexp ((fun (eql 'let)) args)
   (declare (optimize debug))
@@ -394,7 +394,7 @@ right-hand side of an assignment."
   "Simplify an implied PROGN represented by BODY.
 
 This removes nested PROGN blocks, singleton PROGNs that can be
-repalced by a list of forms, and other simplifications needed
+replaced by a list of forms, and other simplifications needed
 by LET and MODULE forms."
   (foldr (lambda (l arg)
 	   (if (and (listp arg)
