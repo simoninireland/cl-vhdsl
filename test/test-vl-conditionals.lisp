@@ -19,15 +19,15 @@
 
 (in-package :verilisp/test)
 (in-suite verilisp/vl)
-q
+
 
 ;; ---------- Single- and double-armeed condtionals (IF) ----------
 
 (test test-if-then-else
   "Test we can check a complete if form."
   (is (subtypep (vl:typecheck '(if 1
-				 (+ 1 2)
-				 (+ 16 8)))
+				(+ 1 2)
+				(+ 16 8)))
 		'(unsigned-byte 6))))
 
 
