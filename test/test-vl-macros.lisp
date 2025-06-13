@@ -152,5 +152,5 @@
 
   ;; should fail if we try to synthesise
   (let ((p (copy-tree '(when 1 (+ 1 2)))))
-    (signals (vl:not-synthesisable)
+    (signals (vl:unknown-variable)
       (vl:synthesise p))))

@@ -30,6 +30,10 @@
 (def-suite verilisp/def)   ;; architectural component definitions
 
 
+;; make sure we don;t have variables hangoing around
+(vl::clear-global-environment)
+
+
 ;; ---------- File access relative to the project root ----------
 
 ;; This lets tests access data files stored elsewhere in the project

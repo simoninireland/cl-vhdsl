@@ -113,7 +113,24 @@ calculations that can be done early.")
 
 
 (defgeneric typecheck-sexp (fun args)
-  (:documentation "Type-check the application of FUN to ARGS in the global environment."))
+  (:documentation "Type-check the application of FUN to ARGS in the global environment.
+
+FUN will usually be a built-in form, but can also be a function designator.")
+  (:method ((fun symbol) args)
+
+    ;; if fun isn't known, report it
+    (unless (variable-declared-p fun)
+      (error 'unknown-form :form fun
+			   :hint "Is this function defined?"))
+
+    (let ((type (get-type fun)))
+      (if (function-type-p type)
+	  ;; we have a function call, synthesise it
+	  (typecheck-function-call-sexp fun args)
+
+	  ;; otherwise we have a call to an unknown function
+	  (error 'type-mismatch :expected "function type" :got type
+				:hint "Make sure function is declared")))))
 
 
 (defgeneric typecheck-sexp-setf (selector val selectorargs &key sync)
@@ -283,7 +300,13 @@ this will have *MACRO-ENVIRONMENT* attached to it prior to macro expansion.")
 
 
 (defgeneric synthesise-sexp (fun args)
-  (:documentation "Write the synthesised Verilog of FUN called with ARGS in the current environment."))
+  (:documentation "Write the synthesised Verilog of FUN called with ARGS in the current environment.
+
+FUN will usually be a built-in form, but can also be a function designator.")
+  (:method ((fun symbol) args)
+    (let ((type (get-type fun)))
+      ;; must be a function call, synthesise it
+      (synthesise-function-call-sexp fun args))))
 
 
 ;; ---------- Lispification ----------

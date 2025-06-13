@@ -48,9 +48,9 @@
 (deftype representation ()
   "The type of variable representations.
 
-Valid representations in LET forms are :REGISTER, :WIRE, or :CONSTANT.
-(:PARAMETER is also valid from MODULE forms.)"
-  '(member :register :wire :constant))
+Valid representations in LET forms are :REGISTER, :WIRE, :CONSTANT, :FUNCTION,
+and :MACRO. (:PARAMETER is also valid from MODULE forms.)"
+  '(member :register :wire :constant :function :macro :parameter))
 
 
 (defun representation-p (rep)
@@ -63,7 +63,8 @@ Valid representations in LET forms are :REGISTER, :WIRE, or :CONSTANT.
 
 Signal REPRESENTATION-MISMATCH as an error if not."
   (unless (representation-p rep)
-    (error 'representation-mismatch :expected (list :register :wire :constant) :got rep)))
+    (error 'representation-mismatch :expected (list :register :wire :constant :macro :function :parameter)
+				    :got rep)))
 
 
 ;; ---------- Frame caching ----------
@@ -365,6 +366,8 @@ right-hand side of an assignment."
 
 ;; ---------- Floating ----------
 
+;; This is the same as for FLET, and should be refatored.
+
 (defmethod float-let-blocks-sexp ((fun (eql 'let)) args)
   (declare (optimize debug))
 
@@ -378,7 +381,7 @@ right-hand side of an assignment."
       (when (null newenv)
 	(setq newenv (make-frame)))
       (let ((f (get-cached-frame decls)))
-	;; add the new declaratiosn to the front of NEWENV
+	;; add the new declarations to the front of NEWENV
 	(add-frame-to-environment f newenv t)
 
 	;; return the re-written body and the new environment
