@@ -30,7 +30,15 @@
 
     ;; normal declaration
     (let ((p (copy-tree '(flet ((lsb ()
-				 (vl:bref b 0)))
+				 (= (vl:bref b 0) 1)))
+			  (setf b (+ b 1))))))
+      (is (vl:typecheck p)))
+
+    ;; several declarations
+    (let ((p (copy-tree '(flet ((lsb ()
+				 (= (vl:bref b 0) 1))
+				(msb ()
+				 (= (vl:bref b 10) 1)))
 			  (setf b (+ b 1))))))
       (is (vl:typecheck p)))
 
@@ -41,14 +49,35 @@
       (signals (vl:type-mismatch)
 	(vl:typecheck p)))
 
-
     ;; reject functions with too-complicated bodies
     (let ((p (copy-tree '(flet ((lsb ()
 				 (setf b 1)
 				 (setf b (+ b 1))))
 			  (setf b (+ b 1))))))
-      (signals (cvl:type-mismatch)
+      (signals (vl:type-mismatch)
 	(vl:typecheck p)))))
+
+
+(test test-test-function-expand-macros
+  "Test we can expand macros in function declarations."
+  (vl::with-new-frame
+    (let ((p (copy-tree (vl::simplify-progn
+			 (vl:expand-macros-in-environment
+			  '(flet ((lsb ()
+				   (when b 1))
+				  (msb ()
+				   (unless (= (bref b 0) 1) 0)))
+			    (setf b (+ b 1))))))))
+
+      (destructuring-bind (fun decls &rest body)
+	  p
+	(is (eql fun 'flet))
+	(is (equal (length decls) 2))
+	(is (equal (length body) 1))
+	(is (eql (caar decls) 'lsb))
+	(is (eql (caadr decls) 'msb))
+	(let ((body (elt (car decls) 2)))
+	  (is (eql (car body) 'if)))))))
 
 
 (test test-function-decl-synthesise

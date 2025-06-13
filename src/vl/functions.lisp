@@ -66,16 +66,17 @@ single-expression bodies."
       ;; check arguments and body
       (unless (null arglist)
 	(warn 'type-mismatch :expected "no arguments" :got arglist
-			      :hint "Currently Verlisp only allows functions of no arguments"))
+			     :hint "Currently Verlisp only allows functions of no arguments"))
       (unless (= (length body) 1)
 	(warn 'type-mismatch :expected "expression" :got body
-			      :hint "Currently Verilisp only allows single-expression bodies in functions"))
+			     :hint "Currently Verilisp only allows single-expression bodies in functions"))
 
-      (let ((ty (typecheck `(progn ,@body))))
+      (let* ((expr (car body))
+	     (ty (typecheck expr)))
 	;; declare the function
 	(declare-variable n `((:as :function)
 			      (:type (function () ,ty))
-			      (:initial-value ,@body)))))))
+			      (:initial-value ,expr)))))))
 
 
 (defun typecheck-function-env (decls)
@@ -118,6 +119,45 @@ single-expression bodies."
 
       ;; type of call is the return type
       rtype)))
+
+
+;; ---------- Macro expansion ----------
+
+(defun expand-macros-function-decl (decl)
+  "Expand macros in the body of DECL."
+  (destructuring-bind (n arglist &rest body)
+      decl
+    `(,n ,arglist ,(expand-macros `(progn ,@body)))))
+
+
+(defmethod expand-macros-sexp ((fun (eql 'flet)) args)
+  (destructuring-bind (decls &rest body)
+      args
+    (let ((newdecls (mapcar #'expand-macros-function-decl decls))
+	  (newbody (expand-macros (cons 'progn body))))
+      `(flet ,newdecls
+	 ,newbody))))
+
+
+;; ---------- PROGN simplificartion ----------
+
+(defun simplify-progn-function-decl (decl)
+  "Simplify the body of DECL."
+  (destructuring-bind (n arglist &rest body)
+      decl
+    (let ((newbody (mapcar #'simplify-progn body)))
+      `(,n ,arglist ,(simplify-implied-progn newbody)))))
+
+
+(defmethod simplify-progn-sexp ((fun (eql 'flet)) args)
+  (declare (optimize debug))
+
+  (destructuring-bind (decls &rest body)
+      args
+    (let ((newdecls (mapcar #'simplify-progn-function-decl decls))
+	  (newbody (mapcar #'simplify-progn body)))
+      `(flet ,newdecls
+	 ,(simplify-implied-progn newbody)))))
 
 
 ;; ---------- Floating ----------

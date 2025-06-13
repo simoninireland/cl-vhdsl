@@ -390,26 +390,12 @@ right-hand side of an assignment."
 
 ;; ---------- PROGN simplification ----------
 
-(defun simplify-implied-progn (body)
-  "Simplify an implied PROGN represented by BODY.
-
-This removes nested PROGN blocks, singleton PROGNs that can be
-replaced by a list of forms, and other simplifications needed
-by LET and MODULE forms."
-  (foldr (lambda (l arg)
-	   (if (and (listp arg)
-		    (eql (car arg) 'progn))
-	       (append l (cdr arg))
-	       (append l (list arg))))
-	 body
-	 '()))
-
-
 (defmethod simplify-progn-sexp ((fun (eql 'let)) args)
   (destructuring-bind (decls &rest body)
       args
     (let ((newbody (mapcar #'simplify-progn body)))
-      `(let ,decls ,@(simplify-implied-progn newbody)))))
+      `(let ,decls
+	 ,(simplify-implied-progn newbody)))))
 
 
 ;; ---------- Synthesis ----------

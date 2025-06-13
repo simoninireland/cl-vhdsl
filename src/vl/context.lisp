@@ -205,7 +205,7 @@ that is that form."
 
 
 ;; form classifiers
-;; We pass in a queue (list) of forms because we ma need more context than
+;; We pass in a queue (list) of forms because we may need more context than
 ;; just the form we're interested in.
 
 (defun operator-form-p (&optional (formq *current-form-queue*))
@@ -217,7 +217,7 @@ that is that form."
 
 
 (defun assignment-form-p (&optional (formq *current-form-queue*))
-  "Test wheterthe head of FORMQ is an assignment."
+  "Test wheter the head of FORMQ is an assignment."
   (member (caar formq) '(setq setf)))
 
 
