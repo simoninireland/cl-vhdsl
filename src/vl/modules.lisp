@@ -246,30 +246,83 @@ of other parameter values."
       (dependencies `(progn body)))))
 
 
+(defun restore-let-blocks (env body)
+  "Restore ENV in order around BODY.
+
+Each frame in ENV is full either of registers (a LET) or of
+functions (and FLET), which together declare all the variables
+in BODY."
+  (labels ((flet-block-frame-p (f)
+	     "Test whether P is a frame for a FLET block."
+	     (let ((n (car (get-frame-names f))))
+	       (function-type-p (get-frame-property n :type f))))
+
+	   (let-block-frame-p (f)
+	     "Test whether F is a frame for LET block."
+	     (not (flet-block-frame-p f)))
+
+	   (expand-decl-to-let (decl f)
+	     "Expand DECL from F as as the element of a LET or FLET block."
+	     (let ((n (car decl)))
+	       (list n
+		     (get-frame-property n :initial-value f))))
+
+	   (expand-frames (env body)
+	     "Expand the declarations of ENV as a nested sequence of LET or FLET blocks around BODY."
+	     (declare (optimize debug))
+	     (break)
+	     (if (empty-frame-p env)
+		 ;; empty frame, skip
+		 (if-let ((p (parent-frame env)))
+		   ;; has a parent, wrap body in parent block
+		   (expand-frames p body)
+
+		   ;; topmost frame, just return the body
+		   body)
+
+		 ;; non-empty frame, expand
+		 (let ((newdecls (mapcar (rcurry #'expand-decl-to-let env) (decls env)))
+		       (let/flet (if (flet-block-frame-p env)
+				     'flet
+				     'let)))
+		   (break)
+		   ;; cache the environment in the decls
+		   (appendf newdecls (list (list 'frame env)))
+
+		   ;; construct the body
+		   (let ((bl `(,let/flet ,newdecls
+					 ,body)))
+		     (if-let ((p (parent-frame env)))
+		       ;; has a parent, wrap block in parent block
+		       (expand-frames p bl)
+
+		       ;; topmost frame, just return the block
+		       bl))))))
+
+    (expand-frames env body)))
+
+
 (defmethod float-let-blocks-sexp ((fun (eql 'module)) args)
+  (declare (optimize debug))
+
   (destructuring-bind (modname decls &rest body)
       args
     (destructuring-bind (newbody newenv)
 	(float-let-blocks `(progn ,@body))
       (list
+       ;; re-expand the module with all the declarations at the front
        `(module ,modname ,decls
 		,(if newenv
 		     ;; declare the floated declarations around the body
-		     (let ((newdecls (mapcar (lambda (np)
-					       (destructuring-bind (n &rest props)
-						   np
-						 (list n
-						       (get-environment-property n :initial-value newenv))))
-					     (decls newenv))))
-
-		       ;; cache the environment in the decls
-		       (appendf newdecls (list (list 'frame newenv)))
-
-		       `(let ,newdecls
-			  ,newbody))
+		     (let ((wrappedbody (restore-let-blocks newenv newbody)))
+		       (break)
+		       ;; return the expanded body
+		       wrappedbody)
 
 		     ;; no declarations, just use the new body
 		     newbody))
+
+       ;; ...and no remaining declarations to float
        (make-frame)))))
 
 

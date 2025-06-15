@@ -366,26 +366,30 @@ right-hand side of an assignment."
 
 ;; ---------- Floating ----------
 
-;; This is the same as for FLET, and should be refactored.
-
-(defmethod float-let-blocks-sexp ((fun (eql 'let)) args)
+(defun float-let/flet-blocks (decls body)
+  "FLoat LET or FLET blocks declaring DECLS over BODY."
   (declare (optimize debug))
 
+  (destructuring-bind (newbody newenv)
+      (float-let-blocks `(progn ,@body))
+
+    (break)
+    ;; add our declarations to the environment
+    (let ((f (get-cached-frame decls)))
+      (if (or (null newenv)
+	      (empty-frame-p newenv))
+	  ;; no nested environment, return a copy of our cached frame
+	  (list newbody (copy-frame f))
+
+	  ;; nested blocks, prepend ours to it
+	  (let ((extenv (add-frame-to-environment f newenv t)))
+	    (list newbody extenv))))))
+
+
+(defmethod float-let-blocks-sexp ((fun (eql 'let)) args)
   (destructuring-bind (decls &rest body)
       args
-
-    (destructuring-bind (newbody newenv)
-	(float-let-blocks `(progn ,@body))
-
-      ;; add our declarations to the environment
-      (when (null newenv)
-	(setq newenv (make-frame)))
-      (let ((f (get-cached-frame decls)))
-	;; add the new declarations to the front of NEWENV
-	(add-frame-to-environment f newenv t)
-
-	;; return the re-written body and the new environment
-	(list newbody newenv)))))
+    (float-let/flet-blocks decls body)))
 
 
 ;; ---------- PROGN simplification ----------
@@ -395,7 +399,7 @@ right-hand side of an assignment."
       args
     (let ((newbody (mapcar #'simplify-progn body)))
       `(let ,decls
-	 ,(simplify-implied-progn newbody)))))
+	 ,@(simplify-implied-progn newbody)))))
 
 
 ;; ---------- Synthesis ----------
@@ -404,7 +408,7 @@ right-hand side of an assignment."
   "Test whether TYPE is an array type.
 
 There's a slight problem in that the size or shape of the array
-type may be Verilisp expressions, whcih don't play well with SUBTYPEP.
+type may be Verilisp expressions, which don't play well with SUBTYPEP.
 To avoid this we do the check manually."
   (or (and (listp type)
 	   (eql (car type) 'array))

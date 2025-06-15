@@ -146,7 +146,7 @@ single-expression bodies."
   (destructuring-bind (n arglist &rest body)
       decl
     (let ((newbody (mapcar #'simplify-progn body)))
-      `(,n ,arglist ,(simplify-implied-progn newbody)))))
+      `(,n ,arglist ,@(simplify-implied-progn newbody)))))
 
 
 (defmethod simplify-progn-sexp ((fun (eql 'flet)) args)
@@ -157,31 +157,15 @@ single-expression bodies."
     (let ((newdecls (mapcar #'simplify-progn-function-decl decls))
 	  (newbody (mapcar #'simplify-progn body)))
       `(flet ,newdecls
-	 ,(simplify-implied-progn newbody)))))
+	 ,@(simplify-implied-progn newbody)))))
 
 
 ;; ---------- Floating ----------
 
-;; This is the same as for LET, and should be refatored.
-
 (defmethod float-let-blocks-sexp ((fun (eql 'flet)) args)
-  (declare (optimize debug))
-
   (destructuring-bind (decls &rest body)
       args
-
-    (destructuring-bind (newbody newenv)
-	(float-let-blocks `(progn ,@body))
-
-      ;; add our declarations to the environment
-      (when (null newenv)
-	(setq newenv (make-frame)))
-      (let ((f (get-cached-frame decls)))
-	;; add the new declarations to the front of NEWENV
-	(add-frame-to-environment f newenv t)
-
-	;; return the re-written body and the new environment
-	(list newbody newenv)))))
+    (float-let/flet-blocks decls body)))
 
 
 ;; ---------- Synthesis of declarations ----------

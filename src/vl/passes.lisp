@@ -196,6 +196,8 @@ the form with re-written versions of ARGS.
 
 Return a list consisting of the new form and any declarations floated.")
   (:method (fun args)
+    (declare (optimize debug))
+
     (flet ((pairwise-append (old form)
 	     (destructuring-bind (oldbody oldenv)
 		 old
@@ -204,12 +206,14 @@ Return a list consisting of the new form and any declarations floated.")
 		 (list (if (null oldbody)
 			   (list newbody)
 			   (append oldbody (list newbody)))
-		       (if (null newenv)
+		       (if (or (null newenv)
+			       (empty-frame-p newenv))
 			   oldenv
 			   (add-frame-to-environment newenv oldenv)))))))
 
       (destructuring-bind (fargs fenv)
 	  (foldr #'pairwise-append args (list '() (make-frame)))
+	(break)
 	`((,fun ,@fargs) ,fenv)))))
 
 

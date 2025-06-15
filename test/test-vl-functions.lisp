@@ -90,6 +90,24 @@
     (is (vl:synthesise p))))
 
 
+(test test-function-float-let-flet
+  "Test we can float LET and FLET blocks correctly."
+  (vl::with-new-frame
+    (let ((p (copy-tree '(vl:module test/1 ((c :direction :in))
+			  (let ((a 10))
+			    (flet ((f () (= a 1)))
+			      (let ((b 20))
+				(setf b (f)))))))))
+      (vl:typecheck p)
+      (vl:float-let-blocks p)
+
+      )
+
+
+    )
+
+  )
+
 ;; ---------- Calls ----------
 
 (test test-function-call
@@ -113,3 +131,23 @@
 			       (:initial-value (+ 1 2 3))))
 
     (is (vl:synthesise '(f) ))))
+
+
+(test test-function-call-in-expression
+  "Test we can call a function in an expression."
+  (vl::with-new-frame
+    (let ((p (copy-tree '(let ((instr 0 :width 32)
+			       b)
+			  (flet ((Iimm ()
+				   (vl:make-bitfields (vl:extend-bits (vl:bref instr 31) 21)
+						      (vl:bref instr 30 :end 20)))
+				 (isJump ()
+				   0))
+
+			    (setf b (cond ((isJump)
+					   (+ b (Iimm)))
+					  (t
+					   0))))))))
+
+      (setf p (vl:expand-macros-in-environment p))
+      (is (subtypep (vl:typecheck p) '(unsigned-byte 33))))))

@@ -56,8 +56,10 @@
 			      (y 10 :type (unsigned-byte 8))
 			      (z 44 :as :constant))
 			  (vl::@ (vl::posedge clk)
-				 (setf x (+ x b) :sync t)))))))
+				 (setf x (+ x b) :sync t)
+				 (setf y 0)))))))
     (vl:typecheck p)
+    (setq p (vl:simplify-progn p))
     (is (vl:synthesise p))))
 
 

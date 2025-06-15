@@ -95,6 +95,13 @@ Returns the extended version of ENV (which is actually just F)."
   f)
 
 
+(defun copy-frame (f)
+  "Return a copy of F.
+
+The copy is detached, and the same declarations as F in a new list."
+  (make-instance 'frame :decls (copy-tree (decls f))))
+
+
 (defun get-frame-properties-assoc (n env)
   "Return the alist association of N to properties in ENV.
 
@@ -269,23 +276,35 @@ Signals a DUPLICATE-VARIABLE error if the variable already exists in this frame.
   env)
 
 
+(defun get-root-frame (env)
+  "Return the root frame of ENV.
+
+The root frame is the frame with a null PARENT-FRAME."
+  (if-let ((p (parent-frame env)))
+    (get-root-frame p)
+
+    env))
+
+
 (defun add-frame-to-environment (f env &optional at-start)
   "Add all entries from F to ENV.
 
-If AT-START is non-nil, add the entrues to the start of ENV; otherwise
+If AT-START is non-nil, add the entries to the start of ENV; otherwise
 (by default) add them to the end. In either case the entries appear in
 ENV in the same order as they appear in F.
 
-Return ENV."
-  (let ((ns (if at-start
-		(reverse (get-frame-names f))
-		(get-frame-names f))))
+Return the new environment."
+  (declare (optimize debug))
 
-    (dolist (n ns)
-      (let ((props (get-environment-properties n f)))
-	(declare-environment-variable n props env at-start))))
+  (let ((newf (copy-frame f)))
+    (if at-start
+	(let ((root (get-root-frame env)))
+	  (setf (parent-frame root) newf)
+	  env)
 
-  env)
+	(progn
+	  (setf (parent-frame newf) env)
+	  newf))))
 
 
 (defun filter-environment (pred env)

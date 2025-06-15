@@ -60,14 +60,13 @@
 (defun simplify-implied-progn (body)
   "Simplify an implied PROGN represented by BODY.
 
-This removes nested PROGN blocks, singleton PROGNs that can be
-replaced by a list of forms, and other simplifications needed
-by LET and MODULE forms."
+This removes nested PROGN blocks."
   (foldr (lambda (l arg)
-	   (if (and (listp arg)
-		    (eql (car arg) 'progn))
-	       (append l (cdr arg))
-	       (append l arg)))
+	   (if (listp arg)
+	       (if (eql (car arg) 'progn)
+		   (append l (cdr arg))
+		   (append l (list arg)))
+	       (append (list arg))))
 	 body
 	 '()))
 
@@ -76,12 +75,7 @@ by LET and MODULE forms."
   (destructuring-bind (&rest body)
       args
     (let ((newbody (mapcar #'simplify-progn body)))
-      (if (= (length newbody) 1)
-	  ;; if PROGN has a single form within, un-nest
-	  (car newbody)
-
-	  ;; otherwise, leave nested
-	  `(progn ,(simplify-implied-progn newbody))))))
+      `(progn ,@(simplify-implied-progn newbody)))))
 
 
 (defmethod synthesise-sexp ((fun (eql 'progn)) args)
